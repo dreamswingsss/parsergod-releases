@@ -1,0 +1,13 @@
+ParserGod использует библиотеку parser-2gis.
+
+parser-2gis — © Andy Trofimov (interlark@gmail.com)
+https://github.com/interlark/parser-2gis
+Модификации: форк https://github.com/Eroloft/parser-2gis-new и доработки ParserGod
+(поиск Edge/Яндекс.Браузера, доп. флаги браузера).
+
+Библиотека распространяется по лицензии GNU LGPL v3 (файл LICENSE-LGPL.txt).
+Исходный код библиотеки лежит рядом с программой в папке parser_2gis
+(в macOS: ParserGod.app/Contents/Resources/parser_2gis) — её можно заменить
+своей совместимой версией.
+
+Шрифты Golos Text и Unbounded — SIL Open Font License 1.1 (app/ui/fonts).

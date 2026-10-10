@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ParserGod</title>
+<style>
+@font-face{font-family:Golos;font-weight:400;src:url(fonts/golos-text-cyrillic-400-normal.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Golos;font-weight:400;src:url(fonts/golos-text-latin-400-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Golos;font-weight:500;src:url(fonts/golos-text-cyrillic-500-normal.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Golos;font-weight:500;src:url(fonts/golos-text-latin-500-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Golos;font-weight:600;src:url(fonts/golos-text-cyrillic-600-normal.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Golos;font-weight:600;src:url(fonts/golos-text-latin-600-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Golos;font-weight:700;src:url(fonts/golos-text-cyrillic-700-normal.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Golos;font-weight:700;src:url(fonts/golos-text-latin-700-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Unbounded;font-weight:500;src:url(fonts/unbounded-cyrillic-500-normal.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Unbounded;font-weight:500;src:url(fonts/unbounded-latin-500-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:Unbounded;font-weight:600;src:url(fonts/unbounded-cyrillic-600-normal.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Unbounded;font-weight:600;src:url(fonts/unbounded-latin-600-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
+
+:root{
+  --ink:#000000;        /* основной текст, кнопки */
+  --ink-2:#4D4D4D;      /* второстепенный текст */
+  --ink-3:#8F8F8F;      /* подсказки */
+  --paper:#F4F4F4;      /* фон окна */
+  --sheet:#FFFFFF;      /* таблица */
+  --grid:#E0E0E0;       /* линии сетки */
+  --gutter:#EFEFEF;     /* шапка/номера строк таблицы */
+  --mark:#D4D4D4;       /* серая плашка под счётчиком */
+  --ok:#000000;
+  --bad:#000000;
+  --radius-s:6px;
+  --radius-m:10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:14px/1.45 Golos,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper);
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:392px 1fr;height:100vh}
+
+/* ---------- левая колонка: заказ ---------- */
+.order{display:flex;flex-direction:column;border-right:1px solid var(--grid);background:var(--paper);min-height:0}
+.brand{display:flex;align-items:baseline;justify-content:space-between;padding:18px 24px 6px}
+.brand b{font:600 17px/1 Unbounded,Golos,sans-serif;letter-spacing:-.01em}
+.brand span{color:var(--ink-3);font-size:12px}
+.form{flex:1;overflow-y:auto;padding:8px 24px 16px}
+.block{padding:14px 0;border-bottom:1px solid var(--grid)}
+.block:last-child{border-bottom:0}
+.block h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--ink)}
+.hint{color:var(--ink-3);font-size:12px;margin:6px 0 0}
+
+.field{position:relative;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:42px;padding:6px 8px;
+  background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-m);cursor:text}
+.field:focus-within{border-color:var(--ink)}
+.field input{flex:1;min-width:110px;border:0;outline:0;background:transparent;padding:4px 2px}
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--ink);color:#fff;border-radius:var(--radius-s);
+  padding:3px 4px 3px 9px;font-size:13px;font-weight:500}
+.tag button{border:0;background:transparent;color:#fff;opacity:.7;cursor:pointer;width:18px;height:18px;line-height:16px;padding:0;border-radius:4px}
+.tag button:hover{opacity:1;background:rgba(255,255,255,.15)}
+.tag small{opacity:.65;font-weight:400}
+
+.drop{position:absolute;left:-1px;right:-1px;top:calc(100% + 4px);background:var(--sheet);border:1px solid var(--ink);
+  border-radius:var(--radius-m);padding:4px;z-index:20;max-height:260px;overflow:auto;box-shadow:0 12px 28px rgba(0,0,0,.12)}
+.drop div{padding:7px 10px;border-radius:var(--radius-s);cursor:pointer;display:flex;justify-content:space-between}
+.drop div small{color:var(--ink-3)}
+.drop div.on,.drop div:hover{background:var(--gutter)}
+.drop .none{color:var(--ink-3);cursor:default}
+
+.seg{display:flex;border:1px solid var(--grid);border-radius:var(--radius-m);background:var(--sheet);padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:transparent;padding:7px 0;border-radius:7px;cursor:pointer;font-weight:500;color:var(--ink-2)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+
+.chips{display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-m);overflow:hidden}
+.chip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--grid);background:transparent;
+  padding:8px 12px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+.chip:last-child{border-bottom:0}
+.chip:hover{background:var(--gutter)}
+.chip::before{content:"";width:14px;height:14px;border-radius:3px;border:1.5px solid var(--ink-3);flex:none}
+.chip[aria-pressed=true]{color:var(--ink);font-weight:500}
+.chip[aria-pressed=true]::before{background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat;border-color:var(--ink)}
+.chip:disabled{cursor:default;opacity:.6}
+.chip:disabled:hover{background:transparent}
+.subhead{font-size:12px;color:var(--ink-2);margin:10px 0 6px}
+.subhead:first-of-type{margin-top:0}
+.linkbtn{border:0;background:none;padding:0;color:var(--ink-2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-size:12px}
+
+.opt{display:flex;gap:10px;align-items:flex-start;padding:6px 0;cursor:pointer}
+.opt input{appearance:none;flex:none;width:30px;height:18px;border-radius:9px;background:var(--grid);position:relative;margin:1px 0 0;cursor:pointer;transition:background .15s}
+.opt input::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .15s}
+.opt input:checked{background:var(--ink)}
+.opt input:checked::after{left:14px}
+.opt span small{display:block;color:var(--ink-3);font-size:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+.row select,.row input[type=number]{border:1px solid var(--grid);border-radius:var(--radius-s);background:var(--sheet);padding:5px 8px}
+.row input[type=number]{width:90px}
+
+details{padding:12px 0 4px}
+summary{cursor:pointer;font-size:13px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"";width:6px;height:6px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);transform:rotate(-45deg);transition:transform .15s}
+details[open] summary::before{transform:rotate(45deg)}
+.path{font-size:12px;color:var(--ink-2);word-break:break-all;background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-s);padding:6px 8px;margin-top:4px}
+
+.go{padding:16px 24px 20px;border-top:1px solid var(--grid);background:var(--paper)}
+.go button{width:100%;height:48px;border:0;border-radius:var(--radius-m);background:var(--ink);color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+.go button:hover{background:#2E2E2E}
+.go button.stop{background:var(--sheet);color:var(--ink);border:1.5px solid var(--ink)}
+.go .err{color:var(--ink);font-weight:600;font-size:13px;margin:0 0 10px}
+.go .err:empty{display:none}
+.warn{margin:8px 24px 0;padding:10px 12px;border-radius:var(--radius-m);background:#EBEBEB;border:1px solid #C4C4C4;font-size:13px}
+.warn[hidden]{display:none}
+
+/* ---------- правая часть: лист ---------- */
+.result{display:flex;flex-direction:column;min-width:0;min-height:0}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:18px 28px 14px}
+.count{display:flex;align-items:baseline;gap:12px}
+.count b{font:600 54px/1 Unbounded,Golos,sans-serif;letter-spacing:-.03em;background:linear-gradient(transparent 62%,var(--mark) 62% 92%,transparent 92%);padding:0 4px;margin-left:-4px}
+.count span{color:var(--ink-2);font-size:15px}
+.status{text-align:right;color:var(--ink-2);font-size:13px;max-width:52%}
+.status strong{display:block;color:var(--ink);font-size:14px;font-weight:600}
+.status .bar{height:3px;background:var(--grid);border-radius:2px;margin-top:8px;overflow:hidden;width:220px;margin-left:auto}
+.status .bar i{display:block;height:100%;background:var(--ink);width:0;transition:width .4s}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+.sheetwrap{flex:1;margin:0 28px;background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-m);overflow:auto;position:relative;min-height:0}
+table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+th,td{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:6px 10px;white-space:nowrap;text-align:left;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+thead th{position:sticky;background:var(--gutter);z-index:2;font-weight:600}
+thead tr.letters th{top:0;height:24px;padding:3px 10px;color:var(--ink-3);font-weight:500;font-size:11px;text-align:center}
+thead tr.titles th{top:24px;color:var(--ink)}
+th.n,td.n{position:sticky;left:0;background:var(--gutter);color:var(--ink-3);text-align:right;width:44px;min-width:44px;font-size:11px;z-index:1}
+thead th.n{z-index:3}
+td a{color:var(--ink);text-decoration:underline;text-decoration-color:#B5B5B5;text-underline-offset:2px}
+td.muted{color:var(--ink-3)}
+tr.fresh td:not(.n){animation:marker 1.6s ease-out}
+@keyframes marker{from{background:#E4E4E4}to{background:transparent}}
+tbody.ghost td{height:31px}
+
+.empty{position:absolute;inset:86px 0 0;background:linear-gradient(rgba(255,255,255,.92),#fff 40%);display:flex;flex-direction:column;align-items:center;padding:40px 24px;text-align:center;color:var(--ink-2);pointer-events:none}
+.empty p{max-width:420px;margin:0 0 4px}
+.empty p:first-child{color:var(--ink);font-weight:600;font-size:15px}
+.empty[hidden],.recent[hidden]{display:none}
+.recent{pointer-events:auto;margin-top:28px;width:min(460px,100%);text-align:left}
+.recent h3{font-size:12px;font-weight:600;color:var(--ink-2);margin:0 0 6px}
+.recent button{display:flex;justify-content:space-between;width:100%;border:0;background:var(--gutter);border-radius:var(--radius-s);padding:8px 10px;margin-bottom:4px;cursor:pointer;text-align:left;gap:12px}
+.recent button:hover{background:var(--grid)}
+.recent button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent button small{color:var(--ink-3);flex:none}
+
+.attn{margin:0 28px 12px;padding:12px 14px;border-radius:var(--radius-m);background:var(--sheet);border:2px solid var(--ink);font-weight:600}
+.attn[hidden]{display:none}
+.foot{display:flex;align-items:center;gap:10px;padding:12px 28px 16px;min-height:66px}
+.foot .msg{flex:1;font-size:13px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foot .msg.ok{color:var(--ok)}
+.foot .msg.bad{color:var(--ink);font-weight:600;white-space:normal}
+.btn{border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:8px 14px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn[hidden]{display:none}
+
+.log{margin:0 28px;max-height:0;overflow:auto;font-size:12px;color:var(--ink-2);transition:max-height .2s}
+#logBtn[aria-expanded=true]{border-color:var(--ink)}
+.log.open{max-height:150px;border:1px solid var(--grid);border-radius:var(--radius-m);background:var(--sheet);padding:8px 12px;margin-top:10px}
+.log div{padding:1px 0}
+.log .error{color:var(--ink);font-weight:600}
+.log .ok{color:var(--ink)}
+.log time{color:var(--ink-3);margin-right:8px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1000px){.app{grid-template-columns:340px 1fr}.count b{font-size:42px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="order">
+    <div class="brand"><b id="appName">ParserGod</b><span id="appVer"></span></div>
+    <div class="warn" id="noBrowser" hidden>
+      На компьютере не найден Chrome, Edge или Яндекс.Браузер — без него сбор не запустится.
+      <button class="linkbtn" data-url="https://www.google.com/chrome/">Скачать Google Chrome</button>
+    </div>
+    <div class="form">
+      <section class="block">
+        <h2 id="lCity">Город</h2>
+        <div class="field" id="cityField">
+          <input id="cityInput" placeholder="Начните вводить город" autocomplete="off" aria-labelledby="lCity">
+          <div class="drop" id="cityDrop" hidden></div>
+        </div>
+        <p class="hint">Небольшие города (Полевской, Ревда, Карпинск…) тоже ищутся — ParserGod сам найдёт регион 2ГИС, в который они входят.</p>
+      </section>
+
+      <section class="block">
+        <h2 id="lQuery">Что ищем</h2>
+        <div class="field" id="queryField">
+          <input id="queryInput" placeholder="кофейня, автосервис…" autocomplete="off" aria-labelledby="lQuery">
+        </div>
+        <p class="hint">Пишите, как искали бы в 2ГИС. Enter — добавить ещё один запрос.</p>
+      </section>
+
+      <section class="block">
+        <h2>Сколько организаций на каждый запрос</h2>
+        <div class="seg" id="limitSeg">
+          <button data-v="50">50</button><button data-v="100">100</button><button data-v="300">300</button><button data-v="1000">1000</button><button data-v="0">Все</button>
+        </div>
+      </section>
+
+      <section class="block">
+        <h2>Что будет в таблице</h2>
+        <div class="subhead">Контакты</div>
+        <div class="chips" id="contactChips"></div>
+        <div class="subhead">О компании</div>
+        <div class="chips" id="infoChips"></div>
+        <p class="hint"><button class="linkbtn" id="allContacts">Все контакты</button> &nbsp; <button class="linkbtn" id="onlyPhones">Только телефоны</button></p>
+      </section>
+
+      <section class="block">
+        <h2>Фильтры</h2>
+        <label class="opt"><input type="checkbox" id="fPhone"><span>Только с телефоном</span></label>
+        <label class="opt"><input type="checkbox" id="fAny"><span>Только с отмеченными контактами<small>Хотя бы один контакт из списка выше должен быть заполнен</small></span></label>
+        <label class="opt"><input type="checkbox" id="fChain"><span>Один филиал от сети<small>Убирает повторы сетевых заведений</small></span></label>
+        <div class="row"><span>Рейтинг не ниже</span>
+          <select id="fRating"><option value="0">любой</option><option value="3.5">3,5</option><option value="4">4,0</option><option value="4.5">4,5</option></select>
+        </div>
+
+        <details>
+          <summary>Дополнительно</summary>
+          <label class="opt"><input type="checkbox" id="showBrowser"><span>Показывать браузер во время сбора<small>Включите, если 2ГИС перестал отдавать результаты</small></span></label>
+          <div class="row"><span>Пауза между карточками, мс</span><input type="number" id="delay" min="0" step="100"></div>
+          <div class="subhead">Браузер</div>
+          <div class="path" id="browserPath"></div>
+          <p class="hint"><button class="linkbtn" id="pickBrowser">Указать вручную</button> &nbsp; <button class="linkbtn" id="resetBrowser" hidden>Определять автоматически</button></p>
+          <div class="subhead">Папка для таблиц</div>
+          <div class="path" id="outDir"></div>
+          <p class="hint"><button class="linkbtn" id="pickDir">Изменить</button> &nbsp; <button class="linkbtn" id="openDir">Открыть папку</button></p>
+        </details>
+      </section>
+    </div>
+    <div class="go">
+      <p class="err" id="formErr" role="alert"></p>
+      <button id="goBtn">Собрать контакты</button>
+    </div>
+  </aside>
+
+  <main class="result">
+    <div class="head">
+      <div class="count"><b id="count">0</b><span id="countLabel">организаций</span></div>
+      <div class="status" id="status"><strong>Готов к сбору</strong>Таблица появится справа по мере поиска</div>
+    </div>
+    <div class="attn" id="attn" role="alert" hidden></div>
+    <div class="sheetwrap" id="sheetwrap">
+      <table id="sheet"><thead></thead><tbody></tbody></table>
+      <div class="empty" id="empty">
+        <p>Здесь появятся организации</p>
+        <p>Выберите город, впишите запрос и нажмите «Собрать контакты». Колонки таблицы — это поля, отмеченные слева.</p>
+        <div class="recent" id="recent" hidden><h3>Последние таблицы</h3><div id="recentList"></div></div>
+      </div>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="foot">
+      <div class="msg" id="footMsg"></div>
+      <button class="btn" id="logBtn">Журнал</button>
+      <button class="btn" id="revealBtn" hidden>Показать в папке</button>
+      <button class="btn" id="saveAsBtn" hidden>Сохранить как…</button>
+      <button class="btn primary" id="openBtn" hidden>Открыть таблицу</button>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = () => window.pywebview.api;
+const MAX_ROWS_DOM = 600;
+
+let CITIES = [], LOCS = [], FIELDS = [], BROWSERS = [];
+const S = {source: '2gis', cities: [], queries: [], fields: [], limit: 100, require_any: false, require_phone: true,
+           one_per_chain: false, min_rating: 0, show_browser: false, delay_ms: 0, browser_path: '', output_dir: ''};
+let running = false, rowCursor = 0, logCursor = 0, shown = 0, timer = null, lastFile = null;
+
+/* ---------- города ---------- */
+// Ключ города: 'ekaterinburg' (регион 2ГИС) или 'loc:Полевской@ekaterinburg' (населённый пункт внутри региона)
+function cityByCode(key) {
+  if (key.startsWith('loc:')) {
+    const at = key.lastIndexOf('@'); const region = CITIES.find(x => x.code === key.slice(at + 1));
+    if (!region) return null;
+    const name = key.slice(4, at);
+    const loc = LOCS.find(l => nrm(l.n) === nrm(name) && l.c.includes(region.code));
+    return {name: name, region: loc ? loc.r : region.name, cc: region.cc, country: region.country, local: true};
+  }
+  return CITIES.find(x => x.code === key);
+}
+let pendingLocality = null;   // «Полевской», для которого выбираем регион
+function renderCityTags() {
+  const f = $('#cityField');
+  f.querySelectorAll('.tag').forEach(t => t.remove());
+  S.cities.forEach(code => {
+    const c = cityByCode(code); if (!c) return;
+    const t = tag(c.name, () => { S.cities = S.cities.filter(x => x !== code); renderCityTags(); });
+    const note = c.local ? c.region : (c.cc !== 'ru' ? c.country : '');
+    if (note) { const sm = document.createElement('small'); sm.textContent = note; t.insertBefore(sm, t.lastChild); }
+    f.insertBefore(t, $('#cityInput'));
+  });
+  $('#cityInput').placeholder = pendingLocality ? 'Регион для «' + pendingLocality + '», например Екатеринбург'
+    : (S.cities.length ? 'Ещё город' : 'Начните вводить город');
+}
+let dropIdx = 0, dropItems = [];
+const nrm = s => (s || '').toLowerCase().replace(/ё/g, 'е').trim();
+function matchCities(q) {
+  q = nrm(q);
+  const starts = CITIES.filter(c => nrm(c.name).startsWith(q));
+  const has = CITIES.filter(c => !nrm(c.name).startsWith(q) && nrm(c.name).includes(q));
+  return starts.concat(has);
+}
+// Небольшие города РФ, которых нет среди регионов 2ГИС (LOCS отсортирован по населению)
+function matchLocs(q) {
+  q = nrm(q);
+  return LOCS.filter(l => nrm(l.n).startsWith(q) && l.c.length);
+}
+function renderDrop() {
+  const raw = $('#cityInput').value.trim();
+  const q = raw.toLowerCase();
+  const d = $('#cityDrop');
+  dropItems = []; d.innerHTML = ''; dropIdx = 0;
+  const head = text => { const h = document.createElement('div'); h.className = 'none'; h.textContent = text; d.appendChild(h); };
+  if (pendingLocality) {
+    head('В какой регион 2ГИС входит «' + pendingLocality + '»?');
+    const list = q ? matchCities(q) : CITIES.filter(c => c.cc === 'ru');
+    list.slice(0, 8).forEach(c => dropItems.push({label: c.name, sub: c.cc !== 'ru' ? c.country : '',
+      act: () => { addCity('loc:' + pendingLocality + '@' + c.code); }}));
+    if (!list.length) head('Такого региона нет в списке');
+  } else {
+    if (!q) { d.hidden = true; return; }
+    const regs = matchCities(q).filter(c => !S.cities.includes(c.code)).slice(0, 7);
+    regs.forEach(c =>
+      dropItems.push({label: c.name, sub: c.cc !== 'ru' ? c.country : '', act: () => addCity(c.code)}));
+    const locs = raw.length >= 2 ? matchLocs(q).slice(0, Math.max(3, 8 - regs.length)) : [];
+    locs.forEach(l => {
+      const key = 'loc:' + l.n + '@' + l.c[0];
+      if (!S.cities.includes(key)) dropItems.push({label: l.n, sub: l.r, act: () => addCity(key)});
+    });
+    const exact = CITIES.some(c => nrm(c.name) === nrm(q)) || locs.some(l => nrm(l.n) === nrm(q));
+    if (!exact && raw.length >= 2) dropItems.push({label: 'Искать «' + raw + '» как населённый пункт', sub: 'нет в списке — выбрать регион вручную',
+      act: () => { pendingLocality = raw.charAt(0).toUpperCase() + raw.slice(1); $('#cityInput').value = ''; renderCityTags(); renderDrop(); }});
+  }
+  dropItems.forEach((it, i) => {
+    const el = document.createElement('div'); el.className = 'opt-item';
+    el.innerHTML = '<span></span><small></small>';
+    el.firstChild.textContent = it.label; el.lastChild.textContent = it.sub;
+    if (i === 0) el.classList.add('on');
+    el.onmousedown = e => { e.preventDefault(); it.act(); };
+    d.appendChild(el);
+  });
+  d.hidden = false;
+}
+function addCity(code) {
+  if (!S.cities.includes(code)) S.cities.push(code);
+  pendingLocality = null; $('#cityInput').value = ''; $('#cityDrop').hidden = true; renderCityTags();
+}
+$('#cityInput').addEventListener('input', renderDrop);
+$('#cityInput').addEventListener('focus', () => { if (pendingLocality) renderDrop(); });
+$('#cityInput').addEventListener('blur', () => setTimeout(() => $('#cityDrop').hidden = true, 100));
+$('#cityInput').addEventListener('keydown', e => {
+  const d = $('#cityDrop');
+  const items = [...d.querySelectorAll('.opt-item')];
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (d.hidden || !dropItems.length) return; e.preventDefault();
+    dropIdx = (dropIdx + (e.key === 'ArrowDown' ? 1 : -1) + dropItems.length) % dropItems.length;
+    items.forEach((el, i) => el.classList.toggle('on', i === dropIdx));
+  } else if (e.key === 'Enter') {
+    e.preventDefault(); if (!d.hidden && dropItems[dropIdx]) dropItems[dropIdx].act();
+  } else if (e.key === 'Backspace' && !e.target.value && !pendingLocality && S.cities.length) {
+    S.cities.pop(); renderCityTags();
+  } else if (e.key === 'Escape') { pendingLocality = null; d.hidden = true; renderCityTags(); }
+});
+$('#cityField').addEventListener('click', () => $('#cityInput').focus());
+
+/* ---------- запросы ---------- */
+function tag(text, onRemove) {
+  const t = document.createElement('span'); t.className = 'tag';
+  t.append(document.createTextNode(text));
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Убрать ' + text);
+  b.onclick = e => { e.stopPropagation(); onRemove(); };
+  t.appendChild(b); return t;
+}
+function renderQueryTags() {
+  const f = $('#queryField');
+  f.querySelectorAll('.tag').forEach(t => t.remove());
+  S.queries.forEach((q, i) => f.insertBefore(tag(q, () => { S.queries.splice(i, 1); renderQueryTags(); }), $('#queryInput')));
+  $('#queryInput').placeholder = S.queries.length ? 'Ещё запрос' : 'кофейня, автосервис…';
+}
+function flushQueryInput() {
+  const parts = $('#queryInput').value.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+  parts.forEach(p => { if (!S.queries.some(q => q.toLowerCase() === p.toLowerCase())) S.queries.push(p); });
+  $('#queryInput').value = ''; renderQueryTags();
+}
+$('#queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); flushQueryInput(); }
+  else if (e.key === 'Backspace' && !e.target.value && S.queries.length) { S.queries.pop(); renderQueryTags(); }
+});
+$('#queryInput').addEventListener('blur', flushQueryInput);
+$('#queryInput').addEventListener('paste', () => setTimeout(() => { if (/[,;\n]/.test($('#queryInput').value)) flushQueryInput(); }));
+$('#queryField').addEventListener('click', () => $('#queryInput').focus());
+
+/* ---------- источник ---------- */
+function renderSource() {
+  document.querySelectorAll('#sourceSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (S.source || '2gis'))));
+}
+document.querySelectorAll('#sourceSeg button').forEach(b => b.onclick = () => { S.source = b.dataset.v; renderSource(); });
+
+/* ---------- лимит ---------- */
+function renderLimit() {
+  document.querySelectorAll('#limitSeg button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === (S.limit || 0))));
+}
+document.querySelectorAll('#limitSeg button').forEach(b => b.onclick = () => { S.limit = +b.dataset.v || null; renderLimit(); });
+
+/* ---------- поля ---------- */
+function renderChips() {
+  for (const [box, group] of [['#contactChips', 'contact'], ['#infoChips', 'info']]) {
+    const el = $(box); el.innerHTML = '';
+    FIELDS.filter(f => f.group === group).forEach(f => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = f.title;
+      b.setAttribute('aria-pressed', String(f.key === 'name' || S.fields.includes(f.key)));
+      if (f.key === 'name') b.disabled = true;
+      b.onclick = () => {
+        S.fields = S.fields.includes(f.key) ? S.fields.filter(k => k !== f.key) : S.fields.concat(f.key);
+        renderChips(); if (!running && !shown) renderHeader();
+      };
+      el.appendChild(b);
+    });
+  }
+}
+$('#allContacts').onclick = () => { FIELDS.filter(f => f.group === 'contact').forEach(f => { if (!S.fields.includes(f.key)) S.fields.push(f.key); }); renderChips(); if (!shown) renderHeader(); };
+$('#onlyPhones').onclick = () => { S.fields = S.fields.filter(k => (FIELDS.find(f => f.key === k) || {}).group !== 'contact').concat('phone'); renderChips(); if (!shown) renderHeader(); };
+
+/* ---------- лист ---------- */
+let headerKeys = [];
+const colLetter = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+function currentKeys(withQuery) {
+  const keys = FIELDS.map(f => f.key).filter(k => k === 'name' || S.fields.includes(k));
+  return withQuery ? ['_query'].concat(keys) : keys;
+}
+function renderHeader(withQuery) {
+  headerKeys = currentKeys(withQuery);
+  const title = k => k === '_query' ? 'Запрос' : FIELDS.find(f => f.key === k).title;
+  const thead = $('#sheet thead');
+  thead.innerHTML = '<tr class="letters"><th class="n"></th>' + headerKeys.map((_, i) => '<th>' + colLetter(i) + '</th>').join('') + '</tr>'
+    + '<tr class="titles"><th class="n">1</th>' + headerKeys.map(k => '<th></th>').join('') + '</tr>';
+  thead.querySelectorAll('tr.titles th:not(.n)').forEach((th, i) => th.textContent = title(headerKeys[i]));
+  if (!shown) {
+    const tb = $('#sheet tbody'); tb.className = 'ghost';
+    tb.innerHTML = Array.from({length: 18}, (_, r) => '<tr><td class="n">' + (r + 2) + '</td>' + headerKeys.map(() => '<td></td>').join('') + '</tr>').join('');
+  }
+}
+function cell(k, v) {
+  const td = document.createElement('td');
+  if (v === null || v === undefined || v === '') { td.className = 'muted'; return td; }
+  let text = (k === 'rating' && typeof v === 'number') ? v.toFixed(1).replace('.', ',') : String(v);
+  const first = text.split(', ')[0];
+  if (/^https?:\/\//.test(first)) {
+    const a = document.createElement('a'); a.href = '#'; a.textContent = k === 'yandex' ? 'Открыть в Яндексе' : text.replace(/^https?:\/\/(www\.)?/, '');
+    a.onclick = e => { e.preventDefault(); api().open_url(first); };
+    td.appendChild(a);
+  } else td.textContent = text;
+  td.title = text;
+  return td;
+}
+function appendRows(rows) {
+  const tb = $('#sheet tbody');
+  if (!shown) { tb.innerHTML = ''; tb.className = ''; $('#empty').hidden = true; }
+  const frag = document.createDocumentFragment();
+  for (const r of rows) {
+    shown++;
+    if (shown > MAX_ROWS_DOM) continue;
+    const tr = document.createElement('tr'); tr.className = 'fresh';
+    const n = document.createElement('td'); n.className = 'n'; n.textContent = shown + 1; tr.appendChild(n);
+    headerKeys.forEach(k => tr.appendChild(cell(k, r[k])));
+    frag.appendChild(tr);
+  }
+  tb.appendChild(frag);
+  if (rows.length && shown <= MAX_ROWS_DOM) { const w = $('#sheetwrap'); w.scrollTop = w.scrollHeight; }
+}
+
+/* ---------- состояние ---------- */
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? one : (a >= 2 && a <= 4 && (b < 10 || b >= 20)) ? few : many; };
+function setCount(n) { $('#count').textContent = n.toLocaleString('ru-RU'); $('#countLabel').textContent = plural(n, 'организация', 'организации', 'организаций'); }
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+function setStatus(html) { $('#status').innerHTML = html; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
+
+function setRunning(on) {
+  running = on;
+  const b = $('#goBtn');
+  b.textContent = on ? 'Остановить' : 'Собрать контакты';
+  b.classList.toggle('stop', on);
+  document.querySelectorAll('.form input, .form select, .form button').forEach(el => { if (el.id !== 'openDir') el.disabled = on; });
+  if (!on) renderChips();
+}
+
+$('#goBtn').onclick = async () => {
+  if (running) { $('#goBtn').disabled = true; $('#goBtn').textContent = 'Останавливаю…'; await api().stop(); return; }
+  flushQueryInput();
+  readOptions();
+  const res = await api().start(Object.assign({}, S, {limit: S.limit || null}));
+  if (!res.ok) { $('#formErr').textContent = res.error; return; }
+  $('#formErr').textContent = '';
+  rowCursor = 0; logCursor = 0; shown = 0; lastFile = null;
+  $('#log').innerHTML = '';
+  const multi = (S.cities.length > 1 || S.queries.length > 1);
+  renderHeader(multi);
+  setCount(0);
+  ['#openBtn', '#revealBtn', '#saveAsBtn'].forEach(id => $(id).hidden = true);
+  $('#footMsg').className = 'msg'; $('#footMsg').textContent = '';
+  setRunning(true);
+  poll();
+};
+
+async function poll() {
+  clearTimeout(timer);
+  let st;
+  try { st = await api().status(rowCursor, logCursor); } catch (e) { timer = setTimeout(poll, 1000); return; }
+  rowCursor = st.row_cursor; logCursor = st.log_cursor;
+  if (st.rows.length) appendRows(st.rows);
+  if (st.logs.length) appendLogs(st.logs);
+  setCount(st.count);
+  if (st.needs_visible && !$('#showBrowser').checked) { $('#showBrowser').checked = true; S.show_browser = true; }
+  $('#attn').hidden = !st.attention;
+  $('#attn').textContent = st.attention || '';
+  if (st.state === 'running') {
+    const pct = st.task_count ? Math.round(st.task_index / st.task_count * 100) : 0;
+    setStatus('<strong><span class="dot"></span>Идёт сбор, ' + mmss(st.elapsed) + '</strong>'
+      + (st.task_count > 1 ? 'Запрос ' + (st.task_index + 1) + ' из ' + st.task_count + ': ' : '') + esc(st.task_label || 'запускаю браузер…')
+      + (st.task_count > 1 ? '<div class="bar"><i style="width:' + Math.max(pct, 4) + '%"></i></div>' : ''));
+    timer = setTimeout(poll, 600);
+    return;
+  }
+  finish(st);
+}
+
+function finish(st) {
+  setRunning(false);
+  $('#goBtn').disabled = false;
+  lastFile = st.file_path;
+  const has = !!st.file_path;
+  ['#openBtn', '#revealBtn', '#saveAsBtn'].forEach(id => $(id).hidden = !has);
+  const m = $('#footMsg');
+  if (st.state === 'error' && !st.count) {
+    setStatus('<strong>Сбор не удался</strong>' + mmss(st.elapsed));
+    m.className = 'msg bad'; m.textContent = st.error || 'Неизвестная ошибка. Откройте журнал.';
+  } else {
+    const how = st.state === 'stopped' ? 'Остановлено' : st.state === 'error' ? 'Прервано с ошибкой' : 'Готово';
+    setStatus('<strong>' + how + ' за ' + mmss(st.elapsed) + '</strong>' + (has ? 'Сохранено в «' + esc(st.file_path.split(/[\\/]/).pop()) + '»' : 'Ничего не найдено'));
+    $('#status').title = st.file_path || '';
+    m.className = 'msg';
+    m.textContent = has || st.state === 'stopped' ? '' : 'По этим условиям ничего не нашлось. Попробуйте ослабить фильтры или изменить запрос.';
+  }
+  if (shown > MAX_ROWS_DOM) { const tr = document.createElement('tr'); tr.innerHTML = '<td class="n"></td><td colspan="' + headerKeys.length + '" class="muted"></td>'; tr.lastChild.textContent = 'И ещё ' + (shown - MAX_ROWS_DOM) + ' строк — они в Excel-файле'; $('#sheet tbody').appendChild(tr); }
+  api().recent().then(renderRecent);
+}
+
+function appendLogs(logs) {
+  const box = $('#log');
+  logs.forEach(l => {
+    const d = document.createElement('div'); d.className = l.level;
+    const t = document.createElement('time'); t.textContent = l.t;
+    d.append(t, document.createTextNode(l.text)); box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+$('#logBtn').onclick = () => $('#logBtn').setAttribute('aria-expanded', String($('#log').classList.toggle('open')));
+$('#openBtn').onclick = () => lastFile && api().open_file(lastFile);
+$('#revealBtn').onclick = () => lastFile && api().reveal(lastFile);
+$('#saveAsBtn').onclick = async () => { const r = await api().save_as(); if (r.ok && r.path) { lastFile = r.path; $('#footMsg').className = 'msg ok'; $('#footMsg').textContent = 'Копия сохранена: ' + r.path.split(/[\\/]/).pop(); } };
+
+/* ---------- опции ---------- */
+function readOptions() {
+  S.require_phone = $('#fPhone').checked; S.require_any = $('#fAny').checked; S.one_per_chain = $('#fChain').checked;
+  S.min_rating = +$('#fRating').value; S.show_browser = $('#showBrowser').checked; S.delay_ms = +$('#delay').value || 0;
+}
+function renderOptions() {
+  $('#fPhone').checked = S.require_phone; $('#fAny').checked = S.require_any; $('#fChain').checked = S.one_per_chain;
+  $('#fRating').value = String(S.min_rating || 0); $('#showBrowser').checked = S.show_browser; $('#delay').value = S.delay_ms || 0;
+  $('#outDir').textContent = S.output_dir;
+  $('#browserPath').textContent = S.browser_path || (BROWSERS.length ? 'Автоматически: ' + BROWSERS[0] : 'Не найден');
+  $('#resetBrowser').hidden = !S.browser_path;
+  $('#noBrowser').hidden = !!(BROWSERS.length || S.browser_path);
+}
+$('#pickDir').onclick = async () => { const p = await api().choose_folder(); if (p) { S.output_dir = p; renderOptions(); api().recent().then(renderRecent); } };
+$('#openDir').onclick = () => api().open_file(S.output_dir);
+$('#pickBrowser').onclick = async () => { const p = await api().choose_browser(); if (p) { S.browser_path = p; renderOptions(); } };
+$('#resetBrowser').onclick = () => { S.browser_path = ''; renderOptions(); };
+document.querySelectorAll('[data-url]').forEach(b => b.onclick = () => api().open_url(b.dataset.url));
+
+function renderRecent(items) {
+  const box = $('#recentList'); box.innerHTML = '';
+  $('#recent').hidden = !items.length;
+  items.forEach(it => {
+    const b = document.createElement('button'); b.type = 'button';
+    const n = document.createElement('span'); n.textContent = it.name;
+    const w = document.createElement('small'); w.textContent = it.when;
+    b.append(n, w); b.onclick = () => api().open_file(it.path); box.appendChild(b);
+  });
+}
+
+/* ---------- старт ---------- */
+async function boot() {
+  const d = await api().init();
+  CITIES = d.cities; LOCS = d.localities || []; FIELDS = d.fields; BROWSERS = d.browsers;
+  Object.assign(S, d.settings);
+  $('#appName').textContent = d.app.name; $('#appVer').textContent = 'версия ' + d.app.version;
+  document.title = d.app.title;
+  renderCityTags(); renderQueryTags(); renderLimit(); renderSource(); renderChips(); renderOptions(); renderHeader(); renderRecent(d.recent);
+  setCount(0);
+}
+if (window.pywebview && window.pywebview.api && window.pywebview.api.init) boot();
+else window.addEventListener('pywebviewready', boot);
+</script>
+</body>
+</html>
