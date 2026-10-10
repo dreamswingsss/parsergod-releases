@@ -189,7 +189,7 @@ tbody.ghost td{height:31px}
           <input id="cityInput" placeholder="Начните вводить город" autocomplete="off" aria-labelledby="lCity">
           <div class="drop" id="cityDrop" hidden></div>
         </div>
-        <p class="hint">Небольшие города (Полевской, Ревда, Карпинск…) тоже ищутся — ParserGod сам найдёт регион 2ГИС, в который они входят.</p>
+        <p class="hint" id="cityHint">Небольшие города (Полевской, Ревда, Верхняя Пышма…) тоже ищутся — ParserGod сам найдёт регион 2ГИС, в который они входят.</p>
       </section>
 
       <section class="block">
@@ -316,7 +316,13 @@ function matchCities(q) {
 // Небольшие города РФ, которых нет среди регионов 2ГИС (LOCS отсортирован по населению)
 function matchLocs(q) {
   q = nrm(q);
-  return LOCS.filter(l => nrm(l.n).startsWith(q) && l.c.length);
+  return LOCS.filter(l => nrm(l.n).startsWith(q));
+}
+const CITY_HINT = () => $('#cityHint');
+let cityHintDefault = null;
+function cityHint(text) {
+  const h = CITY_HINT(); if (cityHintDefault === null) cityHintDefault = h.textContent;
+  h.textContent = text || cityHintDefault; h.style.color = text ? 'var(--ink)' : ''; h.style.fontWeight = text ? '600' : '';
 }
 function renderDrop() {
   const raw = $('#cityInput').value.trim();
@@ -337,6 +343,13 @@ function renderDrop() {
       dropItems.push({label: c.name, sub: c.cc !== 'ru' ? c.country : '', act: () => addCity(c.code)}));
     const locs = raw.length >= 2 ? matchLocs(q).slice(0, Math.max(3, 8 - regs.length)) : [];
     locs.forEach(l => {
+      if (!l.c.length) {  // город не входит ни в один регион 2ГИС
+        dropItems.push({label: l.n, sub: l.r + ' — нет в 2ГИС', act: () => {
+          $('#cityInput').value = ''; $('#cityDrop').hidden = true;
+          cityHint('«' + l.n + '» не входит ни в один регион 2ГИС — организаций оттуда в 2ГИС нет. Выберите ближайший крупный город.');
+        }});
+        return;
+      }
       const key = 'loc:' + l.n + '@' + l.c[0];
       if (!S.cities.includes(key)) dropItems.push({label: l.n, sub: l.r, act: () => addCity(key)});
     });
@@ -355,6 +368,7 @@ function renderDrop() {
   d.hidden = false;
 }
 function addCity(code) {
+  cityHint(null);
   if (!S.cities.includes(code)) S.cities.push(code);
   pendingLocality = null; $('#cityInput').value = ''; $('#cityDrop').hidden = true; renderCityTags();
 }

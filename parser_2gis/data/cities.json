@@ -192,6 +192,12 @@
         "country_code": "qa"
     },
     {
+        "name": "Кызылорда",
+        "code": "kyzylorda",
+        "domain": "ru",
+        "country_code": "kz"
+    },
+    {
         "name": "Абакан",
         "code": "abakan",
         "domain": "ru",
@@ -264,20 +270,8 @@
         "country_code": "ru"
     },
     {
-        "name": "Белорецк",
-        "code": "beloretsk",
-        "domain": "ru",
-        "country_code": "ru"
-    },
-    {
         "name": "Бийск",
         "code": "biysk",
-        "domain": "ru",
-        "country_code": "ru"
-    },
-    {
-        "name": "Биробиджан",
-        "code": "birobidzhan",
         "domain": "ru",
         "country_code": "ru"
     },
@@ -360,14 +354,14 @@
         "country_code": "ru"
     },
     {
-        "name": "Димитровград",
-        "code": "dimitrovgrad",
+        "name": "Довольное",
+        "code": "dovolnoe",
         "domain": "ru",
         "country_code": "ru"
     },
     {
-        "name": "Довольное",
-        "code": "dovolnoe",
+        "name": "Дудинка",
+        "code": "dudinka_gp",
         "domain": "ru",
         "country_code": "ru"
     },
@@ -462,6 +456,12 @@
         "country_code": "ru"
     },
     {
+        "name": "Караул",
+        "code": "karaul_sp",
+        "domain": "ru",
+        "country_code": "ru"
+    },
+    {
         "name": "Каргат",
         "code": "kargat",
         "domain": "ru",
@@ -516,6 +516,12 @@
         "country_code": "ru"
     },
     {
+        "name": "Краснодарский край",
+        "code": "krasnodarskiy_kray",
+        "domain": "ru",
+        "country_code": "ru"
+    },
+    {
         "name": "Краснозёрское",
         "code": "krasnozerskoe",
         "domain": "ru",
@@ -564,14 +570,14 @@
         "country_code": "ru"
     },
     {
-        "name": "Кызылорда",
-        "code": "kyzylorda",
-        "domain": "ru",
-        "country_code": "kz"
-    },
-    {
         "name": "Кыштовка",
         "code": "kyshtovka",
+        "domain": "ru",
+        "country_code": "ru"
+    },
+    {
+        "name": "Ленинградская область",
+        "code": "pikalevo",
         "domain": "ru",
         "country_code": "ru"
     },
@@ -804,12 +810,6 @@
         "country_code": "ru"
     },
     {
-        "name": "Пикалево",
-        "code": "pikalevo",
-        "domain": "ru",
-        "country_code": "ru"
-    },
-    {
         "name": "Псков",
         "code": "pskov",
         "domain": "ru",
@@ -882,12 +882,6 @@
         "country_code": "ru"
     },
     {
-        "name": "Сланцы",
-        "code": "slantsy",
-        "domain": "ru",
-        "country_code": "ru"
-    },
-    {
         "name": "Смоленск",
         "code": "smolensk",
         "domain": "ru",
@@ -926,12 +920,6 @@
     {
         "name": "Сыктывкар",
         "code": "syktyvkar",
-        "domain": "ru",
-        "country_code": "ru"
-    },
-    {
-        "name": "Сясьстрой",
-        "code": "syasstroy",
         "domain": "ru",
         "country_code": "ru"
     },
@@ -1046,6 +1034,12 @@
     {
         "name": "Хасавюрт",
         "code": "khasavyurt",
+        "domain": "ru",
+        "country_code": "ru"
+    },
+    {
+        "name": "Хатанга",
+        "code": "khatanga_sp",
         "domain": "ru",
         "country_code": "ru"
     },
