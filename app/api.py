@@ -98,7 +98,7 @@ class Api:
         self._job = Job()
         self._cities = _load_cities()
         self._by_code = {c['code']: c for c in self._cities}
-        self._localities = [x for x in _load_localities() if x.get('c')]
+        self._localities = [x for x in _load_localities() if 'c' in x]  # c=[] — города нет в 2ГИС, окно так и скажет
         self._loc_by_name: Dict[str, List[Dict[str, Any]]] = {}
         for x in self._localities:
             x['c'] = [c for c in x['c'] if c in self._by_code]
