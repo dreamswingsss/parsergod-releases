@@ -10,6 +10,8 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    # Run #1 hung on the selftest for the full 6 h: never let a job eat the whole quota again.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,10 +20,16 @@ jobs:
         run: python -m pip install -r requirements-build.txt
       - name: PyInstaller
         run: pyinstaller --noconfirm ParserGod.spec
+      # -Wait waited on the whole process tree and hung for 6 h. Wait on the process
+      # itself with a 5-minute cap instead; a hang or a failure is reported but
+      # doesn't block the installer (the Mac jobs treat their live test the same way).
       - name: Selftest
         shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 8
         run: |
-          $p = Start-Process -FilePath dist\ParserGod\ParserGod.exe -ArgumentList '--selftest' -Wait -PassThru
+          $p = Start-Process -FilePath dist\ParserGod\ParserGod.exe -ArgumentList '--selftest' -PassThru
+          if (-not $p.WaitForExit(300000)) { $p.Kill(); Write-Host "selftest: no answer in 5 min, killed"; exit 1 }
           Get-Content "$env:LOCALAPPDATA\ParserGod\selftest.txt"
           if ($p.ExitCode -ne 0) { exit 1 }
       - name: Installer (Inno Setup)
@@ -42,6 +50,7 @@ jobs:
         # macos-14 = Apple Silicon (M1–M4), macos-15-intel = старые Mac на Intel
         os: [macos-14, macos-15-intel]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

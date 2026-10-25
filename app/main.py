@@ -31,6 +31,10 @@ def main() -> None:
         from .selftest import run
         sys.exit(run())
 
+    if '--merge' in sys.argv:
+        from .merge import run as merge_run
+        sys.exit(merge_run(sys.argv[sys.argv.index('--merge') + 1:]))
+
     import webview
 
     from . import brand

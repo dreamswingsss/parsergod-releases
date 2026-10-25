@@ -141,8 +141,8 @@ class Api:
             'fields': [{'key': k, 'title': v['title'], 'group': v['group']} for k, v in FIELDS.items()],
             'browsers': [b[0] for b in find_browsers()],
             'settings': {
-                'cities': s.get('cities', ['moscow']),
-                'queries': s.get('queries', []),
+                'cities': [],  # каждый запуск — с чистого листа
+                'queries': [],
                 'fields': s.get('fields', DEFAULT_FIELDS),
                 'limit': s.get('limit', 100),
                 'require_any': s.get('require_any', False),
@@ -155,7 +155,7 @@ class Api:
                 'output_dir': s.get('output_dir') or str(default_output_dir()),
                 'source': '2gis',
             },
-            'recent': self.recent(),
+            'recent': [],  # история сборов на старте не показывается
         }
 
     def recent(self) -> List[Dict[str, Any]]:

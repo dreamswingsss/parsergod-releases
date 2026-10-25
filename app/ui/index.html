@@ -607,6 +607,7 @@ $('#resetBrowser').onclick = () => { S.browser_path = ''; renderOptions(); };
 document.querySelectorAll('[data-url]').forEach(b => b.onclick = () => api().open_url(b.dataset.url));
 
 function renderRecent(items) {
+  items = [];  // список прошлых таблиц скрыт: окно всегда открывается пустым
   const box = $('#recentList'); box.innerHTML = '';
   $('#recent').hidden = !items.length;
   items.forEach(it => {

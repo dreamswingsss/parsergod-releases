@@ -2,6 +2,6 @@
 
 APP_NAME = 'ParserGod'            # латиница: имя .exe / .app и папок
 APP_TITLE = 'ParserGod — сбор контактов с карт'  # заголовок окна
-APP_VERSION = '1.0.0'
+APP_VERSION = '1.0.1'
 APP_ID = 'ru.parsergod.app'       # bundle id для macOS
 SUPPORT_CONTACT = 't.me/your_support'  # куда писать клиентам; замените
