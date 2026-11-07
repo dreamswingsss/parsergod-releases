@@ -454,6 +454,8 @@ tbody.ghost td{height:31px}
 .res a{color:var(--ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .tipbox{border:1px solid rgba(245,200,75,.4);background:rgba(245,200,75,.07);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--ink-2);margin-bottom:10px}
 .tipbox b{display:block;color:#F5C84B;margin-bottom:4px}
+.msgpick{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:var(--ink-3)}
+.msgpick select{flex:1;height:32px;border:1px solid var(--grid);background:var(--paper);border-radius:8px;padding:0 8px;color:var(--ink);outline:0}
 .copied{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:50}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -687,8 +689,14 @@ tbody.ghost td{height:31px}
           <div class="pcard"><div class="pcard-h"><b>Ссылка на сайт</b><small id="dmVcState"></small></div>
             <div class="btnrow"><button class="btn primary" id="dmPublish">Опубликовать на Vercel</button><button class="btn" id="dmFileBtn">Сохранить HTML-файл</button></div>
             <div class="res" id="dmRes"></div></div>
-          <div class="pcard"><div class="pcard-h"><b>Отправить владельцу</b><small>Текст — из шаблона, выбранного внизу главного окна</small></div>
-            <div class="btnrow" id="dmSend"></div></div>
+          <div class="pcard"><div class="pcard-h"><b>Сообщение владельцу</b><small>Готовый текст со ссылкой на демо — проверьте и отправьте</small></div>
+            <div class="msgpick"><span>Текст:</span><select id="dmTpl"></select><button class="linkbtn" id="dmMsgRe">Обновить</button></div>
+            <textarea id="dmMsg" rows="6" placeholder="Выберите шаблон или ИИ — здесь появится сообщение"></textarea>
+            <div class="hint" id="dmMsgNote"></div>
+            <div class="btnrow"><button class="btn primary" id="dmMsgCopy">Скопировать текст</button></div>
+            <div class="sub-l">Или открыть чат с этим текстом</div>
+            <div class="btnrow" id="dmSend" style="margin-top:0"></div>
+            <p class="hint">Отправляете сами, с телефона или компьютера, — подключать Telegram для этого не нужно. В WhatsApp текст встанет в поле сам, в остальных — Ctrl+V.</p></div>
           <div class="nav-row"><button class="btn" data-go="2">← Дизайн</button><span></span></div>
         </div>
       </div>
@@ -1089,9 +1097,9 @@ function renderTplSelect() {
   s.value = ACTIVE_TPL;
 }
 $('#activeTpl').onchange = e => { ACTIVE_TPL = e.target.value; api().set_active_template(ACTIVE_TPL); };
-async function openChat(r, channel, cardEl, force) {
-  if (ACTIVE_TPL === '__ai__') toast('ИИ пишет сообщение…');
-  const res = await api().open_chat(r, channel, ACTIVE_TPL, !!force);
+async function openChat(r, channel, cardEl, force, override) {
+  if (ACTIVE_TPL === '__ai__' && !override) toast('ИИ пишет сообщение…');
+  const res = await api().open_chat(r, channel, ACTIVE_TPL, !!force, override || '');
   if (res.counts) setCounts(res.counts);
   if (res.lid && !BASE_IDS.has(res.lid)) { BASE_IDS.add(res.lid); markFound(res.lid); }
   if (!res.ok) {
@@ -1178,7 +1186,7 @@ async function openDemo(r) {
   if (res.counts) setCounts(res.counts);
   if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
   DM = {lead: res.lead, content: res.content, rec: r};
-  DMC = {ai: false, vc: false}; vcEdit = false; aiEdit = false;
+  DMC = {ai: false, vc: false}; vcEdit = false; aiEdit = false; $('#dmMsg').value = ''; $('#dmMsg').dataset.lid = '';
   renderAI(); renderVercel();
   $('#dmTitle').textContent = res.lead.name;
   $('#dmTitle').title = res.lead.name;
@@ -1379,9 +1387,29 @@ function renderPublish() {
   [['whatsapp', 'WhatsApp', 'ch-wa', 'i-wa'], ['telegram', 'Telegram', 'ch-tg', 'i-tg'], ['vkontakte', 'ВКонтакте', 'ch-vk', 'i-vk']].forEach(([k, t, cls, ico]) => {
     const has = k === 'whatsapp' ? (DM.lead.whatsapp || mobileOf(DM.lead.phone)) : DM.lead[k];
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.disabled = !has; b.textContent = t + (has ? '' : ' — нет');
-    b.onclick = () => openChat(DM.lead, k); box.appendChild(b);
+    b.onclick = () => openChat(DM.lead, k, null, true, $('#dmMsg').value); box.appendChild(b);
   });
+  // выбор текста — тот же, что внизу главного окна
+  const sel = $('#dmTpl');
+  sel.innerHTML = '<option value="">— выберите —</option>' + (aiOn() ? '<option value="__ai__">✨ ИИ под этого лида</option>' : '')
+    + TEMPLATES.map(t => '<option value="' + esc(t.id) + '">' + esc(t.title) + '</option>').join('');
+  sel.value = ACTIVE_TPL;
+  if (!$('#dmMsg').value || $('#dmMsg').dataset.lid !== DM.lead.id) loadDemoMsg();
 }
+async function loadDemoMsg() {
+  const tid = $('#dmTpl').value, ta = $('#dmMsg'), note = $('#dmMsgNote');
+  ta.dataset.lid = DM.lead.id; note.textContent = '';
+  if (!tid) { ta.value = ''; return; }
+  if (tid === '__ai__') { ta.value = ''; ta.placeholder = 'ИИ пишет сообщение…'; }
+  const r = await api().message_for(DM.lead.id, tid);
+  ta.placeholder = 'Выберите шаблон или ИИ — здесь появится сообщение';
+  if (!r.ok) { note.textContent = r.error; return; }
+  ta.value = r.text;
+  if (r.no_demo) note.textContent = 'Ссылки на демо пока нет — опубликуйте выше, и текст обновится сам.';
+}
+$('#dmTpl').onchange = () => { ACTIVE_TPL = $('#dmTpl').value; api().set_active_template(ACTIVE_TPL); renderTplSelect(); loadDemoMsg(); };
+$('#dmMsgRe').onclick = loadDemoMsg;
+$('#dmMsgCopy').onclick = () => { if (!$('#dmMsg').value.trim()) { toast('Сначала выберите текст'); return; } copyText($('#dmMsg').value, true); toast('Текст скопирован — вставьте его владельцу в любой мессенджер'); };
 function setDmRes(url, path) {
   const el = $('#dmRes'); el.innerHTML = '';
   if (url) {
@@ -1400,6 +1428,7 @@ $('#dmPublish').onclick = async () => {
   b.disabled = false; b.textContent = 'Обновить на Vercel';
   if (!r.ok) { toast(r.error || 'Не получилось опубликовать'); setDmRes('', r.path); return; }
   DEMO_URLS[DM.lead.id] = r.url; DM.lead.demo_url = r.url; setDmRes(r.url); copyText(r.url, true); toast('Опубликовано, ссылка в буфере');
+  if ($('#dmTpl').value && $('#dmTpl').value !== '__ai__') loadDemoMsg();
   refreshDemoMarks();
 };
 function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }

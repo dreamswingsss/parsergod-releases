@@ -479,17 +479,35 @@ class Api:
                 'Варианты: 1) про то, что у них нет сайта; 2) про то, что клиенты пишут им только в соцсети; '
                 '3) самый короткий.')
 
-    def open_chat(self, rec: Dict[str, Any], channel: str, tid: str = '', force: bool = False) -> Dict[str, Any]:
+    def message_for(self, lid: str, tid: str) -> Dict[str, Any]:
+        """Готовый текст первого сообщения для лида (шаблон или ИИ) — показать, поправить, скопировать."""
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        if not tid:
+            return {'ok': True, 'text': ''}
+        try:
+            text = self._message_text(lead, tid)
+        except ai_mod.AIError as e:
+            return {'ok': False, 'error': str(e)}
+        t = next((x for x in self._base.templates() if x['id'] == tid), None)
+        return {'ok': True, 'text': text, 'no_demo': bool(t and '{демо}' in t['body'] and not lead.get('demo_url'))}
+
+    def open_chat(self, rec: Dict[str, Any], channel: str, tid: str = '', force: bool = False,
+                  text_override: str = '') -> Dict[str, Any]:
         """Открывает чат с лидом. В WhatsApp текст подставляется сам, для остальных окно кладёт его
         в буфер обмена. Лид уходит в базу, статус «Новый» меняется на «Написал»."""
         lead = self._lead_for(rec)
         if not lead:
             return {'ok': False, 'error': 'Пустая карточка'}
         t = next((x for x in self._base.templates() if x['id'] == tid), None) if tid else None
-        try:
-            text = self._message_text(lead, tid) if tid else ''
-        except ai_mod.AIError as e:
-            return {'ok': False, 'error': str(e), 'lid': lead['id'], 'counts': self._base.counts()}
+        if text_override.strip():  # текст, который человек уже проверил и поправил в окне демо
+            text, t = text_override.strip(), None
+        else:
+            try:
+                text = self._message_text(lead, tid) if tid else ''
+            except ai_mod.AIError as e:
+                return {'ok': False, 'error': str(e), 'lid': lead['id'], 'counts': self._base.counts()}
         need_demo = bool(t and '{демо}' in t['body'] and not lead.get('demo_url'))
         if need_demo and not force:  # окно спросит: сделать демо или отправить без ссылки
             return {'ok': False, 'need_demo': True, 'lid': lead['id'], 'counts': self._base.counts()}
