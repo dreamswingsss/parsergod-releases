@@ -18,6 +18,7 @@ from parser_2gis.writer.models import CatalogItem
 FIELDS: Dict[str, Dict[str, str]] = {
     'name':          {'title': 'Название',        'group': 'info'},
     'category':      {'title': 'Категория',       'group': 'info'},
+    'site_kind':     {'title': 'Тип сайта',       'group': 'info'},
     'address':       {'title': 'Адрес',           'group': 'info'},
     'city':          {'title': 'Город',           'group': 'info'},
     'district':      {'title': 'Район',           'group': 'info'},
@@ -43,6 +44,55 @@ FIELDS: Dict[str, Dict[str, str]] = {
 CONTACT_KEYS = [k for k, v in FIELDS.items() if v['group'] == 'contact']
 LINK_CONTACTS = ['website', 'vkontakte', 'instagram', 'telegram', 'whatsapp',
                  'viber', 'odnoklassniki', 'youtube']
+
+# Конструкторы и «сайты-визитки»: ссылка есть, но нормального сайта нет.
+TEMPLATE_HOSTS = (
+    'taplink.', 'tilda.ws', 'tilda.cc', 'wixsite.com', 'wix.com', 'ukit.me', 'nethouse.ru', 'flexbe.',
+    'mssg.me', 'hipolink.', 'linktr.ee', 'clients.site', 'business.site', 'turbo.site', 'ucoz.', 'narod.ru',
+    'jimdo', 'webflow.io', 'readymag.', 'tobiz.', 'lpmotor.', 'yclients.com', 'dikidi.', 'linkin.bio',
+    'site123.', 'tb.ru', 'wordpress.com', 'blogspot.', 'vk.link',
+)
+# Соцсети и мессенджеры, которые 2ГИС иногда кладёт в поле «Сайт».
+SOCIAL_HOSTS = (
+    'vk.com', 'vk.ru', 'instagram.com', 'instagr.am', 't.me', 'telegram.me', 'wa.me', 'whatsapp.com',
+    'ok.ru', 'facebook.com', 'youtube.com', 'tiktok.com', 'viber.', 'dzen.ru', 'avito.ru', 'max.ru',
+)
+SITE_KINDS = {'nosite': 'Без сайта', 'social': 'Только соцсети', 'template': 'Шаблон', 'site': 'Есть сайт'}
+_SOCIAL_FIELDS = ('instagram', 'vkontakte', 'telegram', 'whatsapp', 'viber', 'odnoklassniki', 'youtube')
+
+
+def _host(url: str) -> str:
+    u = url.strip().lower()
+    if not re.match(r'^[a-z]+://', u):
+        u = 'https://' + u
+    try:
+        p = urllib.parse.urlsplit(u)
+    except ValueError:
+        return u
+    host = (p.hostname or '')
+    host = host[4:] if host.startswith('www.') else host
+    return host + (p.path or '')
+
+
+def site_kind(rec: Dict[str, Any]) -> str:
+    """'Без сайта' / 'Только соцсети' / 'Шаблон' / 'Есть сайт' — по полю «Сайт» и соцсетям."""
+    kinds = set()
+    for s in (rec.get('website') or '').split(','):
+        if not s.strip():
+            continue
+        h = _host(s)
+        kinds.add('social' if any(n in h for n in SOCIAL_HOSTS)
+                  else 'template' if any(n in h for n in TEMPLATE_HOSTS) else 'site')
+    if 'site' in kinds:
+        key = 'site'
+    elif 'template' in kinds:
+        key = 'template'
+    elif 'social' in kinds or any(rec.get(f) for f in _SOCIAL_FIELDS):
+        key = 'social'
+    else:
+        key = 'nosite'
+    return SITE_KINDS[key]
+
 
 _DAYS = (('Mon', 'Пн'), ('Tue', 'Вт'), ('Wed', 'Ср'), ('Thu', 'Чт'),
          ('Fri', 'Пт'), ('Sat', 'Сб'), ('Sun', 'Вс'))
@@ -192,4 +242,5 @@ def parse_doc(doc: Any) -> Optional[Dict[str, Any]]:
                 multi[c.type].append(val)
     for k, vals in multi.items():
         rec[k] = ', '.join(vals) if vals else None
+    rec['site_kind'] = site_kind(rec)
     return rec

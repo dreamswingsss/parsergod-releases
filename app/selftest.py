@@ -64,20 +64,15 @@ def run() -> int:
         rec = parse_doc(SAMPLE_DOC)
         assert rec and rec['phone'].startswith('+7 (343)'), rec
         assert rec['website'] == 'http://test-coffee.ru', rec['website']
+        from .records import site_kind
+        assert rec['site_kind'] == 'Есть сайт', rec['site_kind']
+        assert site_kind({'website': 'https://x.taplink.ws'}) == 'Шаблон'
+        assert site_kind({'website': 'https://vk.com/x'}) == 'Только соцсети'
+        assert site_kind({'phone': '+7'}) == 'Без сайта'
         lines.append('record: %s' % {k: rec[k] for k in ('name', 'phone', 'website', 'schedule')})
         out = os.path.join(tempfile.mkdtemp(), 'selftest.xlsx')
         write_xlsx(out, [rec], list(FIELDS))
         lines.append('xlsx: %d bytes' % os.path.getsize(out))
-        from pathlib import Path
-        from .leads import LeadStore, classify
-        assert classify(rec) == 'site', classify(rec)
-        store = LeadStore(Path(tempfile.mkdtemp()) / 'leads.db')
-        store.save_parsed(dict(rec, _id='selftest'), 'кофейня')
-        store.add_to_base(['selftest'])
-        st = store.stats()
-        assert st['base'] == 1 and len(store.templates()) >= 3, st
-        store.close()
-        lines.append('leads db: ok (%s)' % st)
         import webview  # noqa: F401  — проверяем, что GUI-библиотека в сборке
         lines.append('webview: ok')
         browsers = find_browsers()

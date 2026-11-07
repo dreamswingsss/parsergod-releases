@@ -74,6 +74,7 @@ class Params:
     require_phone: bool = False
     one_per_chain: bool = False                # без сетевых дублей
     min_rating: float = 0.0
+    no_site: bool = False                      # только без нормального сайта (нет, соцсети, конструктор)
     show_browser: bool = False
     delay_ms: int = 0
     browser_path: Optional[str] = None
@@ -156,7 +157,6 @@ class Job:
         self._cancel = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._parser = None
-        self.on_record: Optional[Callable[[Dict[str, Any], Optional[str]], None]] = None  # → база лидов
         self.reset()
 
     # ---------- состояние ----------
@@ -260,6 +260,9 @@ class Job:
         if p.min_rating and (rec.get('rating') or 0) < p.min_rating:
             self._skipped += 1
             return
+        if p.no_site and rec.get('site_kind') == 'Есть сайт':
+            self._skipped += 1
+            return
         if p.one_per_chain and rec.get('_org'):
             if rec['_org'] in self._seen_orgs:
                 self._skipped += 1
@@ -277,11 +280,6 @@ class Job:
             rec['_query'] = task.label
         with self._lock:
             self.rows.append(rec)
-        if self.on_record:
-            try:
-                self.on_record(rec, task.query)
-            except Exception as e:  # база не должна ронять сбор
-                self.log('error', 'Не удалось сохранить лид в базу: %s' % e)
         self._task_kept += 1
         if p.limit and self._task_kept >= p.limit:
             raise _LimitReached()
