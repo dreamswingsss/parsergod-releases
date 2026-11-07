@@ -162,6 +162,9 @@ tbody.ghost td{height:31px}
 .btn{border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:8px 14px;cursor:pointer;font-weight:500;white-space:nowrap}
 .btn:hover{border-color:var(--ink)}
 .btn.primary{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.btn.primary:disabled{opacity:.6;cursor:default}
+.btn.danger-txt{color:#FF7A7F}
+.btn.danger-txt:hover{border-color:#FF7A7F}
 .btn[hidden]{display:none}
 
 .log{margin:0 28px;max-height:0;overflow:auto;font-size:12px;color:var(--ink-2);transition:max-height .2s}
@@ -252,6 +255,69 @@ tbody.ghost td{height:31px}
 .basescroll{flex:1;overflow:auto;min-height:0;position:relative}
 .basescroll .cards{display:grid;padding:0 0 12px}
 .basescroll .empty{position:static;background:transparent;padding:60px 24px}
+.demobtn{border:1px solid var(--grid);background:transparent;border-radius:var(--radius-s);padding:4px 10px;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.demobtn:hover{border-color:var(--ink);color:var(--ink)}
+.demobtn.has{color:var(--ink);border-color:#4A4A52}
+.demolink{font-size:12px;color:var(--ink-2);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.demolink:hover{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.tplpick{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
+.tplpick select{height:32px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:0 8px;max-width:180px;outline:0;cursor:pointer}
+.tplpick button{height:32px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:0 10px;cursor:pointer;color:var(--ink-2);font-size:12.5px}
+.tplpick button:hover{border-color:var(--ink);color:var(--ink)}
+/* окна */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:40;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal[hidden]{display:none}
+.dialog{background:var(--paper);border:1px solid var(--grid);border-radius:14px;width:min(1240px,100%);height:min(860px,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.dialog.small{width:min(900px,100%);height:min(640px,100%)}
+.dlg-h{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--grid)}
+.dlg-h b{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlg-h .x{border:0;background:none;color:var(--ink-2);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
+.dlg-h .x:hover{color:var(--ink)}
+.dlg-b{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
+.dlg-b.two{grid-template-columns:260px 1fr}
+.ed{overflow:auto;padding:14px 18px 18px;border-right:1px solid var(--grid)}
+.ed label{display:block;font-size:12px;color:var(--ink-2);margin:12px 0 5px;font-weight:600}
+.ed label:first-child{margin-top:0}
+.ed input[type=text],.ed textarea{width:100%;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:8px 10px;outline:0;font-family:inherit;font-size:13px;color:var(--ink)}
+.ed textarea{resize:vertical;min-height:70px;line-height:1.45}
+.ed input:focus,.ed textarea:focus{border-color:#4A4A52}
+.ed .seg button{padding:6px 0}
+.ed .hint{margin-top:5px}
+.photos{display:flex;flex-wrap:wrap;gap:6px}
+.photos .ph{position:relative;width:62px;height:62px;border-radius:8px;background:center/cover;border:1px solid var(--grid)}
+.photos .ph button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:var(--on-ink);cursor:pointer;font-size:12px;line-height:20px;padding:0}
+.photos .add{width:62px;height:62px;border-radius:8px;border:1px dashed var(--ink-3);background:transparent;color:var(--ink-2);cursor:pointer;font-size:22px}
+.photos .add:hover{border-color:var(--ink);color:var(--ink)}
+.claude{margin-top:16px;border:1px solid var(--grid);border-radius:var(--radius-m);padding:12px;background:var(--sheet)}
+.claude b{display:block;font-size:13px;margin-bottom:4px}
+.claude .row2{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pv{display:flex;flex-direction:column;min-height:0;background:#060607}
+.pv-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--grid)}
+.pv-bar .viewseg{margin:0}
+.pv-bar .sp{flex:1}
+.pv-wrap{flex:1;display:flex;justify-content:center;overflow:auto;padding:14px;min-height:0}
+.pv-wrap iframe{border:0;background:#fff;width:100%;height:100%;border-radius:10px}
+.pv-wrap.mobile iframe{width:390px;flex:none;border:8px solid #1E1E22;border-radius:30px}
+.dlg-f{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--grid);flex-wrap:wrap}
+.dlg-f .sp{flex:1}
+.dlg-f .res{font-size:13px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
+.dlg-f .res a{color:var(--ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.tlist{overflow:auto;padding:10px;border-right:1px solid var(--grid);display:flex;flex-direction:column;gap:4px}
+.titem{border:0;background:transparent;text-align:left;border-radius:8px;padding:9px 10px;cursor:pointer;color:var(--ink-2)}
+.titem b{display:block;color:var(--ink);font-size:13px}
+.titem span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px}
+.titem:hover{background:var(--gutter)}
+.titem[aria-current=true]{background:var(--grid)}
+.titem i{float:right;font-style:normal;font-size:10.5px;color:var(--ink);border:1px solid var(--ink-3);border-radius:4px;padding:0 4px}
+.vars{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.vars button{border:1px dashed var(--ink-3);background:transparent;border-radius:var(--radius-s);padding:2px 8px;font-size:12px;color:var(--ink-2);cursor:pointer}
+.vars button:hover{border-color:var(--ink);color:var(--ink)}
+.mprev{white-space:pre-wrap;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:10px;font-size:13px;color:var(--ink-2)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:10px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:60;display:flex;gap:10px;align-items:center;max-width:80vw;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.toast button{border:1px solid rgba(0,0,0,.25);background:transparent;color:var(--on-ink);border-radius:var(--radius-s);padding:4px 10px;font-weight:600;cursor:pointer;white-space:nowrap}
+.toast button:hover{background:rgba(0,0,0,.08)}
+.vc{border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-m);padding:10px 12px;margin-top:4px}
+.vc input{width:100%;margin-top:6px;border:1px solid var(--grid);background:var(--paper);border-radius:var(--radius-s);padding:6px 8px;outline:0;color:var(--ink)}
 .copied{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:50}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -327,6 +393,8 @@ tbody.ghost td{height:31px}
           <div class="subhead">Браузер</div>
           <div class="path" id="browserPath"></div>
           <p class="hint"><button class="linkbtn" id="pickBrowser">Указать вручную</button> &nbsp; <button class="linkbtn" id="resetBrowser" hidden>Определять автоматически</button></p>
+          <div class="subhead">Публикация демо-сайтов (Vercel)</div>
+          <div class="vc" id="vercelBox"></div>
           <div class="subhead">Папка для таблиц</div>
           <div class="path" id="outDir"></div>
           <p class="hint"><button class="linkbtn" id="pickDir">Изменить</button> &nbsp; <button class="linkbtn" id="openDir">Открыть папку</button></p>
@@ -371,6 +439,7 @@ tbody.ghost td{height:31px}
     </div>
     <div class="log" id="log"></div>
     <div class="foot">
+      <div class="tplpick"><span>Текст сообщения:</span><select id="activeTpl" title="Какой шаблон подставлять при нажатии на мессенджер"></select><button id="tplBtn" title="Шаблоны сообщений">Шаблоны</button></div>
       <div class="msg" id="footMsg"></div>
       <button class="btn" id="logBtn">Журнал</button>
       <button class="btn" id="revealBtn" hidden>Показать в папке</button>
@@ -378,6 +447,71 @@ tbody.ghost td{height:31px}
       <button class="btn primary" id="openBtn" hidden>Открыть таблицу</button>
     </div>
   </main>
+</div>
+
+<div class="modal" id="demoModal" hidden>
+  <div class="dialog">
+    <div class="dlg-h"><b id="dmTitle">Демо</b><button class="x" id="dmClose" aria-label="Закрыть">×</button></div>
+    <div class="dlg-b">
+      <div class="ed">
+        <label>Стиль</label>
+        <div class="seg" id="dmTheme"></div>
+        <label for="dmHeadline">Заголовок</label><input type="text" id="dmHeadline" maxlength="120">
+        <label for="dmSubtitle">Подзаголовок</label><input type="text" id="dmSubtitle" maxlength="200">
+        <label for="dmServices">Услуги — по одной в строке</label><textarea id="dmServices" rows="6"></textarea>
+        <label for="dmAbout">О компании</label><textarea id="dmAbout" rows="4"></textarea>
+        <label for="dmCta">Текст кнопки</label><input type="text" id="dmCta" maxlength="40">
+        <label>Фото — до 6 (скриншоты из Instagram, 2ГИС, Яндекс Карт)</label>
+        <div class="photos" id="dmPhotos"></div>
+        <input type="file" id="dmFile" accept="image/*" multiple hidden>
+        <p class="hint">Можно перетащить файлы сюда или вставить скриншот через Ctrl+V.</p>
+        <div class="claude">
+          <b>Переписать тексты в Claude</b>
+          <p class="hint" style="margin:0">1) Скопируйте промпт и вставьте в claude.ai. 2) Скопируйте ответ Claude целиком и вставьте ниже.</p>
+          <div class="row2"><button class="btn" id="dmPrompt">Скопировать промпт и открыть Claude</button></div>
+          <textarea id="dmAnswer" rows="3" placeholder="Ответ Claude (JSON)" style="margin-top:8px"></textarea>
+          <div class="row2"><button class="btn" id="dmApply">Применить ответ</button></div>
+        </div>
+      </div>
+      <div class="pv">
+        <div class="pv-bar">
+          <div class="viewseg" id="dmDevice"><button data-d="mobile" aria-pressed="true">Телефон</button><button data-d="desktop" aria-pressed="false">Компьютер</button></div>
+          <span class="sp"></span><button class="linkbtn" id="dmReset">Вернуть исходные тексты</button>
+        </div>
+        <div class="pv-wrap mobile" id="dmWrap"><iframe id="dmFrame" title="Предпросмотр демо" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div>
+      </div>
+    </div>
+    <div class="dlg-f">
+      <div class="res" id="dmRes"></div>
+      <span class="sp"></span>
+      <button class="btn" id="dmFileBtn">Сохранить HTML-файл</button>
+      <button class="btn primary" id="dmPublish">Опубликовать на Vercel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="tplModal" hidden>
+  <div class="dialog small">
+    <div class="dlg-h"><b>Шаблоны сообщений</b><button class="x" id="tmClose" aria-label="Закрыть">×</button></div>
+    <div class="dlg-b two">
+      <div class="tlist" id="tmList"></div>
+      <div class="ed" style="border:0">
+        <label for="tmTitle">Название</label><input type="text" id="tmTitle" maxlength="80">
+        <label for="tmBody">Текст</label><textarea id="tmBody" rows="7"></textarea>
+        <div class="vars" id="tmVars"></div>
+        <label>Как увидит клиент</label><div class="mprev" id="tmPrev"></div>
+        <p class="hint">Кнопка мессенджера на карточке открывает чат. В WhatsApp текст уже стоит в поле ввода, в Telegram, VK и Instagram он в буфере — нажмите Ctrl+V. Отправляете сами, со своего аккаунта; лид попадает в базу со статусом «Написал».</p>
+        <div class="claude"><b>Нужны варианты?</b><p class="hint" style="margin:0">Скопируйте промпт в Claude, понравившийся вариант вставьте сюда как новый шаблон.</p><div class="row2"><button class="btn" id="tmPrompt">Скопировать промпт и открыть Claude</button></div></div>
+      </div>
+    </div>
+    <div class="dlg-f">
+      <button class="btn danger-txt" id="tmDel">Удалить</button>
+      <span class="sp"></span>
+      <button class="btn" id="tmNew">Новый шаблон</button>
+      <button class="btn" id="tmUse">Использовать</button>
+      <button class="btn primary" id="tmSave">Сохранить</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -643,7 +777,7 @@ const LINKS = [['instagram', 'Instagram', 'ch-ig', 'i-ig', true], ['telegram', '
                ['url', '2ГИС', 'ch-2g', null, false]];
 const SVGNS = 'http://www.w3.org/2000/svg';
 function card(r, inBase) {
-  const c = document.createElement('div'); c.className = 'card fresh';
+  const c = document.createElement('div'); c.className = 'card fresh'; if (!inBase) c._rec = r;
   const top = document.createElement('div'); top.className = 'card-top';
   if (r.site_kind) top.appendChild(cell('site_kind', r.site_kind).firstChild);
   const sp = document.createElement('span'); sp.className = 'sp'; top.appendChild(sp);
@@ -671,14 +805,26 @@ function card(r, inBase) {
     b.setAttribute('aria-label', b.title);
     if (ico) { const svg = document.createElementNS(SVGNS, 'svg'); const use = document.createElementNS(SVGNS, 'use'); use.setAttribute('href', '#' + ico); svg.appendChild(use); b.appendChild(svg); }
     else b.textContent = title;
-    if (ok) b.onclick = () => api().open_url(url); else b.disabled = true;
+    const chat = ['whatsapp', 'telegram', 'vkontakte', 'instagram', 'viber'].includes(k);
+    const waPhone = k === 'whatsapp' && !ok && mobileOf(r.phone);
+    if (waPhone) { b.title = 'WhatsApp по мобильному номеру ' + waPhone; b.setAttribute('aria-label', b.title); }
+    if (ok || waPhone) b.onclick = () => chat ? openChat(r, k, c) : api().open_url(url); else b.disabled = true;
     links.appendChild(b);
   });
   c.appendChild(links);
+  const lidOf = r.id || r._lid;
+  if (DEMO_URLS[lidOf]) {
+    const dl = document.createElement('div'); dl.className = 'demolink'; dl.title = 'Скопировать ссылку на демо';
+    dl.textContent = 'Демо: ' + DEMO_URLS[lidOf].replace(/^https?:\/\//, '');
+    dl.onclick = () => copyText(DEMO_URLS[lidOf]); c.appendChild(dl);
+  }
   const foot = document.createElement('div'); foot.className = 'card-foot';
+  const db = document.createElement('button'); db.type = 'button'; db.className = 'demobtn' + (DEMO_URLS[lidOf] ? ' has' : '');
+  db.textContent = DEMO_URLS[lidOf] ? '✓ Демо' : 'Демо'; db.title = 'Демо-сайт для этой организации';
+  db.onclick = () => openDemo(r);
   const q = document.createElement('span'); q.className = 'q';
   q.textContent = inBase ? 'в базе с ' + r.added + (r._query ? ' · ' + r._query : '') : (r._query || '');
-  foot.appendChild(q);
+  foot.append(db, q);
   if (inBase) {
     const st = document.createElement('select'); st.className = 'st s-' + r.status; st.title = 'Статус';
     Object.entries(STATUSES).forEach(([k, v]) => { const o = document.createElement('option'); o.value = k; o.textContent = v; o.selected = k === r.status; st.appendChild(o); });
@@ -707,6 +853,186 @@ function card(r, inBase) {
   return c;
 }
 
+/* ---------- сообщения ---------- */
+let TEMPLATES = [], TVARS = [], ACTIVE_TPL = '', DEMO_URLS = {}, VERCEL = {connected: false, account: ''}, THEMES = {};
+function mobileOf(phone) {
+  for (const p of (phone || '').split(',')) { let d = p.replace(/\D/g, ''); if (d.length === 11 && '78'.includes(d[0]) && '97'.includes(d[1])) return '+7' + d.slice(1); }
+  return '';
+}
+let toastT = null;
+function toast(text, actions) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast'; const sp = document.createElement('span'); sp.textContent = text; t.appendChild(sp);
+  (actions || []).forEach(([label, fn]) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { t.remove(); fn(); }; t.appendChild(b); });
+  document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), actions && actions.length ? 9000 : 3500);
+}
+function renderTplSelect() {
+  const s = $('#activeTpl');
+  if (ACTIVE_TPL && !TEMPLATES.some(t => t.id === ACTIVE_TPL)) ACTIVE_TPL = '';
+  s.innerHTML = '<option value="">без текста</option>' + TEMPLATES.map(t => '<option value="' + esc(t.id) + '">' + esc(t.title) + '</option>').join('');
+  s.value = ACTIVE_TPL;
+}
+$('#activeTpl').onchange = e => { ACTIVE_TPL = e.target.value; api().set_active_template(ACTIVE_TPL); };
+async function openChat(r, channel, cardEl, force) {
+  const res = await api().open_chat(r, channel, ACTIVE_TPL, !!force);
+  if (res.counts) setCounts(res.counts);
+  if (res.lid && !BASE_IDS.has(res.lid)) { BASE_IDS.add(res.lid); markFound(res.lid); }
+  if (!res.ok) {
+    if (res.need_demo) toast('В шаблоне есть ссылка на демо, а демо ещё нет', [['Сделать демо', () => openDemo(r)], ['Отправить без ссылки', () => openChat(r, channel, cardEl, true)]]);
+    else toast(res.error || 'Не удалось открыть чат');
+    return;
+  }
+  if (res.text && !res.prefilled) { copyText(res.text, true); toast('Чат открыт, текст в буфере — нажмите Ctrl+V' + (res.marked ? ' · статус «Написал»' : '')); }
+  else if (res.prefilled) toast('Текст уже в поле WhatsApp' + (res.marked ? ' · статус «Написал»' : ''));
+  else toast('Чат открыт. Выберите «Текст» сверху — сообщение будет подставляться само');
+  if (MODE === 'base') loadBase();
+}
+let tmEdit = null;
+function openTemplates() { $('#tplModal').hidden = false; if (!tmEdit) tmEdit = TEMPLATES[0] ? Object.assign({}, TEMPLATES[0]) : {id: null, title: '', body: ''}; renderTm(); }
+function renderTm() {
+  const box = $('#tmList'); box.innerHTML = '';
+  TEMPLATES.forEach(t => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'titem'; b.setAttribute('aria-current', String(tmEdit && tmEdit.id === t.id));
+    if (ACTIVE_TPL === t.id) { const i = document.createElement('i'); i.textContent = 'выбран'; b.appendChild(i); }
+    const bb = document.createElement('b'); bb.textContent = t.title; const sp = document.createElement('span'); sp.textContent = t.body; b.append(bb, sp);
+    b.onclick = () => { tmEdit = Object.assign({}, t); renderTm(); }; box.appendChild(b);
+  });
+  $('#tmTitle').value = tmEdit.title || ''; $('#tmBody').value = tmEdit.body || '';
+  $('#tmDel').hidden = !tmEdit.id; $('#tmUse').hidden = !tmEdit.id;
+  $('#tmUse').textContent = ACTIVE_TPL === tmEdit.id ? '✓ Выбран' : 'Использовать';
+  tmPreview();
+}
+async function tmPreview() { $('#tmPrev').textContent = await api().preview_message($('#tmBody').value) || '—'; }
+$('#tmBody').addEventListener('input', () => { clearTimeout(tmPreview.t); tmPreview.t = setTimeout(tmPreview, 200); });
+$('#tplBtn').onclick = openTemplates;
+$('#tmClose').onclick = () => $('#tplModal').hidden = true;
+$('#tmNew').onclick = () => { tmEdit = {id: null, title: '', body: ''}; renderTm(); $('#tmTitle').focus(); };
+$('#tmSave').onclick = async () => { const r = await api().template_save({id: tmEdit.id, title: $('#tmTitle').value, body: $('#tmBody').value}); TEMPLATES = r.templates; tmEdit = r.template; renderTplSelect(); renderTm(); toast('Шаблон сохранён'); };
+$('#tmUse').onclick = () => { ACTIVE_TPL = tmEdit.id; api().set_active_template(ACTIVE_TPL); renderTplSelect(); renderTm(); toast('Этот текст будет подставляться при нажатии на мессенджер'); };
+$('#tmDel').onclick = async () => {
+  const b = $('#tmDel'); if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = 'Точно удалить?'; setTimeout(() => { delete b.dataset.arm; b.textContent = 'Удалить'; }, 3000); return; }
+  delete b.dataset.arm; b.textContent = 'Удалить';
+  const r = await api().template_delete(tmEdit.id); TEMPLATES = r.templates; tmEdit = null; renderTplSelect(); openTemplates();
+};
+$('#tmPrompt').onclick = async () => { copyText(await api().message_prompt(), true); api().open_url('https://claude.ai/new'); toast('Промпт в буфере — вставьте в Claude'); };
+function renderVars() {
+  const box = $('#tmVars'); box.innerHTML = '';
+  TVARS.forEach(v => { const b = document.createElement('button'); b.type = 'button'; b.textContent = v;
+    b.onclick = () => { const ta = $('#tmBody'), a = ta.selectionStart, z = ta.selectionEnd; ta.value = ta.value.slice(0, a) + v + ta.value.slice(z); ta.focus(); ta.selectionStart = ta.selectionEnd = a + v.length; tmPreview(); };
+    box.appendChild(b); });
+}
+
+/* ---------- демо-сайт ---------- */
+let DM = null;  // {lead, content}
+async function openDemo(r) {
+  const res = await api().demo_open(r);
+  if (!res.ok) { toast(res.error); return; }
+  if (res.counts) setCounts(res.counts);
+  if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
+  DM = {lead: res.lead, content: res.content};
+  $('#dmTitle').textContent = 'Демо-сайт — ' + res.lead.name;
+  fillDemo(); $('#dmFrame').srcdoc = res.html;
+  $('#dmAnswer').value = '';
+  const url = DEMO_URLS[res.lead.id];
+  setDmRes(url ? url : '');
+  $('#dmPublish').textContent = VERCEL.connected ? (url ? 'Обновить на Vercel' : 'Опубликовать на Vercel') : 'Подключить Vercel';
+  $('#demoModal').hidden = false;
+}
+function setDmRes(url, path) {
+  const el = $('#dmRes'); el.innerHTML = '';
+  if (url) {
+    el.append('Ссылка: ');
+    const a = document.createElement('a'); a.textContent = url.replace(/^https?:\/\//, ''); a.title = 'Открыть'; a.onclick = () => api().open_url(url);
+    const c = document.createElement('button'); c.className = 'linkbtn'; c.style.marginLeft = '8px'; c.textContent = 'Копировать'; c.onclick = () => copyText(url);
+    el.append(a, c);
+  } else if (path) el.textContent = 'Сохранено: ' + path.split(/[\\/]/).pop();
+  else el.textContent = VERCEL.connected ? 'Vercel: ' + VERCEL.account : 'Vercel не подключён — демо сохранится HTML-файлом';
+}
+function fillDemo() {
+  const c = DM.content;
+  $('#dmHeadline').value = c.headline || ''; $('#dmSubtitle').value = c.subtitle || ''; $('#dmAbout').value = c.about || '';
+  $('#dmServices').value = (c.services || []).join('\n'); $('#dmCta').value = c.cta || '';
+  const th = $('#dmTheme'); th.innerHTML = '';
+  Object.entries(THEMES).forEach(([k, v]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = v; b.setAttribute('aria-pressed', String(c.theme === k));
+    b.onclick = () => { DM.content.theme = k; fillDemo(); preview(); }; th.appendChild(b); });
+  renderPhotos();
+}
+function readDemo() {
+  Object.assign(DM.content, {headline: $('#dmHeadline').value, subtitle: $('#dmSubtitle').value, about: $('#dmAbout').value,
+    services: $('#dmServices').value.split('\n').map(s => s.trim()).filter(Boolean), cta: $('#dmCta').value});
+  return DM.content;
+}
+async function preview() { if (!DM) return; $('#dmFrame').srcdoc = await api().demo_preview(DM.lead.id, readDemo()); }
+['#dmHeadline', '#dmSubtitle', '#dmAbout', '#dmServices', '#dmCta'].forEach(id => $(id).addEventListener('input', () => { clearTimeout(preview.t); preview.t = setTimeout(preview, 300); }));
+function renderPhotos() {
+  const box = $('#dmPhotos'); box.innerHTML = '';
+  (DM.content.photos || []).forEach((p, i) => {
+    const d = document.createElement('div'); d.className = 'ph'; d.style.backgroundImage = 'url(' + p + ')';
+    const x = document.createElement('button'); x.textContent = '×'; x.title = 'Убрать'; x.onclick = () => { DM.content.photos.splice(i, 1); renderPhotos(); preview(); };
+    d.appendChild(x); box.appendChild(d);
+  });
+  if ((DM.content.photos || []).length < 6) { const a = document.createElement('button'); a.className = 'add'; a.textContent = '+'; a.title = 'Добавить фото'; a.onclick = () => $('#dmFile').click(); box.appendChild(a); }
+}
+function shrink(file) {  // фото → JPEG не больше 1400px, чтобы сайт открывался быстро
+  return new Promise(res => {
+    const fr = new FileReader();
+    fr.onload = () => { const img = new Image(); img.onload = () => {
+      const k = Math.min(1, 1400 / Math.max(img.width, img.height)); const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      res(cv.toDataURL('image/jpeg', 0.82)); }; img.onerror = () => res(null); img.src = fr.result; };
+    fr.onerror = () => res(null); fr.readAsDataURL(file);
+  });
+}
+async function addPhotos(files) {
+  DM.content.photos = DM.content.photos || [];
+  for (const f of files) { if (!/^image\//.test(f.type) || DM.content.photos.length >= 6) continue; const d = await shrink(f); if (d) DM.content.photos.push(d); }
+  renderPhotos(); preview();
+}
+$('#dmFile').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };
+$('#demoModal').addEventListener('dragover', e => e.preventDefault());
+$('#demoModal').addEventListener('drop', e => { e.preventDefault(); if (DM) addPhotos([...e.dataTransfer.files]); });
+document.addEventListener('paste', e => { if ($('#demoModal').hidden || !DM) return; const fs = [...(e.clipboardData || {}).files || []].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); addPhotos(fs); } });
+$('#dmClose').onclick = () => { $('#demoModal').hidden = true; if (DM) api().demo_save_file(DM.lead.id, readDemo()); };
+document.querySelectorAll('#dmDevice button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#dmDevice button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  $('#dmWrap').classList.toggle('mobile', b.dataset.d === 'mobile');
+});
+$('#dmReset').onclick = async () => { const r = await api().demo_reset(DM.lead.id); DM.content = Object.assign(r.content, {photos: DM.content.photos || []}); fillDemo(); preview(); };
+$('#dmPrompt').onclick = async () => { copyText(await api().demo_prompt(DM.lead.id, readDemo()), true); api().open_url('https://claude.ai/new'); toast('Промпт в буфере — вставьте в Claude, потом скопируйте ответ сюда'); };
+$('#dmApply').onclick = async () => { const r = await api().demo_apply($('#dmAnswer').value); if (!r.ok) { toast(r.error); return; } Object.assign(DM.content, r.fields); fillDemo(); preview(); toast('Тексты обновлены'); };
+$('#dmFileBtn').onclick = async () => { const r = await api().demo_save_file(DM.lead.id, readDemo()); if (r.ok) { setDmRes('', r.path); api().reveal(r.path); } };
+$('#dmPublish').onclick = async () => {
+  if (!VERCEL.connected) { $('#demoModal').hidden = true; const d = document.querySelector('.order details'); if (d) { d.open = true; $('#vercelBox').scrollIntoView({block: 'center'}); } toast('Вставьте токен Vercel — и демо будут публиковаться по ссылке'); return; }
+  const b = $('#dmPublish'); b.disabled = true; b.textContent = 'Публикую… до минуты';
+  const r = await api().demo_publish(DM.lead.id, readDemo());
+  b.disabled = false; b.textContent = 'Обновить на Vercel';
+  if (!r.ok) { toast(r.error || 'Не получилось опубликовать'); setDmRes('', r.path); return; }
+  DEMO_URLS[DM.lead.id] = r.url; setDmRes(r.url); copyText(r.url, true); toast('Опубликовано, ссылка в буфере');
+  refreshDemoMarks();
+};
+function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }
+
+/* ---------- Vercel ---------- */
+function renderVercel() {
+  const box = $('#vercelBox'); box.innerHTML = '';
+  if (VERCEL.connected) {
+    box.innerHTML = '<div>Подключён: <b></b></div><p class="hint">Демо публикуются на этот аккаунт, ссылка вида имя-сайта.vercel.app.</p><button class="linkbtn">Отключить</button>';
+    box.querySelector('b').textContent = VERCEL.account;
+    box.querySelector('button').onclick = async () => { await api().vercel_disconnect(); VERCEL = {connected: false, account: ''}; renderVercel(); };
+    return;
+  }
+  box.innerHTML = '<div style="font-size:13px">Чтобы демо открывались по ссылке, вставьте токен своего Vercel. Без него демо сохраняются HTML-файлом.</div>'
+    + '<input type="password" id="vcToken" placeholder="Токен Vercel" autocomplete="off">'
+    + '<p class="hint"><button class="linkbtn" id="vcGet">Где взять токен</button> &nbsp; <button class="linkbtn" id="vcSave">Подключить</button></p><div class="hint" id="vcErr"></div>';
+  $('#vcGet').onclick = () => api().open_url('https://vercel.com/account/tokens');
+  $('#vcSave').onclick = async () => {
+    $('#vcErr').textContent = 'Проверяю…';
+    const r = await api().vercel_connect($('#vcToken').value);
+    if (!r.ok) { $('#vcErr').textContent = r.error; return; }
+    VERCEL = {connected: true, account: r.account}; renderVercel(); toast('Vercel подключён: ' + r.account);
+  };
+}
+
 /* ---------- база лидов ---------- */
 let STATUSES = {}, BASE_IDS = new Set(), MODE = 'found', baseStatus = '', baseCounts = {};
 function paintToBase(b) { const inb = BASE_IDS.has(b.dataset.lid); b.classList.toggle('in', inb); b.textContent = inb ? '✓ В базе' : '+ В базу'; b.title = inb ? 'Уже в базе — открыть базу' : 'Добавить в базу лидов'; }
@@ -727,7 +1053,7 @@ async function loadBase() {
   setCounts(res.counts);
   const box = $('#baseCards'); box.innerHTML = '';
   const frag = document.createDocumentFragment();
-  res.items.forEach(r => { const c = card(r, true); c.classList.remove('fresh'); frag.appendChild(c); });
+  res.items.forEach(r => { if (r.demo_url) DEMO_URLS[r.id] = r.demo_url; const c = card(r, true); c.classList.remove('fresh'); frag.appendChild(c); });
   box.appendChild(frag);
   const e = $('#baseEmpty'); e.hidden = !!res.items.length;
   e.innerHTML = baseCounts.all ? '<p>Под этот фильтр никого нет</p><p>Выберите другой статус или очистите поиск.</p>'
@@ -747,8 +1073,8 @@ $('#bExport').onclick = async () => {
   if (!r.ok) { const t = document.createElement('div'); t.className = 'copied'; t.textContent = r.error; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); return; }
   api().open_file(r.path);
 };
-function copyText(text) {
-  const done = () => { const t = document.createElement('div'); t.className = 'copied'; t.textContent = 'Скопировано: ' + text; document.body.appendChild(t); setTimeout(() => t.remove(), 1600); };
+function copyText(text, quiet) {
+  const done = () => { if (quiet) return; const t = document.createElement('div'); t.className = 'copied'; t.textContent = 'Скопировано: ' + text; document.body.appendChild(t); setTimeout(() => t.remove(), 1600); };
   const fallback = () => { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); done(); };
   try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, fallback); return; } } catch (e) {}
   fallback();
@@ -911,6 +1237,9 @@ async function boot() {
   Object.assign(S, d.settings);
   setView(d.settings.view || 'cards');
   STATUSES = d.statuses || {}; BASE_IDS = new Set(d.base_ids || []);
+  TEMPLATES = d.templates || []; TVARS = d.template_vars || []; ACTIVE_TPL = d.active_template || ''; DEMO_URLS = d.demo_urls || {};
+  VERCEL = d.vercel || VERCEL; THEMES = d.themes || {};
+  renderTplSelect(); renderVars(); renderVercel();
   api().base_list('', '').then(r => setCounts(r.counts));
   setMode('found');
   $('#appName').textContent = d.app.name; $('#appVer').textContent = 'версия ' + d.app.version;

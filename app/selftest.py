@@ -83,6 +83,14 @@ def run() -> int:
         assert base.list('', 'тест')[0]['note'] == 'тест'
         base.close()
         lines.append('base: ok')
+        from . import demo as demo_site
+        from .base import render_message
+        content = demo_site.default_content(rec)
+        page = demo_site.render(rec, content)
+        assert '<html' in page and rec['name'].split('«')[0].strip() in page
+        assert demo_site.slugify('Кофейня «Тест»') == 'kofeynya-test', demo_site.slugify('Кофейня «Тест»')
+        assert 'https://x' in render_message('{демо}', {'demo_url': 'https://x'})
+        lines.append('demo: %d bytes' % len(page))
         import webview  # noqa: F401  — проверяем, что GUI-библиотека в сборке
         lines.append('webview: ok')
         browsers = find_browsers()

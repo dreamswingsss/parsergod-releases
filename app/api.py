@@ -6,13 +6,16 @@ import json
 import os
 import subprocess
 import sys
+import re
 import time
+import urllib.parse
 from typing import Any, Dict, List, Optional
 
 from parser_2gis.paths import data_path
 
 from . import brand
-from .base import STATUSES, LeadBase, lead_id
+from . import demo as demo_site
+from .base import STATUSES, TEMPLATE_VARS, LeadBase, lead_id, render_message
 from .browsers import find_browsers
 from .excel import write_xlsx
 from .job import Job, Params, Task
@@ -175,6 +178,12 @@ class Api:
             'recent': [],  # история сборов на старте не показывается
             'statuses': STATUSES,
             'base_ids': self._base.ids(),
+            'demo_urls': self._base.demo_urls(),
+            'templates': self._base.templates(),
+            'template_vars': TEMPLATE_VARS,
+            'active_template': s.get('active_template', ''),
+            'vercel': {'connected': bool(s.get('vercel_token')), 'account': s.get('vercel_account', '')},
+            'themes': {k: v['title'] for k, v in demo_site.THEMES.items()},
         }
 
     def recent(self) -> List[Dict[str, Any]]:
@@ -279,6 +288,170 @@ class Api:
         except Exception as e:
             return {'ok': False, 'error': str(e)}
         return {'ok': True, 'path': path, 'n': len(rows)}
+
+    # ---------- Vercel ----------
+    def vercel_connect(self, token: str) -> Dict[str, Any]:
+        token = (token or '').strip()
+        if not token:
+            return {'ok': False, 'error': 'Вставьте токен'}
+        try:
+            account = demo_site.vercel_check(token)
+        except demo_site.VercelError as e:
+            return {'ok': False, 'error': str(e)}
+        self._settings.update({'vercel_token': token, 'vercel_account': account})
+        save_settings(self._settings)
+        return {'ok': True, 'account': account}
+
+    def vercel_disconnect(self) -> Dict[str, Any]:
+        self._settings.pop('vercel_token', None)
+        self._settings.pop('vercel_account', None)
+        save_settings(self._settings)
+        return {'ok': True}
+
+    # ---------- демо-сайт ----------
+    def _lead_for(self, rec: Dict[str, Any]) -> Dict[str, Any]:
+        """Лид из базы; если его там нет — добавляем (демо и переписка живут в базе)."""
+        if rec.get('id') and self._base.get(rec['id']):
+            return self._base.get(rec['id']) or {}
+        if rec.get('_lid') and not rec.get('_id'):
+            rec = dict(rec, _id=rec['_lid'])
+        return self._base.add(rec)
+
+    def demo_open(self, rec: Dict[str, Any]) -> Dict[str, Any]:
+        lead = self._lead_for(rec)
+        if not lead:
+            return {'ok': False, 'error': 'Пустая карточка'}
+        content = self._base.get_demo(lead['id']) or demo_site.default_content(lead)
+        return {'ok': True, 'lead': lead, 'content': content, 'html': demo_site.render(lead, content),
+                'counts': self._base.counts()}
+
+    def demo_preview(self, lid: str, content: Dict[str, Any]) -> str:
+        lead = self._base.get(lid) or {}
+        return demo_site.render(lead, content or {})
+
+    def demo_reset(self, lid: str) -> Dict[str, Any]:
+        lead = self._base.get(lid) or {}
+        content = demo_site.default_content(lead)
+        return {'content': content, 'html': demo_site.render(lead, content)}
+
+    def demo_prompt(self, lid: str, content: Dict[str, Any]) -> str:
+        return demo_site.claude_prompt(self._base.get(lid) or {}, content or {})
+
+    def demo_apply(self, text: str) -> Dict[str, Any]:
+        try:
+            return {'ok': True, 'fields': demo_site.parse_claude_answer(text)}
+        except ValueError as e:
+            return {'ok': False, 'error': str(e)}
+
+    def _demo_file(self, lead: Dict[str, Any], page: str) -> str:
+        out_dir = os.path.join(self._settings.get('output_dir') or str(default_output_dir()), 'Демо')
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, safe_filename('Демо — %s' % lead.get('name')) + '.html')
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(page)
+        return path
+
+    def demo_publish(self, lid: str, content: Dict[str, Any]) -> Dict[str, Any]:
+        """Сохраняет демо файлом и, если подключён Vercel, публикует его на аккаунт пользователя."""
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден в базе'}
+        content = dict(content or {})
+        page = demo_site.render(lead, content)
+        path = self._demo_file(lead, page)
+        token = self._settings.get('vercel_token')
+        if not token:
+            self._base.save_demo(lid, content)
+            return {'ok': True, 'path': path, 'url': ''}
+        project = content.get('project') or '%s-%s' % (demo_site.slugify(lead.get('name') or '', 36), lid[-4:].lower())
+        project = re.sub(r'[^a-z0-9-]', '', project.lower()).strip('-')[:90] or 'demo'
+        content['project'] = project
+        try:
+            url = demo_site.vercel_publish(token, project, page)
+        except demo_site.VercelError as e:
+            self._base.save_demo(lid, content)
+            return {'ok': False, 'error': str(e), 'path': path}
+        self._base.save_demo(lid, content, url)
+        return {'ok': True, 'path': path, 'url': url}
+
+    def demo_save_file(self, lid: str, content: Dict[str, Any]) -> Dict[str, Any]:
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        self._base.save_demo(lid, content or {})
+        path = self._demo_file(lead, demo_site.render(lead, content or {}))
+        return {'ok': True, 'path': path}
+
+    # ---------- сообщения ----------
+    def templates(self) -> List[Dict[str, Any]]:
+        return self._base.templates()
+
+    def template_save(self, t: Dict[str, Any]) -> Dict[str, Any]:
+        return {'ok': True, 'template': self._base.save_template(t.get('id'), t.get('title', ''), t.get('body', '')),
+                'templates': self._base.templates()}
+
+    def template_delete(self, tid: str) -> Dict[str, Any]:
+        self._base.delete_template(tid)
+        if self._settings.get('active_template') == tid:
+            self._settings['active_template'] = ''
+            save_settings(self._settings)
+        return {'ok': True, 'templates': self._base.templates()}
+
+    def set_active_template(self, tid: str) -> Dict[str, Any]:
+        self._settings['active_template'] = tid or ''
+        save_settings(self._settings)
+        return {'ok': True}
+
+    def preview_message(self, body: str) -> str:
+        return render_message(body, {'name': 'Sweet Skin Studio', 'category': 'Косметология', 'city': 'Екатеринбург',
+                                     'address': 'ул. Малышева, 51', 'rating': 4.8, 'reviews': 37,
+                                     'demo_url': 'https://sweet-skin-studio-1a2b.vercel.app'})
+
+    def message_prompt(self) -> str:
+        """Промпт для Claude: варианты первого сообщения с переменными программы."""
+        return ('Напиши 3 варианта первого сообщения владельцу местного бизнеса (салон, кафе, автосервис и т.п.), '
+                'которому я предлагаю сделать сайт. Я уже сделал для него демо-сайт. Сообщение уходит в WhatsApp '
+                'или Telegram, поэтому коротко: 2–4 предложения, на «вы», без восклицательных знаков, без '
+                'слов «уникальный», «эффективный», «под ключ». Тон — как пишет живой человек, а не агентство.\n\n'
+                'Используй переменные в фигурных скобках, программа подставит их сама: {название}, {категория}, '
+                '{рейтинг}, {город}, {демо} — ссылка на демо-сайт (обязательно в каждом варианте).\n'
+                'Варианты: 1) про то, что у них нет сайта; 2) про то, что клиенты пишут им только в соцсети; '
+                '3) самый короткий.')
+
+    def open_chat(self, rec: Dict[str, Any], channel: str, tid: str = '', force: bool = False) -> Dict[str, Any]:
+        """Открывает чат с лидом. В WhatsApp текст подставляется сам, для остальных окно кладёт его
+        в буфер обмена. Лид уходит в базу, статус «Новый» меняется на «Написал»."""
+        lead = self._lead_for(rec)
+        if not lead:
+            return {'ok': False, 'error': 'Пустая карточка'}
+        t = next((x for x in self._base.templates() if x['id'] == tid), None) if tid else None
+        text = render_message(t['body'], lead) if t else ''
+        need_demo = bool(t and '{демо}' in t['body'] and not lead.get('demo_url'))
+        if need_demo and not force:  # окно спросит: сделать демо или отправить без ссылки
+            return {'ok': False, 'need_demo': True, 'lid': lead['id'], 'counts': self._base.counts()}
+        first = (lead.get(channel) or '').split(', ')[0].strip()
+        if channel == 'whatsapp':
+            m = re.search(r'(?:wa\.me/|phone=)\+?(\d{10,15})', first)
+            num = m.group(1) if m else None
+            if not num:
+                for p in (lead.get('phone') or '').split(','):
+                    d = re.sub(r'\D', '', p)
+                    if len(d) == 11 and d[0] in '78' and d[1] in '97':
+                        num = '7' + d[1:]
+                        break
+            if not num and not first:
+                return {'ok': False, 'error': 'У этой организации нет WhatsApp'}
+            url = ('https://wa.me/%s' % num if num else first) + (('?text=' + urllib.parse.quote(text)) if text and num else '')
+        else:
+            url = first
+        if not url.startswith(('http://', 'https://')):
+            return {'ok': False, 'error': 'У этой организации нет такого контакта'}
+        self.open_url(url)
+        marked = bool(text) and lead.get('status') == 'new'
+        if marked:
+            self._base.set_status(lead['id'], 'contacted')
+        return {'ok': True, 'text': text, 'prefilled': channel == 'whatsapp' and bool(text) and '?text=' in url,
+                'marked': marked, 'need_demo': need_demo, 'lid': lead['id'], 'counts': self._base.counts()}
 
     def set_view(self, view: str) -> Dict[str, Any]:
         """Карточки или таблица — запоминаем между запусками."""

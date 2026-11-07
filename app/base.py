@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 import threading
 import time
@@ -33,7 +34,61 @@ CREATE TABLE IF NOT EXISTS leads (
   added_at   REAL NOT NULL,
   updated_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS templates (
+  id    TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  body  TEXT NOT NULL,
+  pos   INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 """
+
+# Колонки, добавленные после первой версии базы: старые leads.db дополняются при запуске.
+_MIGRATIONS = [
+    ('demo_url', "ALTER TABLE leads ADD COLUMN demo_url TEXT NOT NULL DEFAULT ''"),
+    ('demo', "ALTER TABLE leads ADD COLUMN demo TEXT NOT NULL DEFAULT ''"),
+]
+
+DEFAULT_TEMPLATES = [
+    ('nosite', 'Нет сайта',
+     'Здравствуйте! Нашёл «{название}» в 2ГИС — у вас рейтинг {рейтинг}, а своего сайта нет. '
+     'Клиенты из поиска часто уходят к тем, у кого он есть.\n\n'
+     'Набросал, как мог бы выглядеть ваш сайт: {демо}\n'
+     'Если нравится — доделаю под вас за пару дней. Интересно?'),
+    ('social', 'Только соцсети',
+     'Здравствуйте! Вижу, что «{название}» принимает клиентов через соцсети. '
+     'Сайт с услугами и кнопкой записи добавляет заявок из Яндекса и 2ГИС.\n\n'
+     'Сделал пример для вас: {демо}\nПодскажите, кому можно показать?'),
+    ('short', 'Коротко',
+     'Здравствуйте! Сделал демо-сайт для «{название}»: {демо}\nЕсли интересно — расскажу, как запустить.'),
+]
+
+TEMPLATE_VARS = ['{название}', '{категория}', '{город}', '{адрес}', '{рейтинг}', '{отзывов}', '{демо}']
+
+
+def render_message(body: str, lead: Dict[str, Any]) -> str:
+    """Подставляет данные лида в шаблон сообщения."""
+    rating = lead.get('rating')
+    vals = {
+        '{название}': lead.get('name') or '',
+        '{категория}': (lead.get('category') or '').split(',')[0].strip().lower(),
+        '{город}': lead.get('city') or '',
+        '{адрес}': lead.get('address') or '',
+        '{рейтинг}': ('%.1f' % rating).replace('.', ',') if isinstance(rating, (int, float)) and rating else '',
+        '{отзывов}': str(lead.get('reviews') or ''),
+        '{демо}': lead.get('demo_url') or '',
+    }
+    out = body or ''
+    name = vals['{название}']
+    if re.search(r'[«"“]', name):  # «Кофейня «Тест»» → Кофейня «Тест»
+        out = re.sub(r'[«"“]\{название\}[»"”]', lambda m: name, out)
+    for k, v in vals.items():
+        out = out.replace(k, v)
+    out = re.sub(r'[ \t]+([,.!?:])', r'\1', out)
+    out = re.sub(r'[ \t]{2,}', ' ', out)
+    out = re.sub(r':\s*\n', ':\n', out)
+    return re.sub(r'\n{3,}', '\n\n', out).strip()
+
 
 
 def lead_id(rec: Dict[str, Any]) -> str:
@@ -51,6 +106,15 @@ class LeadBase:
         self._db.row_factory = sqlite3.Row
         with self._lock:
             self._db.executescript(_SCHEMA)
+            cols = {r[1] for r in self._db.execute('PRAGMA table_info(leads)')}
+            for col, sql in _MIGRATIONS:
+                if col not in cols:
+                    self._db.execute(sql)
+            if not self._db.execute("SELECT v FROM meta WHERE k='templates_seeded'").fetchone():
+                for i, (tid, title, body) in enumerate(DEFAULT_TEMPLATES):
+                    self._db.execute('INSERT OR IGNORE INTO templates(id,title,body,pos) VALUES (?,?,?,?)',
+                                     (tid, title, body, i))
+                self._db.execute("INSERT OR REPLACE INTO meta(k,v) VALUES ('templates_seeded','1')")
 
     def close(self) -> None:
         with self._lock:
@@ -88,6 +152,7 @@ class LeadBase:
         d = json.loads(r['data'])
         d.update({'id': r['id'], 'status': r['status'], 'status_title': STATUSES.get(r['status'], r['status']),
                   'note': r['note'], 'added_at': r['added_at'], 'updated_at': r['updated_at'],
+                  'demo_url': r['demo_url'], 'has_demo': bool(r['demo']),
                   'added': time.strftime('%d.%m.%Y', time.localtime(r['added_at']))})
         return d
 
@@ -113,6 +178,48 @@ class LeadBase:
             rows = [r for r in rows
                     if q in ' '.join(str(v) for v in r.values() if v).lower().replace('ё', 'е')]
         return rows
+
+    def demo_urls(self) -> Dict[str, str]:
+        with self._lock:
+            return {r[0]: r[1] for r in self._db.execute("SELECT id, demo_url FROM leads WHERE demo_url<>''")}
+
+    def get_demo(self, lid: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            r = self._db.execute('SELECT demo FROM leads WHERE id=?', (lid,)).fetchone()
+        if not r or not r[0]:
+            return None
+        try:
+            return json.loads(r[0])
+        except ValueError:
+            return None
+
+    def save_demo(self, lid: str, content: Dict[str, Any], url: Optional[str] = None) -> None:
+        with self._lock:
+            self._db.execute('UPDATE leads SET demo=?, updated_at=? WHERE id=?',
+                             (json.dumps(content, ensure_ascii=False), time.time(), lid))
+            if url is not None:
+                self._db.execute('UPDATE leads SET demo_url=? WHERE id=?', (url, lid))
+
+    # ----- шаблоны сообщений -----
+    def templates(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [dict(r) for r in self._db.execute('SELECT id, title, body FROM templates ORDER BY pos, rowid')]
+
+    def save_template(self, tid: Optional[str], title: str, body: str) -> Dict[str, Any]:
+        title = (title or '').strip()[:80] or 'Без названия'
+        body = (body or '').strip()[:4000]
+        with self._lock:
+            if tid and self._db.execute('SELECT 1 FROM templates WHERE id=?', (tid,)).fetchone():
+                self._db.execute('UPDATE templates SET title=?, body=? WHERE id=?', (title, body, tid))
+            else:
+                tid = 't%d' % int(time.time() * 1000)
+                pos = self._db.execute('SELECT COALESCE(MAX(pos), 0) + 1 FROM templates').fetchone()[0]
+                self._db.execute('INSERT INTO templates(id,title,body,pos) VALUES (?,?,?,?)', (tid, title, body, pos))
+        return {'id': tid, 'title': title, 'body': body}
+
+    def delete_template(self, tid: str) -> None:
+        with self._lock:
+            self._db.execute('DELETE FROM templates WHERE id=?', (tid,))
 
     def counts(self) -> Dict[str, int]:
         with self._lock:
