@@ -162,6 +162,7 @@ class Api:
                 'one_per_chain': s.get('one_per_chain', False),
                 'min_rating': s.get('min_rating', 0),
                 'no_site': s.get('no_site', False),
+                'view': s.get('view', 'cards'),
                 'show_browser': s.get('show_browser', False),
                 'delay_ms': s.get('delay_ms', 0),
                 'browser_path': s.get('browser_path', ''),
@@ -229,6 +230,12 @@ class Api:
             return {'ok': True, 'tasks': len(params.tasks)}
         except Exception as e:
             return {'ok': False, 'error': str(e)}
+
+    def set_view(self, view: str) -> Dict[str, Any]:
+        """Карточки или таблица — запоминаем между запусками."""
+        self._settings['view'] = 'table' if view == 'table' else 'cards'
+        save_settings(self._settings)
+        return {'ok': True}
 
     def stop(self) -> Dict[str, Any]:
         self._job.stop()

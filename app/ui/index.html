@@ -190,6 +190,34 @@ tbody.ghost td{height:31px}
 .sub:hover{border-color:var(--ink);color:var(--ink)}
 .sub.on{border-style:solid;border-color:var(--ink);color:var(--ink);font-weight:600}
 
+/* ---------- вид: карточки ---------- */
+.viewseg{display:flex;border:1px solid var(--grid);border-radius:var(--radius-m);background:var(--sheet);padding:3px;gap:2px;margin-bottom:4px}
+.viewseg button{border:0;background:transparent;padding:6px 14px;border-radius:7px;cursor:pointer;font-weight:500;color:var(--ink-2);font-size:13px}
+.viewseg button[aria-pressed=true]{background:var(--ink);color:var(--on-ink)}
+.cards{display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;padding:12px;align-content:start}
+.sheetwrap.as-cards{background:transparent;border-color:transparent}
+.sheetwrap.as-cards table{display:none}
+.sheetwrap.as-cards .cards{display:grid}
+.sheetwrap.as-cards .empty{inset:0;background:transparent}
+.card{background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-m);padding:12px 14px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.card:hover{border-color:#3C3C43}
+.card.fresh{animation:marker 1.6s ease-out}
+.card-top{display:flex;align-items:center;gap:8px}
+.card-top .sp{flex:1}
+.card .rate{font-weight:600;font-size:13px;white-space:nowrap}
+.card .rate small{color:var(--ink-3);font-weight:400}
+.card h3{margin:2px 0 0;font-size:14.5px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card .meta{color:var(--ink-2);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ph{font-size:13px;cursor:pointer;width:max-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ph:hover{text-decoration:underline;text-underline-offset:2px}
+.card .ph small{color:var(--ink-3)}
+.links{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:9px;border-top:1px solid var(--grid)}
+.links button{border:1px solid var(--grid);background:transparent;border-radius:var(--radius-s);padding:3px 8px;font-size:12px;color:var(--ink-2);cursor:pointer}
+.links button:hover{border-color:var(--ink);color:var(--ink)}
+.links .none{font-size:12px;color:var(--ink-3)}
+.card .q{font-size:11px;color:var(--ink-3)}
+.copied{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:50}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:1000px){.app{grid-template-columns:340px 1fr}.count b{font-size:42px}}
 </style>
@@ -270,14 +298,16 @@ tbody.ghost td{height:31px}
   <main class="result">
     <div class="head">
       <div class="count"><b id="count">0</b><span id="countLabel">организаций</span></div>
+      <div class="viewseg" id="viewSeg" role="group" aria-label="Вид"><button data-v="cards">Карточки</button><button data-v="table">Таблица</button></div>
       <div class="status" id="status"><strong>Готов к сбору</strong>Таблица появится справа по мере поиска</div>
     </div>
     <div class="attn" id="attn" role="alert" hidden></div>
     <div class="sheetwrap" id="sheetwrap">
       <table id="sheet"><thead></thead><tbody></tbody></table>
+      <div class="cards" id="cards"></div>
       <div class="empty" id="empty">
         <p>Здесь появятся организации</p>
-        <p>Выберите город, впишите запрос и нажмите «Собрать контакты». Колонки таблицы — это поля, отмеченные слева.</p>
+        <p>Выберите город, впишите запрос и нажмите «Собрать контакты». Вид — карточки или таблица — переключается сверху, в Excel попадают поля, отмеченные слева.</p>
         <div class="recent" id="recent" hidden><h3>Последние таблицы</h3><div id="recentList"></div></div>
       </div>
     </div>
@@ -547,10 +577,58 @@ function cell(k, v) {
   td.title = text;
   return td;
 }
+/* ---------- карточки ---------- */
+const LINKS = [['whatsapp', 'WhatsApp'], ['telegram', 'Telegram'], ['vkontakte', 'ВКонтакте'], ['instagram', 'Instagram'],
+               ['viber', 'Viber'], ['website', 'Сайт'], ['url', '2ГИС']];
+function card(r) {
+  const c = document.createElement('div'); c.className = 'card fresh';
+  const top = document.createElement('div'); top.className = 'card-top';
+  if (r.site_kind) top.appendChild(cell('site_kind', r.site_kind).firstChild);
+  const sp = document.createElement('span'); sp.className = 'sp'; top.appendChild(sp);
+  const rate = document.createElement('span'); rate.className = 'rate';
+  if (r.rating) { rate.textContent = '★ ' + Number(r.rating).toFixed(1).replace('.', ','); if (r.reviews) { const sm = document.createElement('small'); sm.textContent = ' · ' + r.reviews; rate.appendChild(sm); } }
+  top.appendChild(rate); c.appendChild(top);
+  const h = document.createElement('h3'); h.textContent = r.name || '—'; h.title = r.name || ''; c.appendChild(h);
+  const cat = (r.category || '').split(',')[0];
+  const meta = document.createElement('div'); meta.className = 'meta';
+  meta.textContent = [cat, r.address].filter(Boolean).join(' · ') || '—'; meta.title = meta.textContent; c.appendChild(meta);
+  if (r.phone) {
+    const phones = r.phone.split(', ');
+    const ph = document.createElement('div'); ph.className = 'ph'; ph.title = 'Скопировать номер'; ph.textContent = phones[0];
+    if (phones.length > 1) { const sm = document.createElement('small'); sm.textContent = '  +' + (phones.length - 1); ph.appendChild(sm); }
+    ph.onclick = () => copyText(phones[0]);
+    c.appendChild(ph);
+  }
+  const links = document.createElement('div'); links.className = 'links';
+  LINKS.forEach(([k, title]) => {
+    const url = (r[k] || '').split(', ')[0];
+    if (!/^https?:\/\//.test(url)) return;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = title; b.title = url;
+    b.onclick = () => api().open_url(url); links.appendChild(b);
+  });
+  if (!links.children.length) { const n = document.createElement('span'); n.className = 'none'; n.textContent = 'Только телефон'; links.appendChild(n); }
+  c.appendChild(links);
+  if (r._query) { const q = document.createElement('div'); q.className = 'q'; q.textContent = r._query; c.appendChild(q); }
+  return c;
+}
+function copyText(text) {
+  const done = () => { const t = document.createElement('div'); t.className = 'copied'; t.textContent = 'Скопировано: ' + text; document.body.appendChild(t); setTimeout(() => t.remove(), 1600); };
+  const fallback = () => { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); done(); };
+  try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, fallback); return; } } catch (e) {}
+  fallback();
+}
+let VIEW = 'cards';
+function setView(v) {
+  VIEW = v === 'table' ? 'table' : 'cards';
+  $('#sheetwrap').classList.toggle('as-cards', VIEW === 'cards');
+  document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === VIEW)));
+}
+document.querySelectorAll('#viewSeg button').forEach(b => b.onclick = () => { setView(b.dataset.v); api().set_view(VIEW); });
+
 function appendRows(rows) {
-  const tb = $('#sheet tbody');
-  if (!shown) { tb.innerHTML = ''; tb.className = ''; $('#empty').hidden = true; }
-  const frag = document.createDocumentFragment();
+  const tb = $('#sheet tbody'), cards = $('#cards');
+  if (!shown) { tb.innerHTML = ''; tb.className = ''; cards.innerHTML = ''; $('#empty').hidden = true; }
+  const frag = document.createDocumentFragment(), cfrag = document.createDocumentFragment();
   for (const r of rows) {
     shown++;
     if (shown > MAX_ROWS_DOM) continue;
@@ -558,8 +636,9 @@ function appendRows(rows) {
     const n = document.createElement('td'); n.className = 'n'; n.textContent = shown + 1; tr.appendChild(n);
     headerKeys.forEach(k => tr.appendChild(cell(k, r[k])));
     frag.appendChild(tr);
+    cfrag.appendChild(card(r));
   }
-  tb.appendChild(frag);
+  tb.appendChild(frag); cards.appendChild(cfrag);
   if (rows.length && shown <= MAX_ROWS_DOM) { const w = $('#sheetwrap'); w.scrollTop = w.scrollHeight; }
 }
 
@@ -590,6 +669,7 @@ $('#goBtn').onclick = async () => {
   $('#log').innerHTML = '';
   const multi = (S.cities.length > 1 || S.queries.length > 1);
   renderHeader(multi);
+  $('#cards').innerHTML = '';
   setCount(0);
   ['#openBtn', '#revealBtn', '#saveAsBtn'].forEach(id => $(id).hidden = true);
   $('#footMsg').className = 'msg'; $('#footMsg').textContent = '';
@@ -636,7 +716,8 @@ function finish(st) {
     m.className = 'msg';
     m.textContent = has || st.state === 'stopped' ? '' : 'По этим условиям ничего не нашлось. Попробуйте ослабить фильтры или изменить запрос.';
   }
-  if (shown > MAX_ROWS_DOM) { const tr = document.createElement('tr'); tr.innerHTML = '<td class="n"></td><td colspan="' + headerKeys.length + '" class="muted"></td>'; tr.lastChild.textContent = 'И ещё ' + (shown - MAX_ROWS_DOM) + ' строк — они в Excel-файле'; $('#sheet tbody').appendChild(tr); }
+  if (shown > MAX_ROWS_DOM) { const tr = document.createElement('tr'); tr.innerHTML = '<td class="n"></td><td colspan="' + headerKeys.length + '" class="muted"></td>'; tr.lastChild.textContent = 'И ещё ' + (shown - MAX_ROWS_DOM) + ' строк — они в Excel-файле'; $('#sheet tbody').appendChild(tr);
+    const more = document.createElement('div'); more.className = 'card'; more.style.justifyContent = 'center'; more.style.color = 'var(--ink-3)'; more.textContent = tr.lastChild.textContent; $('#cards').appendChild(more); }
   api().recent().then(renderRecent);
 }
 
@@ -690,6 +771,7 @@ async function boot() {
   const d = await api().init();
   CITIES = d.cities; LOCS = d.localities || []; FIELDS = d.fields; BROWSERS = d.browsers;
   Object.assign(S, d.settings);
+  setView(d.settings.view || 'cards');
   $('#appName').textContent = d.app.name; $('#appVer').textContent = 'версия ' + d.app.version;
   document.title = d.app.title;
   renderCityTags(); renderQueryTags(); renderLimit(); renderSource(); renderChips(); renderOptions(); renderHeader(); renderRecent(d.recent);
