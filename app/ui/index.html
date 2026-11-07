@@ -451,6 +451,8 @@ tbody.ghost td{height:31px}
 .btnrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .res{margin-top:10px;font-size:13px;color:var(--ink-2);word-break:break-all}
 .res a{color:var(--ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.tipbox{border:1px solid rgba(245,200,75,.4);background:rgba(245,200,75,.07);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--ink-2);margin-bottom:10px}
+.tipbox b{display:block;color:#F5C84B;margin-bottom:4px}
 .copied{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:50}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -672,6 +674,8 @@ tbody.ghost td{height:31px}
             <div class="pcard"><div class="pcard-h"><b><i class="n">2</i>Ответ Claude</b><small>В claude.ai вставьте промпт (Ctrl+V), дождитесь кода и нажмите Copy под ним</small></div>
               <textarea id="dmAnswer" rows="5" placeholder="Вставьте сюда ответ Claude целиком (Ctrl+V)"></textarea>
               <div class="btnrow"><button class="btn primary" id="dmApply">Показать сайт</button></div></div>
+            <div class="tipbox"><b>Получилось криво?</b> Посмотрите сайт в предпросмотре справа (Телефон / Компьютер). ParserGod проверяет только, что код целый, — красоту и правильность текстов оценивайте сами.
+              Если что-то не так, не правьте здесь: напишите Claude в том же чате, что исправить («кнопки крупнее», «добавь меню», «убери выдуманные цены»), и вставьте сюда уже обновлённый рабочий код целиком. Пока вы не нажали «Опубликовать», клиент ничего не увидит.</div>
           </div>
           <div class="nav-row"><button class="btn" data-go="1">← Данные</button><button class="btn primary" data-go="3">Дальше: публикация →</button></div>
         </div>
@@ -1353,7 +1357,7 @@ $('#dmOpenClaude').onclick = () => { copyText($('#dmPrompt').value, true); api()
 $('#dmApply').onclick = async () => {
   const r = await api().demo_apply_site(DM.lead.id, readDemo(), $('#dmAnswer').value);
   if (!r.ok) { toast(r.error); return; }
-  DM.content = r.content; $('#dmAnswer').value = ''; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — это сайт от Claude');
+  DM.content = r.content; $('#dmAnswer').value = ''; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — проверьте сайт справа. Криво — попросите Claude поправить и вставьте новый код');
 };
 function renderPublish() {
   const url = DEMO_URLS[DM.lead.id];
