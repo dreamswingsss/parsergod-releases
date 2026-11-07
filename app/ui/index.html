@@ -332,6 +332,9 @@ tbody.ghost td{height:31px}
 .bh{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
 .bh i{flex:none;width:24px;height:24px;border-radius:8px;background:var(--ink);color:var(--on-ink);font-style:normal;font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
 .bh h2{font-size:15px!important;margin:0!important;font-weight:700!important}
+.bh>div{flex:1;min-width:0}
+.bh .pill{margin-top:2px}
+.conn-b.lft{padding:0}
 .bh small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:1px}
 .order .opt span{font-size:14px}
 .order .hint{font-size:12.5px}
@@ -508,6 +511,16 @@ tbody.ghost td{height:31px}
           <select id="fRating"><option value="0">любой</option><option value="3.5">3,5</option><option value="4">4,0</option><option value="4.5">4,5</option></select>
         </div>
       </section>
+
+      <section class="block">
+        <div class="bh"><i>5</i><div><h2>Telegram для рассылки</h2><small>Программа пишет лидам с вашего аккаунта</small></div><span class="pill" id="tgPillL"></span></div>
+        <div class="conn-b lft" id="tgLeft"></div>
+      </section>
+
+      <section class="block">
+        <div class="bh"><i>6</i><div><h2>API-ключ ИИ</h2><small>Демо-сайты и личные сообщения по кнопке</small></div><span class="pill" id="aiPillL"></span></div>
+        <div class="conn-b lft" id="aiLeft"></div>
+      </section>
     </div>
     <div class="go">
       <p class="err" id="formErr" role="alert"></p>
@@ -637,6 +650,9 @@ tbody.ghost td{height:31px}
               <div class="secs" id="dmSecs"></div></div>
           </div>
 
+          <div id="mAIKey" hidden>
+            <div class="pcard"><div class="pcard-h"><b>API-ключ</b><small>Тот же, что в Настройках — вставить нужно один раз</small></div><div class="conn-b lft" id="dmAiBox"></div></div>
+          </div>
           <div id="mWish" hidden>
             <div class="pcard"><div class="pcard-h"><b>Что хотите видеть на сайте</b><small>Своими словами</small></div>
               <textarea id="dmWish" rows="4" placeholder="Например: тёмный стиль, прайс с ценами с их сайта, отзывы, большая кнопка записи в WhatsApp"></textarea>
@@ -1135,6 +1151,7 @@ function renderDots() {
   });
   const pill = (id, on) => { const p = $(id); p.textContent = on ? 'Подключено' : 'Не подключено'; p.className = 'pill' + (on ? ' on' : ''); };
   pill('#aiPill', aiOn()); pill('#vcPill', VERCEL.connected); pill('#tgPill', !!TG.account);
+  pill('#aiPillL', aiOn()); pill('#tgPillL', !!TG.account);
 }
 
 /* ---------- демо-сайт: мастер в 3 шага ---------- */
@@ -1194,11 +1211,11 @@ function fillDemo() {
   // способ
   document.querySelectorAll('#dmMethods button').forEach(b => {
     b.setAttribute('aria-pressed', String(b.dataset.m === dmMethod));
-    if (b.dataset.m === 'ai') { b.disabled = false; $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Подключите ключ в Настройках'; }
+    if (b.dataset.m === 'ai') $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Свой дизайн · нужен API-ключ';
   });
   $('#mBuilder').hidden = dmMethod !== 'builder';
   $('#mWish').hidden = dmMethod === 'builder';
-  $('#mAI').hidden = dmMethod !== 'ai'; $('#mClaude').hidden = dmMethod !== 'claude';
+  $('#mAI').hidden = dmMethod !== 'ai'; $('#mAIKey').hidden = dmMethod !== 'ai'; $('#mClaude').hidden = dmMethod !== 'claude';
   $('#dmCustom').hidden = !c.custom_html || dmMethod !== 'builder';
   $('#dmMode').textContent = c.custom_html ? 'Сайт от ИИ' : 'Конструктор';
   // стиль
@@ -1280,7 +1297,6 @@ function readDemo() {
 async function preview() { if (!DM) return; $('#dmFrame').srcdoc = await api().demo_preview(DM.lead.id, readDemo()); }
 ['#dmHeadline', '#dmSubtitle', '#dmCta'].forEach(id => $(id).addEventListener('input', () => { DM.content.custom_html = ''; $('#dmCustom').hidden = true; previewSoon(); }));
 document.querySelectorAll('#dmMethods button').forEach(b => b.onclick = () => {
-  if (b.dataset.m === 'ai' && !aiOn()) { openSettings('conn'); toast('Вставьте API-ключ любого сервиса — программа сама поймёт, какой это'); return; }
   dmMethod = b.dataset.m; fillDemo();
 });
 $('#dmTemplate').onclick = () => { DM.content.custom_html = ''; fillDemo(); preview(); };
@@ -1321,6 +1337,7 @@ $('#dmEnrich').onclick = async () => {
   $('#dmSrc').textContent = r.summary.join(' · ');
 };
 $('#dmAI').onclick = async () => {
+  if (!aiOn()) { toast('Сначала вставьте API-ключ выше'); return; }
   const b = $('#dmAI'); b.disabled = true; b.textContent = 'ИИ верстает сайт… 1–3 минуты';
   const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value);
   b.disabled = false; b.textContent = 'Сгенерировать заново';
@@ -1372,20 +1389,20 @@ $('#dmPublish').onclick = async () => {
 function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }
 
 /* ---------- ИИ ---------- */
-let AI = {connected: false}, AIP = {}, aiEdit = false, aiFound = null;
+let AI = {connected: false}, AIP = {}, aiEdit = false, aiFound = null, aiFoundHost = null;
 function aiOn() { return !!AI.connected; }
-function renderAI() {
-  const box = $('#aiBox'); box.innerHTML = '';
+function renderAIInto(box) {
+  const q = sel => box.querySelector(sel); box.innerHTML = '';
   if (aiOn() && !aiEdit) {
     box.innerHTML = '<div><span class="ok">✓</span> <b></b> · модель <b></b>' + (AI.key_hint ? ' · ключ ' + esc(AI.key_hint) : '') + '</div>'
       + '<label class="sub-l" style="display:block">Что вы предлагаете — ИИ учтёт это в сообщениях</label><textarea id="aiOffer" rows="2" placeholder="Например: сайт с онлайн-записью за 3 дня, от 15 000 ₽"></textarea>'
       + '<div class="btnrow"><button class="btn" id="aiChange">Сменить ключ или модель</button><button class="btn danger-txt" id="aiOff">Отключить</button></div>';
     const bs = box.querySelectorAll('b'); bs[0].textContent = AI.title || (AIP[AI.provider] || {}).title || AI.provider; bs[1].textContent = AI.model || 'по умолчанию';
-    $('#aiOffer').value = AI.offer || '';
-    $('#aiOffer').onchange = () => { AI.offer = $('#aiOffer').value; api().ai_offer(AI.offer); };
-    $('#aiChange').onclick = () => { aiEdit = true; aiFound = null; renderAI(); };
-    $('#aiOff').onclick = async () => { await api().ai_disconnect(); AI = {connected: false, offer: AI.offer}; if (ACTIVE_TPL === '__ai__') ACTIVE_TPL = ''; renderAI(); renderTplSelect(); renderDots(); };
-    $('#dmAI').hidden = false;
+    if (box.id === 'dmAiBox') { q('#aiOffer').previousElementSibling.remove(); q('#aiOffer').remove(); }  // в окне демо лишнее
+    else q('#aiOffer').value = AI.offer || '';
+    if (q('#aiOffer')) q('#aiOffer').onchange = () => { AI.offer = q('#aiOffer').value; api().ai_offer(AI.offer); };
+    q('#aiChange').onclick = () => { aiEdit = true; aiFound = null; renderAI(); };
+    q('#aiOff').onclick = async () => { await api().ai_disconnect(); AI = {connected: false, offer: AI.offer}; if (ACTIVE_TPL === '__ai__') ACTIVE_TPL = ''; renderAI(); renderTplSelect(); renderDots(); };
     return;
   }
   box.innerHTML = '<div>Вставьте API-ключ любого сервиса — программа сама определит, чей он, и покажет модели.</div>'
@@ -1395,52 +1412,63 @@ function renderAI() {
     + (aiOn() ? '<button class="linkbtn" id="aiCancel">Отмена</button>' : '') + '</div>'
     + '<input id="aiBase" placeholder="Адрес API, например https://api.example.com/v1" hidden>'
     + '<div id="aiFound"></div><div class="hint" id="aiErr"></div>';
-  $('#aiCustom').onclick = () => { $('#aiBase').hidden = false; $('#aiBase').focus(); };
-  if ($('#aiCancel')) $('#aiCancel').onclick = () => { aiEdit = false; renderAI(); };
+  q('#aiCustom').onclick = () => { q('#aiBase').hidden = false; q('#aiBase').focus(); };
+  if (q('#aiCancel')) q('#aiCancel').onclick = () => { aiEdit = false; renderAI(); };
   const detect = async () => {
-    $('#aiErr').textContent = 'Проверяю ключ…'; $('#aiFound').innerHTML = '';
-    const r = await api().ai_detect($('#aiKey').value, $('#aiBase').hidden ? '' : $('#aiBase').value);
-    if (!r.ok) { $('#aiErr').innerHTML = '<span class="bad"></span>'; $('#aiErr').firstChild.textContent = r.error; return; }
-    $('#aiErr').textContent = ''; aiFound = r; renderFound();
+    q('#aiErr').textContent = 'Проверяю ключ…'; q('#aiFound').innerHTML = '';
+    const r = await api().ai_detect(q('#aiKey').value, q('#aiBase').hidden ? '' : q('#aiBase').value);
+    if (!r.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = r.error; return; }
+    q('#aiErr').textContent = ''; aiFound = r; aiFoundHost = box; renderFound(box);
   };
-  $('#aiDetect').onclick = detect;
-  $('#aiKey').addEventListener('paste', () => setTimeout(detect, 50));
-  $('#dmAI').hidden = !aiOn();
-  if (aiFound) renderFound();
+  q('#aiDetect').onclick = detect;
+  q('#aiKey').addEventListener('paste', () => setTimeout(detect, 50));
+  if (aiFound && aiFoundHost === box) renderFound(box);
 }
-function renderFound() {
-  const r = aiFound, box = $('#aiFound');
+function renderFound(host) {
+  const q = sel => host.querySelector(sel), r = aiFound, box = q('#aiFound');
   box.innerHTML = '<div class="detected"><b class="ok">✓ Это ' + esc(r.title) + ' — ключ рабочий</b>'
     + (r.not_in_russia ? '<div class="warnx" style="font-size:12.5px;margin-top:4px">Из России этот сервис работает только через VPN. Без VPN лучше OpenRouter, DeepSeek или YandexGPT.</div>' : '')
     + '<label class="sub-l" style="display:block">Модель</label><select id="aiModel"></select>'
     + (r.needs_folder ? '<label class="sub-l" style="display:block">ID каталога Yandex Cloud</label><input id="aiFolder" placeholder="b1g…">' : '')
     + '<div class="btnrow"><button class="btn primary" id="aiSave">Подключить</button></div></div>';
-  const sel = $('#aiModel');
+  const sel = q('#aiModel');
   r.models.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m + (m === r.model ? '  — рекомендуем' : ''); sel.appendChild(o); });
   sel.value = r.model;
-  $('#aiSave').onclick = async () => {
-    $('#aiErr').textContent = 'Пробный запрос…';
-    const res = await api().ai_save({provider: r.provider, key: $('#aiKey').value, model: sel.value, folder: $('#aiFolder') ? $('#aiFolder').value : '',
-      base: $('#aiBase').hidden ? '' : $('#aiBase').value, offer: AI.offer || ''});
-    if (!res.ok) { $('#aiErr').innerHTML = '<span class="bad"></span>'; $('#aiErr').firstChild.textContent = res.error; return; }
+  q('#aiSave').onclick = async () => {
+    q('#aiErr').textContent = 'Пробный запрос…';
+    const res = await api().ai_save({provider: r.provider, key: q('#aiKey').value, model: sel.value, folder: q('#aiFolder') ? q('#aiFolder').value : '',
+      base: q('#aiBase').hidden ? '' : q('#aiBase').value, offer: AI.offer || ''});
+    if (!res.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = res.error; return; }
     AI = res.ai; aiEdit = false; aiFound = null; renderAI(); renderTplSelect(); renderDots(); toast('ИИ подключён: ' + r.title);
   };
 }
 
+function renderAI() {
+  ['#aiBox', '#aiLeft', '#dmAiBox'].forEach(id => { const b = $(id); if (b) renderAIInto(b); });
+  if ($('#dmAiSub')) $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Свой дизайн · нужен API-ключ';
+  if ($('#dmAI')) $('#dmAI').disabled = !aiOn();
+  renderDots();
+}
+
 /* ---------- Telegram ---------- */
 let TG = {configured: false}, tgStep = 'creds', tgTimer = null;
-async function loadTg() { TG = await api().tg_info(); renderTg(); renderTgStrip(); renderDots(); }
-function renderTg() {
-  const box = $('#tgBox');
+async function loadTg() {
+  const prev = TG.account;
+  TG = await api().tg_info();
+  if (prev !== TG.account || !$('#tgLeft').innerHTML) renderTg();  // не стираем то, что человек сейчас вводит
+  renderTgStrip(); renderDots();
+}
+function renderTgInto(box) {
+  const q = sel => box.querySelector(sel);
   if (TG.account) {
     box.innerHTML = '<div style="font-size:13px"><span class="ok">Вход выполнен:</span> <b></b></div>'
       + '<div class="row"><span>Сообщений в день, не больше</span><input type="number" id="tgLimit" min="1" max="50"></div>'
       + '<p class="hint">Сообщения уходят с вашего аккаунта только лидам с Telegram-username, с паузой 45–120 секунд. Больше 15–20 холодных сообщений в день — риск спам-блока.</p>'
       + '<div class="btnrow"><button class="btn danger-txt" id="tgOut">Выйти из Telegram</button></div>';
     box.querySelector('b').textContent = TG.account;
-    $('#tgLimit').value = TG.daily_limit || 15;
-    $('#tgLimit').onchange = async e => { const r = await api().tg_limit(+e.target.value); TG.daily_limit = r.daily_limit; e.target.value = r.daily_limit; };
-    $('#tgOut').onclick = async () => { await api().tg_logout(); tgStep = 'creds'; loadTg(); };
+    q('#tgLimit').value = TG.daily_limit || 15;
+    q('#tgLimit').onchange = async e => { const r = await api().tg_limit(+e.target.value); TG.daily_limit = r.daily_limit; e.target.value = r.daily_limit; };
+    q('#tgOut').onclick = async () => { await api().tg_logout(); tgStep = 'creds'; TG.account = ''; renderTg(); loadTg(); };
     return;
   }
   if (tgStep === 'code' || tgStep === 'password') {
@@ -1448,12 +1476,12 @@ function renderTg() {
       ? '<div style="font-size:13px">Код пришёл в Telegram (в чат «Telegram» на телефоне).</div><input id="tgCode" placeholder="Код" autocomplete="one-time-code">'
       : '<div style="font-size:13px">У аккаунта включена двухэтапная проверка.</div><input type="password" id="tgPass" placeholder="Облачный пароль Telegram">';
     box.innerHTML += '<div class="btnrow"><button class="btn primary" id="tgGo">Войти</button><button class="btn" id="tgBack">Назад</button></div><div class="hint" id="tgErr"></div>';
-    $('#tgBack').onclick = () => { tgStep = 'creds'; renderTg(); };
-    $('#tgGo').onclick = async () => {
-      $('#tgErr').textContent = 'Вхожу…';
-      const r = tgStep === 'code' ? await api().tg_sign_in($('#tgCode').value, '') : await api().tg_sign_in('', $('#tgPass').value);
+    q('#tgBack').onclick = () => { tgStep = 'creds'; renderTg(); };
+    q('#tgGo').onclick = async () => {
+      q('#tgErr').textContent = 'Вхожу…';
+      const r = tgStep === 'code' ? await api().tg_sign_in(q('#tgCode').value, '') : await api().tg_sign_in('', q('#tgPass').value);
       if (r.need_password) { tgStep = 'password'; renderTg(); return; }
-      if (!r.ok) { $('#tgErr').textContent = r.error; return; }
+      if (!r.ok) { q('#tgErr').textContent = r.error; return; }
       toast('Telegram подключён: ' + r.account); loadTg();
     };
     return;
@@ -1462,14 +1490,15 @@ function renderTg() {
     + '<ol><li>Откройте my.telegram.org, войдите по номеру.</li><li>«API development tools» → создайте приложение (название любое).</li><li>Скопируйте сюда api_id и api_hash.</li></ol>'
     + '<input id="tgId" placeholder="api_id (число)" inputmode="numeric"><input id="tgHash" placeholder="api_hash"><input id="tgPhone" placeholder="Номер телефона, +79001234567">'
     + '<div class="btnrow"><button class="btn primary" id="tgSend">Получить код</button><button class="btn" id="tgSite">Открыть my.telegram.org</button></div><div class="hint" id="tgErr"></div>';
-  $('#tgSite').onclick = () => api().open_url('https://my.telegram.org/apps');
-  $('#tgSend').onclick = async () => {
-    $('#tgErr').textContent = 'Отправляю код…';
-    const r = await api().tg_send_code($('#tgId').value, $('#tgHash').value, $('#tgPhone').value);
-    if (!r.ok) { $('#tgErr').textContent = r.error; return; }
+  q('#tgSite').onclick = () => api().open_url('https://my.telegram.org/apps');
+  q('#tgSend').onclick = async () => {
+    q('#tgErr').textContent = 'Отправляю код…';
+    const r = await api().tg_send_code(q('#tgId').value, q('#tgHash').value, q('#tgPhone').value);
+    if (!r.ok) { q('#tgErr').textContent = r.error; return; }
     tgStep = 'code'; renderTg();
   };
 }
+function renderTg() { ['#tgBox', '#tgLeft'].forEach(id => { const b = $(id); if (b) renderTgInto(b); }); }
 function renderTgStrip() {
   const el = $('#tgStrip'), q = (TG.queue || []).length;
   const last = (TG.log || []).slice(-1)[0];
