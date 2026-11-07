@@ -90,6 +90,8 @@ def run() -> int:
         assert '<html' in page and rec['name'].split('«')[0].strip() in page
         assert demo_site.slugify('Кофейня «Тест»') == 'kofeynya-test', demo_site.slugify('Кофейня «Тест»')
         assert 'https://x' in render_message('{демо}', {'demo_url': 'https://x'})
+        custom = demo_site.parse_site_answer('```html\n<!doctype html><html><img src="{{PHOTO_1}}"></html>\n```')
+        assert 'data:x' in demo_site.render(rec, {'custom_html': custom, 'photos': ['data:x']})
         lines.append('demo: %d bytes' % len(page))
         import webview  # noqa: F401  — проверяем, что GUI-библиотека в сборке
         lines.append('webview: ok')

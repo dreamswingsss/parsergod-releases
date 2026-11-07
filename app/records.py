@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 import urllib.parse
 from typing import Any, Dict, List, Optional
@@ -173,6 +174,26 @@ def yandex_maps_link(name: Optional[str], place: Optional[str],
     return 'https://yandex.ru/maps/?text=%s' % text
 
 
+_PHOTO_RE = re.compile(r'https?://[\w.-]*photo\.2gis\.com/[^\s"\'<>]+', re.I)
+
+
+def _photos(raw: Any, limit: int = 6) -> List[str]:
+    """Фото заведения, если 2ГИС отдал их в карточке (ссылки на photo.2gis.com)."""
+    try:
+        text = json.dumps(raw, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return []
+    out: List[str] = []
+    for u in _PHOTO_RE.findall(text):
+        u = u.replace('\\/', '/').rstrip('\\')
+        u = re.sub(r'_\d+x\d+(?=\.\w+$)', '', u)  # превью -> исходный размер, если адрес это позволяет
+        if u not in out:
+            out.append(u)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def parse_doc(doc: Any) -> Optional[Dict[str, Any]]:
     """Документ API -> словарь {field_key: значение} плюс служебный '_id'."""
     try:
@@ -243,4 +264,5 @@ def parse_doc(doc: Any) -> Optional[Dict[str, Any]]:
     for k, vals in multi.items():
         rec[k] = ', '.join(vals) if vals else None
     rec['site_kind'] = site_kind(rec)
+    rec['_photos'] = _photos(raw)
     return rec

@@ -454,29 +454,38 @@ tbody.ghost td{height:31px}
     <div class="dlg-h"><b id="dmTitle">Демо</b><button class="x" id="dmClose" aria-label="Закрыть">×</button></div>
     <div class="dlg-b">
       <div class="ed">
-        <label>Стиль</label>
+        <div class="claude" style="margin-top:0">
+          <b>1. Данные заведения</b>
+          <p class="hint" style="margin:0">Тексты, услуги, цены и фото с их сайта или VK и из карточки 2ГИС.</p>
+          <div class="row2"><button class="btn" id="dmEnrich">Подтянуть с сайта и 2ГИС</button></div>
+          <div class="hint" id="dmSrc"></div>
+        </div>
+        <div class="claude">
+          <b>2. Сайт под заведение через Claude</b>
+          <textarea id="dmWish" rows="3" placeholder="Что хотите видеть: например, «тёмный стиль, прайс с ценами с их сайта, отзывы, большая кнопка записи в WhatsApp»" style="margin-top:6px"></textarea>
+          <div class="row2"><button class="btn primary" id="dmSitePrompt">Скопировать промпт и открыть Claude</button></div>
+          <p class="hint">Вставьте промпт в claude.ai (Ctrl+V), дождитесь кода, нажмите Copy под ним и вставьте сюда:</p>
+          <textarea id="dmAnswer" rows="3" placeholder="Ответ Claude — код страницы"></textarea>
+          <div class="row2"><button class="btn" id="dmApply">Показать сайт</button></div>
+        </div>
+        <label>Фото — до 8 (свои скриншоты или подтянутые)</label>
+        <div class="photos" id="dmPhotos"></div>
+        <input type="file" id="dmFile" accept="image/*" multiple hidden>
+        <p class="hint">Перетащите файлы сюда или вставьте скриншот через Ctrl+V. Добавляйте фото до того, как копируете промпт.</p>
+        <details id="dmTplBox" style="padding-top:14px"><summary>Быстрый шаблон без Claude</summary>
+        <label style="margin-top:10px">Стиль</label>
         <div class="seg" id="dmTheme"></div>
         <label for="dmHeadline">Заголовок</label><input type="text" id="dmHeadline" maxlength="120">
         <label for="dmSubtitle">Подзаголовок</label><input type="text" id="dmSubtitle" maxlength="200">
         <label for="dmServices">Услуги — по одной в строке</label><textarea id="dmServices" rows="6"></textarea>
         <label for="dmAbout">О компании</label><textarea id="dmAbout" rows="4"></textarea>
         <label for="dmCta">Текст кнопки</label><input type="text" id="dmCta" maxlength="40">
-        <label>Фото — до 6 (скриншоты из Instagram, 2ГИС, Яндекс Карт)</label>
-        <div class="photos" id="dmPhotos"></div>
-        <input type="file" id="dmFile" accept="image/*" multiple hidden>
-        <p class="hint">Можно перетащить файлы сюда или вставить скриншот через Ctrl+V.</p>
-        <div class="claude">
-          <b>Переписать тексты в Claude</b>
-          <p class="hint" style="margin:0">1) Скопируйте промпт и вставьте в claude.ai. 2) Скопируйте ответ Claude целиком и вставьте ниже.</p>
-          <div class="row2"><button class="btn" id="dmPrompt">Скопировать промпт и открыть Claude</button></div>
-          <textarea id="dmAnswer" rows="3" placeholder="Ответ Claude (JSON)" style="margin-top:8px"></textarea>
-          <div class="row2"><button class="btn" id="dmApply">Применить ответ</button></div>
-        </div>
+        </details>
       </div>
       <div class="pv">
         <div class="pv-bar">
           <div class="viewseg" id="dmDevice"><button data-d="mobile" aria-pressed="true">Телефон</button><button data-d="desktop" aria-pressed="false">Компьютер</button></div>
-          <span class="sp"></span><button class="linkbtn" id="dmReset">Вернуть исходные тексты</button>
+          <span class="sp"></span><span class="hint" id="dmMode" style="margin:0"></span><button class="linkbtn" id="dmTemplate" hidden>Вернуть шаблон</button><button class="linkbtn" id="dmReset">Сбросить тексты шаблона</button>
         </div>
         <div class="pv-wrap mobile" id="dmWrap"><iframe id="dmFrame" title="Предпросмотр демо" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div>
       </div>
@@ -930,6 +939,8 @@ async function openDemo(r) {
   if (res.counts) setCounts(res.counts);
   if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
   DM = {lead: res.lead, content: res.content};
+  $('#dmWish').value = res.content.wishes || ''; $('#dmSrc').textContent = '';
+  $('#dmEnrich').textContent = 'Подтянуть с сайта и 2ГИС';
   $('#dmTitle').textContent = 'Демо-сайт — ' + res.lead.name;
   fillDemo(); $('#dmFrame').srcdoc = res.html;
   $('#dmAnswer').value = '';
@@ -956,8 +967,15 @@ function fillDemo() {
   Object.entries(THEMES).forEach(([k, v]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = v; b.setAttribute('aria-pressed', String(c.theme === k));
     b.onclick = () => { DM.content.theme = k; fillDemo(); preview(); }; th.appendChild(b); });
   renderPhotos();
+  const custom = !!c.custom_html;
+  $('#dmMode').textContent = custom ? 'Дизайн от Claude' : 'Быстрый шаблон';
+  $('#dmTemplate').hidden = !custom; $('#dmReset').hidden = custom;
+  if (c.wishes && !$('#dmWish').value) $('#dmWish').value = c.wishes;
+  const src = c.source;
+  if (src && !$('#dmSrc').textContent) $('#dmSrc').textContent = 'Уже собрано: ' + ((src.sites || []).length ? (src.sites || []).map(x => (x.url || '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0]).join(', ') + ', ' : '') + '2ГИС';
 }
 function readDemo() {
+  DM.content.wishes = $('#dmWish').value;
   Object.assign(DM.content, {headline: $('#dmHeadline').value, subtitle: $('#dmSubtitle').value, about: $('#dmAbout').value,
     services: $('#dmServices').value.split('\n').map(s => s.trim()).filter(Boolean), cta: $('#dmCta').value});
   return DM.content;
@@ -971,7 +989,7 @@ function renderPhotos() {
     const x = document.createElement('button'); x.textContent = '×'; x.title = 'Убрать'; x.onclick = () => { DM.content.photos.splice(i, 1); renderPhotos(); preview(); };
     d.appendChild(x); box.appendChild(d);
   });
-  if ((DM.content.photos || []).length < 6) { const a = document.createElement('button'); a.className = 'add'; a.textContent = '+'; a.title = 'Добавить фото'; a.onclick = () => $('#dmFile').click(); box.appendChild(a); }
+  if ((DM.content.photos || []).length < 8) { const a = document.createElement('button'); a.className = 'add'; a.textContent = '+'; a.title = 'Добавить фото'; a.onclick = () => $('#dmFile').click(); box.appendChild(a); }
 }
 function shrink(file) {  // фото → JPEG не больше 1400px, чтобы сайт открывался быстро
   return new Promise(res => {
@@ -985,7 +1003,7 @@ function shrink(file) {  // фото → JPEG не больше 1400px, чтоб
 }
 async function addPhotos(files) {
   DM.content.photos = DM.content.photos || [];
-  for (const f of files) { if (!/^image\//.test(f.type) || DM.content.photos.length >= 6) continue; const d = await shrink(f); if (d) DM.content.photos.push(d); }
+  for (const f of files) { if (!/^image\//.test(f.type) || DM.content.photos.length >= 8) continue; const d = await shrink(f); if (d) DM.content.photos.push(d); }
   renderPhotos(); preview();
 }
 $('#dmFile').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };
@@ -998,8 +1016,26 @@ document.querySelectorAll('#dmDevice button').forEach(b => b.onclick = () => {
   $('#dmWrap').classList.toggle('mobile', b.dataset.d === 'mobile');
 });
 $('#dmReset').onclick = async () => { const r = await api().demo_reset(DM.lead.id); DM.content = Object.assign(r.content, {photos: DM.content.photos || []}); fillDemo(); preview(); };
-$('#dmPrompt').onclick = async () => { copyText(await api().demo_prompt(DM.lead.id, readDemo()), true); api().open_url('https://claude.ai/new'); toast('Промпт в буфере — вставьте в Claude, потом скопируйте ответ сюда'); };
-$('#dmApply').onclick = async () => { const r = await api().demo_apply($('#dmAnswer').value); if (!r.ok) { toast(r.error); return; } Object.assign(DM.content, r.fields); fillDemo(); preview(); toast('Тексты обновлены'); };
+$('#dmEnrich').onclick = async () => {
+  const b = $('#dmEnrich'); b.disabled = true; b.textContent = 'Собираю… до 30 секунд'; $('#dmSrc').textContent = '';
+  const r = await api().demo_enrich(DM.lead.id, readDemo());
+  b.disabled = false; b.textContent = 'Подтянуть ещё раз';
+  if (!r.ok) { toast(r.error); return; }
+  DM.content = r.content; fillDemo(); $('#dmFrame').srcdoc = r.html;
+  $('#dmSrc').textContent = r.summary.join(' · ');
+};
+$('#dmSitePrompt').onclick = async () => {
+  const text = await api().demo_site_prompt(DM.lead.id, readDemo(), $('#dmWish').value);
+  copyText(text, true); DM.content.wishes = $('#dmWish').value;
+  api().open_url('https://claude.ai/new');
+  toast('Промпт в буфере — вставьте его в Claude (Ctrl+V), потом скопируйте код страницы сюда');
+};
+$('#dmApply').onclick = async () => {
+  const r = await api().demo_apply_site(DM.lead.id, readDemo(), $('#dmAnswer').value);
+  if (!r.ok) { toast(r.error); return; }
+  DM.content = r.content; $('#dmAnswer').value = ''; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — это сайт от Claude. Можно публиковать');
+};
+$('#dmTemplate').onclick = () => { DM.content.custom_html = ''; fillDemo(); preview(); };
 $('#dmFileBtn').onclick = async () => { const r = await api().demo_save_file(DM.lead.id, readDemo()); if (r.ok) { setDmRes('', r.path); api().reveal(r.path); } };
 $('#dmPublish').onclick = async () => {
   if (!VERCEL.connected) { $('#demoModal').hidden = true; const d = document.querySelector('.order details'); if (d) { d.open = true; $('#vercelBox').scrollIntoView({block: 'center'}); } toast('Вставьте токен Vercel — и демо будут публиковаться по ссылке'); return; }

@@ -343,6 +343,40 @@ class Api:
         except ValueError as e:
             return {'ok': False, 'error': str(e)}
 
+    def demo_enrich(self, lid: str, content: Dict[str, Any]) -> Dict[str, Any]:
+        """Подтягивает данные с сайта/VK заведения и со страницы 2ГИС."""
+        from . import enrich
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        try:
+            got = enrich.gather(lead)
+        except Exception as e:
+            return {'ok': False, 'error': 'Не получилось собрать данные: %s' % e}
+        content = dict(content or {})
+        content['source'] = {'sites': got['sites'], 'gis': got['gis']}
+        have = list(content.get('photos') or [])
+        for u in got['photos']:
+            if u not in have and len(have) < 8:
+                have.append(u)
+        content['photos'] = have
+        self._base.save_demo(lid, content)
+        return {'ok': True, 'content': content, 'summary': got['summary'],
+                'html': demo_site.render(lead, content)}
+
+    def demo_site_prompt(self, lid: str, content: Dict[str, Any], wishes: str = '') -> str:
+        return demo_site.site_prompt(self._base.get(lid) or {}, content or {}, wishes or '')
+
+    def demo_apply_site(self, lid: str, content: Dict[str, Any], text: str) -> Dict[str, Any]:
+        """Ответ Claude (HTML) → «Свой дизайн» этого демо."""
+        try:
+            page = demo_site.parse_site_answer(text)
+        except ValueError as e:
+            return {'ok': False, 'error': str(e)}
+        content = dict(content or {}, custom_html=page)
+        self._base.save_demo(lid, content)
+        return {'ok': True, 'content': content, 'html': demo_site.render(self._base.get(lid) or {}, content)}
+
     def _demo_file(self, lead: Dict[str, Any], page: str) -> str:
         out_dir = os.path.join(self._settings.get('output_dir') or str(default_output_dir()), 'Демо')
         os.makedirs(out_dir, exist_ok=True)
@@ -474,7 +508,7 @@ class Api:
         return {
             'state': j.state,
             'count': len(j.rows),
-            'rows': [dict({k: r.get(k) for k in list(FIELDS) + ['_query']}, _lid=lead_id(r)) for r in rows],
+            'rows': [dict({k: r.get(k) for k in list(FIELDS) + ['_query', '_photos']}, _lid=lead_id(r)) for r in rows],
             'row_cursor': row_cursor + len(rows),
             'logs': logs,
             'log_cursor': log_cursor + len(logs),

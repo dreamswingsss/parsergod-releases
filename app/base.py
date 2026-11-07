@@ -123,7 +123,7 @@ class LeadBase:
     def add(self, rec: Dict[str, Any]) -> Dict[str, Any]:
         """Добавить (или обновить контакты, не трогая статус и заметку)."""
         lid = lead_id(rec)
-        data = {k: rec.get(k) for k in list(FIELDS) + ['_query']}
+        data = {k: rec.get(k) for k in list(FIELDS) + ['_query', '_photos']}
         now = time.time()
         with self._lock:
             self._db.execute(

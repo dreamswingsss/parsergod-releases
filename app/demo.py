@@ -206,6 +206,8 @@ def _tel(phone: str) -> str:
 
 
 def render(lead: Dict[str, Any], content: Dict[str, Any]) -> str:
+    if content.get('custom_html'):  # «Свой дизайн» от Claude
+        return fill_photos(content['custom_html'], [p for p in content.get('photos') or [] if isinstance(p, str)])
     e = lambda s: html.escape(str(s or ''), quote=True)  # noqa: E731
     t = THEMES.get(content.get('theme') or '', THEMES['fresh'])
     name = lead.get('name') or 'Демо'
@@ -221,7 +223,8 @@ def render(lead: Dict[str, Any], content: Dict[str, Any]) -> str:
             links.append('<a class="chip" href="%s" target="_blank" rel="noopener">%s</a>' % (e(u), title))
     map_url = _first(lead.get('url')) or _first(lead.get('yandex'))
     primary = wa or (('tel:' + tel) if tel else '') or (links and re.search(r'href="([^"]+)"', links[0]).group(1)) or '#contacts'
-    photos = [p for p in (content.get('photos') or []) if isinstance(p, str) and p.startswith('data:image/')][:6]
+    photos = [p for p in (content.get('photos') or []) if isinstance(p, str)
+              and (p.startswith('data:image/') or p.startswith('https://'))][:6]
     services = [s for s in (content.get('services') or []) if s][:9]
 
     gallery = ''
@@ -420,3 +423,80 @@ def vercel_publish(token: str, project: str, page: str, timeout: float = 90) -> 
     if dep.get('url'):
         return 'https://' + dep['url']
     raise VercelError('Vercel не вернул адрес демо')
+
+
+# ---------- «Свой дизайн»: весь сайт делает Claude ----------
+
+PHOTO_TOKEN = '{{PHOTO_%d}}'
+
+
+def site_prompt(lead: Dict[str, Any], content: Dict[str, Any], wishes: str = '') -> str:
+    """Промпт для claude.ai: сверстать одностраничник под заведение по всем собранным данным."""
+    facts = {k: lead.get(k) for k in ('name', 'category', 'city', 'address', 'phone', 'schedule', 'rating',
+                                      'reviews', 'website', 'whatsapp', 'telegram', 'vkontakte', 'instagram', 'url')
+             if lead.get(k) not in (None, '')}
+    wa = _wa_link(lead)
+    if wa:
+        facts['whatsapp_link'] = wa
+    src = content.get('source') or {}
+    parts = ['Ты веб-дизайнер. Сверстай современный одностраничный сайт для местного бизнеса — это демо, '
+             'которое я отправлю владельцу, чтобы предложить сделать ему сайт.',
+             '', 'ДАННЫЕ ИЗ 2ГИС:', json.dumps(facts, ensure_ascii=False, indent=1)]
+    for s in src.get('sites') or []:
+        if s.get('error'):
+            continue
+        parts += ['', 'С ИХ САЙТА/СОЦСЕТИ (%s):' % s.get('url')]
+        if s.get('title') or s.get('description'):
+            parts.append(' — '.join(x for x in (s.get('title'), s.get('description')) if x))
+        if s.get('prices'):
+            parts += ['Цены и услуги:'] + ['- ' + p for p in s['prices'][:30]]
+        if s.get('text'):
+            parts += ['Тексты:', '\n'.join(s['text'])[:3000]]
+    gis = src.get('gis') or {}
+    if gis.get('description'):
+        parts += ['', 'ОПИСАНИЕ В 2ГИС:', gis['description']]
+    if gis.get('reviews'):
+        parts += ['', 'ОТЗЫВЫ КЛИЕНТОВ (можно процитировать 2–3, имена не выдумывай):'] + \
+                 ['- ' + r[:400] for r in gis['reviews'][:5]]
+    photos = [p for p in (content.get('photos') or []) if isinstance(p, str)][:8]
+    if photos:
+        parts += ['', 'ФОТО ЗАВЕДЕНИЯ (%d шт.) — используй все: первое на первом экране, остальные в галерее. '
+                      'В src пиши ровно эти метки, программа подставит фото сама:' % len(photos)]
+        for i, p in enumerate(photos):
+            parts.append('- %s' % (PHOTO_TOKEN % (i + 1)))
+    else:
+        parts += ['', 'Фото нет: сделай красивый сайт без картинок (типографика, цвет, формы). '
+                      'Не вставляй чужие фото и стоки.']
+    parts += ['', 'ПОЖЕЛАНИЯ: ' + (wishes.strip() or 'на твой вкус, под эту сферу бизнеса')]
+    parts += ['', 'ТРЕБОВАНИЯ:',
+              '- один HTML-файл: весь CSS внутри <style>, без внешних библиотек и без JavaScript-фреймворков;',
+              '- сначала мобильная версия, потом компьютер; русский язык;',
+              '- только реальные данные: не выдумывай цены, адреса, телефоны, награды и имена;',
+              '- кнопки записи/связи ведут в WhatsApp (whatsapp_link), на телефон (tel:) или в 2ГИС (url);',
+              '- шрифты — системные или Google Fonts;',
+              '- внизу мелко «Демо-версия сайта».',
+              '', 'Ответь ТОЛЬКО кодом страницы в блоке ```html ... ```, без пояснений.']
+    return '\n'.join(parts)
+
+
+def parse_site_answer(text: str) -> str:
+    """Достаёт HTML-страницу из ответа Claude."""
+    t = text or ''
+    m = re.search(r'```(?:html)?\s*(.*?)```', t, re.S | re.I)
+    if m and '<' in m.group(1):
+        t = m.group(1)
+    start = re.search(r'<!doctype html|<html', t, re.I)
+    if not start:
+        raise ValueError('В ответе нет HTML-страницы. Скопируйте ответ Claude целиком (кнопка Copy под кодом).')
+    t = t[start.start():]
+    end = t.lower().rfind('</html>')
+    if end == -1:
+        raise ValueError('Страница обрезана — Claude не дописал её до конца. Напишите ему «продолжи» и вставьте целиком.')
+    return t[:end + 7]
+
+
+def fill_photos(page: str, photos: List[str]) -> str:
+    for i, p in enumerate(photos[:8]):
+        page = page.replace(PHOTO_TOKEN % (i + 1), html.escape(p, quote=True))
+    # фото, которых нет, — прозрачная точка, чтобы не было «битых» картинок
+    return re.sub(r'\{\{PHOTO_\d+\}\}', 'data:image/gif;base64,R0lGODlhAQABAAAAACw=', page)
