@@ -47,8 +47,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-14 = Apple Silicon (M1–M4), macos-15-intel = старые Mac на Intel
-        os: [macos-14, macos-15-intel]
+        # macos-15 = Apple Silicon (M1–M4), macos-15-intel = старые Mac на Intel
+        os: [macos-15, macos-15-intel]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:

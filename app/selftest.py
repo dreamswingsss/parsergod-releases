@@ -98,6 +98,12 @@ def run() -> int:
         assert username_of('https://t.me/barber_wolf') == 'barber_wolf' and not username_of('https://t.me/+abc')
         from . import ai as ai_mod
         assert ai_mod.clean_message('«Привет»') == 'Привет'
+        assert ai_mod.guess('sk-or-v1-x') == ['openrouter'] and ai_mod.guess('AIzaX') == ['gemini']
+        full = demo_site.default_content(rec)
+        for th in demo_site.THEMES:
+            for lay in demo_site.LAYOUTS:
+                assert '</html>' in demo_site.render(rec, dict(full, theme=th, layout=lay))
+        assert demo_site.normalize({'services': ['a']}, rec)['sections']['services']['items'][0]['name'] == 'a'
         lines.append('telegram/ai: ok')
         import webview  # noqa: F401  — проверяем, что GUI-библиотека в сборке
         lines.append('webview: ok')

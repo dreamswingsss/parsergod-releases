@@ -325,6 +325,128 @@ tbody.ghost td{height:31px}
 .tgstrip[hidden]{display:none}
 .tgstrip b{color:var(--ink)}
 .tgstrip .sp{flex:1}
+/* левая панель — блоки */
+.order .form{padding:6px 16px 16px}
+.order .block{background:var(--sheet);border:1px solid var(--grid);border-radius:14px;padding:14px 14px 16px;margin-bottom:10px}
+.bh{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.bh i{flex:none;width:24px;height:24px;border-radius:8px;background:var(--ink);color:var(--on-ink);font-style:normal;font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+.bh h2{font-size:15px!important;margin:0!important;font-weight:700!important}
+.bh small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:1px}
+.order .opt span{font-size:14px}
+.order .hint{font-size:12.5px}
+.brand{align-items:center!important;padding:16px 16px 10px!important}
+.brand>div{display:flex;align-items:baseline;gap:10px}
+.setbtn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:1px solid var(--grid);background:var(--sheet);border-radius:10px;color:var(--ink);cursor:pointer;font-weight:600;font-size:13px}
+.setbtn:hover{border-color:var(--ink)}
+.dots{display:inline-flex;gap:3px;margin-left:2px}
+.dots i{width:7px;height:7px;border-radius:50%;background:#3A3A41}
+.dots i.on{background:#3DDC84}
+/* окно настроек */
+.dialog.set{width:min(980px,100%);height:min(720px,100%)}
+.setb{flex:1;display:grid;grid-template-columns:220px 1fr;min-height:0}
+.settabs{border-right:1px solid var(--grid);padding:12px;display:flex;flex-direction:column;gap:4px}
+.settabs button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--ink-2)}
+.settabs button b{display:block;color:var(--ink);font-size:14px}
+.settabs button small{font-size:12px}
+.settabs button:hover{background:var(--gutter)}
+.settabs button[aria-current=true]{background:var(--grid)}
+.setpane{overflow:auto;padding:16px 20px 24px;display:flex;flex-direction:column;gap:12px}
+.setpane[hidden]{display:none}
+.conn{flex:none;border:1px solid var(--grid);border-radius:14px;background:var(--sheet);overflow:hidden}
+.conn-h{display:flex;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--grid)}
+.conn-h>div{flex:1;min-width:0}
+.conn-h b{font-size:15px}
+.conn-h small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+.ico{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:13px}
+.ico.ai{background:rgba(169,139,255,.15);color:#B9A2FF}
+.ico.vc{background:rgba(255,255,255,.08);color:var(--ink)}
+.ico.tg{background:rgba(42,171,238,.15);color:#2AABEE;font-size:16px}
+.pill{flex:none;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;border:1px solid var(--grid);color:var(--ink-3)}
+.pill.on{color:#3DDC84;border-color:rgba(61,220,132,.45);background:rgba(61,220,132,.08)}
+.conn-b{padding:14px 16px;font-size:13.5px}
+.conn-b .vc{border:0;background:transparent;padding:0;margin:0}
+.conn-b input:not([type=checkbox]),.conn-b select,.conn-b textarea{width:100%;margin-top:8px;height:38px;border:1px solid var(--grid);background:var(--paper);border-radius:10px;padding:0 12px;outline:0;color:var(--ink);font:inherit}
+.conn-b textarea{height:auto;padding:8px 12px;resize:vertical}
+.conn-b input:focus,.conn-b select:focus,.conn-b textarea:focus{border-color:#55555E}
+.conn-b .btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.conn-b .ok{color:#3DDC84}.conn-b .bad{color:#FF7A7F}.conn-b .warnx{color:#F5C84B}
+.detected{margin-top:10px;padding:10px 12px;border:1px solid rgba(61,220,132,.35);background:rgba(61,220,132,.06);border-radius:10px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* мастер демо */
+.stepper{display:flex;align-items:center;gap:6px;margin:0 auto}
+.stepper button{display:flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--ink-3);font-weight:600;cursor:pointer;padding:6px 8px;border-radius:8px;font-size:13.5px}
+.stepper button i{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-style:normal;font-size:12px}
+.stepper button[aria-current=true]{color:var(--ink)}
+.stepper button[aria-current=true] i{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.stepper button.done{color:var(--ink-2)}
+.stepper span{width:26px;height:1px;background:var(--grid)}
+.dlg-h{gap:16px}
+.dlg-h>b{flex:0 1 auto!important;max-width:30%}
+#dmEd{padding:16px 18px 18px}
+#demoModal .dlg-b{grid-template-columns:440px 1fr}
+.step-p[hidden]{display:none}
+.lead{font-size:14px;color:var(--ink-2);margin:0 0 12px}
+.pcard{border:1px solid var(--grid);border-radius:12px;background:var(--sheet);padding:12px 14px;margin-bottom:10px}
+.pcard-h{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.pcard-h b{font-size:14px}
+.pcard-h small{color:var(--ink-3);font-size:12px;flex:1}
+.pcard-h .linkbtn{margin-left:auto}
+.pcard label{display:block;font-size:12px;color:var(--ink-2);margin:10px 0 4px;font-weight:600}
+.pcard input[type=text],.pcard textarea{width:100%;border:1px solid var(--grid);background:var(--paper);border-radius:8px;padding:8px 10px;outline:0;font:inherit;font-size:13px;color:var(--ink)}
+.pcard textarea{resize:vertical;line-height:1.45}
+.pcard input:focus,.pcard textarea:focus{border-color:#4A4A52}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.facts span{color:var(--ink-3)} .facts b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.btn.big{width:100%;height:46px;font-size:15px}
+.methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.methods button{border:1.5px solid var(--grid);background:var(--sheet);border-radius:12px;padding:12px 10px;text-align:left;cursor:pointer;color:var(--ink-2)}
+.methods button b{display:block;color:var(--ink);font-size:14px;margin-bottom:3px}
+.methods button small{font-size:11.5px;line-height:1.35;display:block}
+.methods button[aria-pressed=true]{border-color:var(--ink);background:var(--gutter)}
+.methods button:disabled{opacity:.45;cursor:default}
+.custom-on{border:1px solid rgba(245,200,75,.45);background:rgba(245,200,75,.08);color:#F5C84B;border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:10px}
+.themes{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.themes button{border:1.5px solid var(--grid);border-radius:10px;padding:0;cursor:pointer;overflow:hidden;background:transparent;color:var(--ink-2);font-size:11.5px;font-weight:600}
+.themes button .sw{display:block;height:34px;position:relative}
+.themes button .sw i{position:absolute;right:6px;bottom:6px;width:14px;height:14px;border-radius:50%}
+.themes button span{display:block;padding:4px 0}
+.themes button[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}
+.sub-l{font-size:12px;color:var(--ink-2);margin:12px 0 6px;font-weight:600}
+.accents{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.accents button{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.accents button[aria-pressed=true]{border-color:var(--ink)}
+.accents .auto{width:auto;border-radius:8px;padding:0 8px;height:26px;background:var(--paper);color:var(--ink-2);font-size:12px;border:1px solid var(--grid)}
+.accents .auto[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}
+.accents input[type=color]{width:30px;height:28px;border:1px solid var(--grid);border-radius:8px;background:transparent;padding:0;cursor:pointer}
+.pcard .seg button{padding:6px 0;font-size:12.5px}
+.secs{display:flex;flex-direction:column;gap:6px}
+.sec{border:1px solid var(--grid);border-radius:10px;background:var(--paper)}
+.sec-h{display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer}
+.sec-h b{flex:1;font-size:13px;font-weight:600}
+.sec-h small{color:var(--ink-3);font-size:12px}
+.sec-h .chev{color:var(--ink-3);transition:transform .15s}
+.sec.open .chev{transform:rotate(90deg)}
+.sec.off .sec-h b{color:var(--ink-3)}
+.sec-b{padding:4px 10px 12px;border-top:1px solid var(--grid)}
+.sec-b[hidden]{display:none}
+.tog{appearance:none;flex:none;width:30px;height:18px;border-radius:9px;background:var(--grid);position:relative;cursor:pointer;margin:0}
+.tog::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#8E8E96;top:2px;left:2px;transition:left .15s}
+.tog:checked{background:var(--ink)} .tog:checked::after{left:14px;background:var(--on-ink)}
+.items{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.item{display:grid;gap:6px;grid-template-columns:1.5fr 1fr 26px;align-items:start}
+.item.one{grid-template-columns:1fr 26px}
+.item input,.item textarea{width:100%;border:1px solid var(--grid);background:var(--sheet);border-radius:8px;padding:6px 8px;outline:0;font:inherit;font-size:12.5px;color:var(--ink);resize:vertical}
+.item .rm{width:26px;height:30px;border:0;background:transparent;color:var(--ink-3);cursor:pointer;font-size:16px}
+.item .rm:hover{color:#FF7A7F}
+.addit{margin-top:6px}
+.quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.quick button{border:1px dashed var(--ink-3);background:transparent;border-radius:999px;padding:3px 10px;font-size:12px;color:var(--ink-2);cursor:pointer}
+.quick button:hover{border-color:var(--ink);color:var(--ink)}
+.pcard-h b .n,.pcard b .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--ink);color:var(--on-ink);font-style:normal;font-size:12px;margin-right:6px}
+.btnrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.res{margin-top:10px;font-size:13px;color:var(--ink-2);word-break:break-all}
+.res a{color:var(--ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .copied{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:50}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -342,74 +464,48 @@ tbody.ghost td{height:31px}
 </svg>
 <div class="app">
   <aside class="order">
-    <div class="brand"><b id="appName">ParserGod</b><span id="appVer"></span></div>
+    <div class="brand"><div><b id="appName">ParserGod</b><span id="appVer"></span></div>
+      <button class="setbtn" id="setBtn" title="Настройки: ИИ, Vercel, Telegram, Excel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Настройки<span class="dots" id="setDots"></span></button>
+    </div>
     <div class="warn" id="noBrowser" hidden>
       На компьютере не найден Chrome, Edge или Яндекс.Браузер — без него сбор не запустится.
       <button class="linkbtn" data-url="https://www.google.com/chrome/">Скачать Google Chrome</button>
     </div>
     <div class="form">
       <section class="block">
-        <h2 id="lCity">Город</h2>
+        <div class="bh"><i>1</i><div><h2 id="lCity">Где искать</h2><small>Один или несколько городов</small></div></div>
         <div class="field" id="cityField">
           <input id="cityInput" placeholder="Начните вводить город" autocomplete="off" aria-labelledby="lCity">
           <div class="drop" id="cityDrop" hidden></div>
         </div>
-        <p class="hint" id="cityHint">Небольшие города (Полевской, Ревда, Верхняя Пышма…) тоже ищутся — ParserGod сам найдёт регион 2ГИС, в который они входят.</p>
+        <p class="hint" id="cityHint">Небольшие города (Полевской, Ревда, Верхняя Пышма…) тоже ищутся — ParserGod сам найдёт регион 2ГИС.</p>
       </section>
 
       <section class="block">
-        <h2 id="lQuery">Что ищем</h2>
+        <div class="bh"><i>2</i><div><h2 id="lQuery">Кого ищем</h2><small>Впишите запрос или выберите сферу</small></div></div>
         <div class="field" id="queryField">
           <input id="queryInput" placeholder="кофейня, автосервис…" autocomplete="off" aria-labelledby="lQuery">
         </div>
-        <p class="hint">Пишите, как искали бы в 2ГИС. Enter — добавить ещё один запрос. Или выберите готовые:</p>
         <div class="spheres" id="spheres"></div>
         <div class="subs" id="subs" hidden></div>
       </section>
 
       <section class="block">
-        <h2>Сколько организаций на каждый запрос</h2>
+        <div class="bh"><i>3</i><div><h2>Сколько на каждый запрос</h2><small>Больше — дольше сбор</small></div></div>
         <div class="seg" id="limitSeg">
           <button data-v="50">50</button><button data-v="100">100</button><button data-v="300">300</button><button data-v="1000">1000</button><button data-v="0">Все</button>
         </div>
       </section>
 
       <section class="block">
-        <h2>Что будет в таблице</h2>
-        <div class="subhead">Контакты</div>
-        <div class="chips" id="contactChips"></div>
-        <div class="subhead">О компании</div>
-        <div class="chips" id="infoChips"></div>
-        <p class="hint"><button class="linkbtn" id="allContacts">Все контакты</button> &nbsp; <button class="linkbtn" id="onlyPhones">Только телефоны</button></p>
-      </section>
-
-      <section class="block">
-        <h2>Фильтры</h2>
+        <div class="bh"><i>4</i><div><h2>Фильтры</h2><small>Кого оставить в результатах</small></div></div>
+        <label class="opt"><input type="checkbox" id="fNoSite"><span>Только без нормального сайта<small>Нет сайта, только соцсети или сайт на конструкторе — ваши клиенты</small></span></label>
         <label class="opt"><input type="checkbox" id="fPhone"><span>Только с телефоном</span></label>
-        <label class="opt"><input type="checkbox" id="fAny"><span>Только с отмеченными контактами<small>Хотя бы один контакт из списка выше должен быть заполнен</small></span></label>
         <label class="opt"><input type="checkbox" id="fChain"><span>Один филиал от сети<small>Убирает повторы сетевых заведений</small></span></label>
-        <label class="opt"><input type="checkbox" id="fNoSite"><span>Только без нормального сайта<small>Оставляет тех, у кого нет сайта, только соцсети или сайт на конструкторе (Taplink, Tilda…)</small></span></label>
+        <label class="opt"><input type="checkbox" id="fAny"><span>Только с контактами из Excel<small>Хотя бы один отмеченный в Настройках → Excel контакт</small></span></label>
         <div class="row"><span>Рейтинг не ниже</span>
           <select id="fRating"><option value="0">любой</option><option value="3.5">3,5</option><option value="4">4,0</option><option value="4.5">4,5</option></select>
         </div>
-
-        <details>
-          <summary>Дополнительно</summary>
-          <label class="opt"><input type="checkbox" id="showBrowser"><span>Показывать браузер во время сбора<small>Включите, если 2ГИС перестал отдавать результаты</small></span></label>
-          <div class="row"><span>Пауза между карточками, мс</span><input type="number" id="delay" min="0" step="100"></div>
-          <div class="subhead">Браузер</div>
-          <div class="path" id="browserPath"></div>
-          <p class="hint"><button class="linkbtn" id="pickBrowser">Указать вручную</button> &nbsp; <button class="linkbtn" id="resetBrowser" hidden>Определять автоматически</button></p>
-          <div class="subhead">Публикация демо-сайтов (Vercel)</div>
-          <div class="vc" id="vercelBox"></div>
-          <div class="subhead">ИИ — свой ключ (демо и сообщения по кнопке)</div>
-          <div class="vc" id="aiBox"></div>
-          <div class="subhead">Автоотправка в Telegram — со своего аккаунта</div>
-          <div class="vc" id="tgBox"></div>
-          <div class="subhead">Папка для таблиц</div>
-          <div class="path" id="outDir"></div>
-          <p class="hint"><button class="linkbtn" id="pickDir">Изменить</button> &nbsp; <button class="linkbtn" id="openDir">Открыть папку</button></p>
-        </details>
       </section>
     </div>
     <div class="go">
@@ -462,52 +558,124 @@ tbody.ghost td{height:31px}
   </main>
 </div>
 
+<div class="modal" id="setModal" hidden>
+  <div class="dialog set">
+    <div class="dlg-h"><b>Настройки</b><button class="x" id="setClose" aria-label="Закрыть">×</button></div>
+    <div class="setb">
+      <nav class="settabs" id="setTabs">
+        <button data-t="conn" aria-current="true"><b>Подключения</b><small>ИИ, Vercel, Telegram</small></button>
+        <button data-t="excel"><b>Excel</b><small>Колонки и папка</small></button>
+        <button data-t="collect"><b>Сбор</b><small>Браузер и скорость</small></button>
+      </nav>
+      <div class="setpane" id="tab-conn">
+        <div class="conn"><div class="conn-h"><span class="ico ai">ИИ</span><div><b>ИИ — свой API-ключ</b><small>Генерирует демо-сайты и личные сообщения по кнопке</small></div><span class="pill" id="aiPill"></span></div><div class="conn-b" id="aiBox"></div></div>
+        <div class="conn"><div class="conn-h"><span class="ico vc">▲</span><div><b>Vercel — публикация демо</b><small>Демо открываются по ссылке вида имя.vercel.app</small></div><span class="pill" id="vcPill"></span></div><div class="conn-b" id="vercelBox"></div></div>
+        <div class="conn"><div class="conn-h"><span class="ico tg">✈</span><div><b>Telegram — автоотправка</b><small>Программа сама пишет лидам с вашего аккаунта</small></div><span class="pill" id="tgPill"></span></div><div class="conn-b" id="tgBox"></div></div>
+      </div>
+      <div class="setpane" id="tab-excel" hidden>
+        <div class="conn"><div class="conn-h"><div><b>Колонки в Excel</b><small>После каждого сбора таблица сохраняется сама</small></div></div>
+          <div class="conn-b"><div class="cols2"><div><div class="subhead">Контакты</div><div class="chips" id="contactChips"></div></div><div><div class="subhead">О компании</div><div class="chips" id="infoChips"></div></div></div>
+          <p class="hint"><button class="linkbtn" id="allContacts">Все контакты</button> &nbsp; <button class="linkbtn" id="onlyPhones">Только телефоны</button></p></div></div>
+        <div class="conn"><div class="conn-h"><div><b>Папка для таблиц и демо</b></div></div>
+          <div class="conn-b"><div class="path" id="outDir"></div><p class="hint"><button class="linkbtn" id="pickDir">Изменить</button> &nbsp; <button class="linkbtn" id="openDir">Открыть папку</button></p></div></div>
+      </div>
+      <div class="setpane" id="tab-collect" hidden>
+        <div class="conn"><div class="conn-h"><div><b>Браузер</b><small>Через него ParserGod открывает 2ГИС</small></div></div>
+          <div class="conn-b"><div class="path" id="browserPath"></div><p class="hint"><button class="linkbtn" id="pickBrowser">Указать вручную</button> &nbsp; <button class="linkbtn" id="resetBrowser" hidden>Определять автоматически</button></p>
+          <label class="opt"><input type="checkbox" id="showBrowser"><span>Показывать браузер во время сбора<small>Включите, если 2ГИС перестал отдавать результаты</small></span></label>
+          <div class="row"><span>Пауза между карточками, мс</span><input type="number" id="delay" min="0" step="100"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="demoModal" hidden>
   <div class="dialog">
-    <div class="dlg-h"><b id="dmTitle">Демо</b><button class="x" id="dmClose" aria-label="Закрыть">×</button></div>
+    <div class="dlg-h">
+      <b id="dmTitle">Демо</b>
+      <div class="stepper" id="dmSteps">
+        <button data-s="1"><i>1</i>Данные</button><span></span>
+        <button data-s="2"><i>2</i>Дизайн</button><span></span>
+        <button data-s="3"><i>3</i>Публикация</button>
+      </div>
+      <button class="x" id="dmClose" aria-label="Закрыть">×</button>
+    </div>
     <div class="dlg-b">
-      <div class="ed">
-        <div class="claude" style="margin-top:0">
-          <b>1. Данные заведения</b>
-          <p class="hint" style="margin:0">Тексты, услуги, цены и фото с их сайта или VK и из карточки 2ГИС.</p>
-          <div class="row2"><button class="btn" id="dmEnrich">Подтянуть с сайта и 2ГИС</button></div>
-          <div class="hint" id="dmSrc"></div>
+      <div class="ed" id="dmEd">
+        <!-- шаг 1 -->
+        <div class="step-p" data-p="1">
+          <p class="lead">Проверьте, что знает программа о заведении, и добавьте больше: тексты, цены и фото с их сайта или своими скриншотами.</p>
+          <div class="pcard"><div class="pcard-h"><b>Из 2ГИС</b><small>Уже есть</small></div><div class="facts" id="dmFacts"></div></div>
+          <div class="pcard"><div class="pcard-h"><b>С их сайта и страницы 2ГИС</b><small>Тексты, цены, отзывы, фото</small></div>
+            <button class="btn" id="dmEnrich">Подтянуть данные</button><div class="hint" id="dmSrc"></div></div>
+          <div class="pcard"><div class="pcard-h"><b>Фото</b><small>До 8 · перетащите файлы или Ctrl+V</small></div>
+            <div class="photos" id="dmPhotos"></div><input type="file" id="dmFile" accept="image/*" multiple hidden>
+            <p class="hint">Первое фото станет главным на первом экране.</p></div>
+          <div class="nav-row"><span></span><button class="btn primary" data-go="2">Дальше: дизайн →</button></div>
         </div>
-        <div class="claude">
-          <b>2. Сайт под заведение через Claude</b>
-          <textarea id="dmWish" rows="3" placeholder="Что хотите видеть: например, «тёмный стиль, прайс с ценами с их сайта, отзывы, большая кнопка записи в WhatsApp»" style="margin-top:6px"></textarea>
-          <div class="row2"><button class="btn primary" id="dmAI" hidden>Сгенерировать ИИ</button><button class="btn primary" id="dmSitePrompt">Скопировать промпт и открыть Claude</button></div>
-          <p class="hint">Вставьте промпт в claude.ai (Ctrl+V), дождитесь кода, нажмите Copy под ним и вставьте сюда:</p>
-          <textarea id="dmAnswer" rows="3" placeholder="Ответ Claude — код страницы"></textarea>
-          <div class="row2"><button class="btn" id="dmApply">Показать сайт</button></div>
+        <!-- шаг 2 -->
+        <div class="step-p" data-p="2" hidden>
+          <p class="lead">Как сделать сайт?</p>
+          <div class="methods" id="dmMethods">
+            <button data-m="builder"><b>Конструктор</b><small>Без ИИ, сразу. Стиль, цвета, разделы</small></button>
+            <button data-m="ai"><b>ИИ по ключу</b><small id="dmAiSub">Свой дизайн за 1–3 мин</small></button>
+            <button data-m="claude"><b>Claude вручную</b><small>Бесплатно, через claude.ai</small></button>
+          </div>
+          <div class="custom-on" id="dmCustom" hidden>Сейчас показан сайт от ИИ. <button class="linkbtn" id="dmTemplate">Вернуться к конструктору</button></div>
+
+          <div id="mBuilder">
+            <div class="pcard"><div class="pcard-h"><b>Стиль</b></div><div class="themes" id="dmThemes"></div>
+              <div class="sub-l">Цвет кнопок и акцентов</div><div class="accents" id="dmAccents"></div>
+              <div class="sub-l">Шрифт</div><div class="seg" id="dmFonts"></div>
+              <div class="sub-l">Первый экран</div><div class="seg" id="dmLayouts"></div></div>
+            <div class="pcard"><div class="pcard-h"><b>Главные тексты</b><button class="linkbtn" id="dmReset">Сбросить</button></div>
+              <label>Заголовок</label><input type="text" id="dmHeadline" maxlength="120">
+              <label>Подзаголовок</label><input type="text" id="dmSubtitle" maxlength="200">
+              <label>Текст кнопки</label><input type="text" id="dmCta" maxlength="40"></div>
+            <div class="pcard"><div class="pcard-h"><b>Разделы сайта</b><small>Включайте нужные, нажмите на раздел, чтобы изменить</small></div>
+              <div class="secs" id="dmSecs"></div></div>
+          </div>
+
+          <div id="mWish" hidden>
+            <div class="pcard"><div class="pcard-h"><b>Что хотите видеть на сайте</b><small>Своими словами</small></div>
+              <textarea id="dmWish" rows="4" placeholder="Например: тёмный стиль, прайс с ценами с их сайта, отзывы, большая кнопка записи в WhatsApp"></textarea>
+              <div class="quick" id="dmQuick"></div></div>
+          </div>
+
+          <div id="mAI" hidden>
+            <button class="btn primary big" id="dmAI">Сгенерировать сайт</button>
+            <p class="hint">ИИ получит все данные из шага 1 и ваши пожелания. Фото подставятся сами.</p>
+          </div>
+
+          <div id="mClaude" hidden>
+            <div class="pcard"><div class="pcard-h"><b><i class="n">1</i>Промпт для Claude</b><small>Можно поправить прямо здесь</small></div>
+              <button class="btn" id="dmBuild">Собрать промпт</button>
+              <textarea id="dmPrompt" rows="7" placeholder="Нажмите «Собрать промпт» — здесь появится текст с данными заведения и вашими пожеланиями" hidden></textarea>
+              <div class="btnrow" id="dmPromptBtns" hidden><button class="btn primary" id="dmCopy">Скопировать</button><button class="btn" id="dmOpenClaude">Открыть claude.ai</button></div></div>
+            <div class="pcard"><div class="pcard-h"><b><i class="n">2</i>Ответ Claude</b><small>В claude.ai вставьте промпт (Ctrl+V), дождитесь кода и нажмите Copy под ним</small></div>
+              <textarea id="dmAnswer" rows="5" placeholder="Вставьте сюда ответ Claude целиком (Ctrl+V)"></textarea>
+              <div class="btnrow"><button class="btn primary" id="dmApply">Показать сайт</button></div></div>
+          </div>
+          <div class="nav-row"><button class="btn" data-go="1">← Данные</button><button class="btn primary" data-go="3">Дальше: публикация →</button></div>
         </div>
-        <label>Фото — до 8 (свои скриншоты или подтянутые)</label>
-        <div class="photos" id="dmPhotos"></div>
-        <input type="file" id="dmFile" accept="image/*" multiple hidden>
-        <p class="hint">Перетащите файлы сюда или вставьте скриншот через Ctrl+V. Добавляйте фото до того, как копируете промпт.</p>
-        <details id="dmTplBox" style="padding-top:14px"><summary>Быстрый шаблон без Claude</summary>
-        <label style="margin-top:10px">Стиль</label>
-        <div class="seg" id="dmTheme"></div>
-        <label for="dmHeadline">Заголовок</label><input type="text" id="dmHeadline" maxlength="120">
-        <label for="dmSubtitle">Подзаголовок</label><input type="text" id="dmSubtitle" maxlength="200">
-        <label for="dmServices">Услуги — по одной в строке</label><textarea id="dmServices" rows="6"></textarea>
-        <label for="dmAbout">О компании</label><textarea id="dmAbout" rows="4"></textarea>
-        <label for="dmCta">Текст кнопки</label><input type="text" id="dmCta" maxlength="40">
-        </details>
+        <!-- шаг 3 -->
+        <div class="step-p" data-p="3" hidden>
+          <p class="lead">Опубликуйте демо и отправьте ссылку владельцу.</p>
+          <div class="pcard"><div class="pcard-h"><b>Ссылка на сайт</b><small id="dmVcState"></small></div>
+            <div class="btnrow"><button class="btn primary" id="dmPublish">Опубликовать на Vercel</button><button class="btn" id="dmFileBtn">Сохранить HTML-файл</button></div>
+            <div class="res" id="dmRes"></div></div>
+          <div class="pcard"><div class="pcard-h"><b>Отправить владельцу</b><small>Текст — из шаблона, выбранного внизу главного окна</small></div>
+            <div class="btnrow" id="dmSend"></div></div>
+          <div class="nav-row"><button class="btn" data-go="2">← Дизайн</button><span></span></div>
+        </div>
       </div>
       <div class="pv">
         <div class="pv-bar">
           <div class="viewseg" id="dmDevice"><button data-d="mobile" aria-pressed="true">Телефон</button><button data-d="desktop" aria-pressed="false">Компьютер</button></div>
-          <span class="sp"></span><span class="hint" id="dmMode" style="margin:0"></span><button class="linkbtn" id="dmTemplate" hidden>Вернуть шаблон</button><button class="linkbtn" id="dmReset">Сбросить тексты шаблона</button>
+          <span class="sp"></span><span class="hint" id="dmMode" style="margin:0"></span>
         </div>
         <div class="pv-wrap mobile" id="dmWrap"><iframe id="dmFrame" title="Предпросмотр демо" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div>
       </div>
-    </div>
-    <div class="dlg-f">
-      <div class="res" id="dmRes"></div>
-      <span class="sp"></span>
-      <button class="btn" id="dmFileBtn">Сохранить HTML-файл</button>
-      <button class="btn primary" id="dmPublish">Опубликовать на Vercel</button>
     </div>
   </div>
 </div>
@@ -948,67 +1116,183 @@ function renderVars() {
     box.appendChild(b); });
 }
 
-/* ---------- демо-сайт ---------- */
-let DM = null;  // {lead, content}
+/* ---------- настройки ---------- */
+function openSettings(tab) {
+  $('#setModal').hidden = false; setTab(tab || 'conn');
+}
+function setTab(t) {
+  document.querySelectorAll('#setTabs button').forEach(b => b.setAttribute('aria-current', String(b.dataset.t === t)));
+  ['conn', 'excel', 'collect'].forEach(k => $('#tab-' + k).hidden = k !== t);
+}
+document.querySelectorAll('#setTabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
+$('#setBtn').onclick = () => openSettings('conn');
+$('#setClose').onclick = () => { $('#setModal').hidden = true; readOptions(); };
+function renderDots() {
+  const d = $('#setDots'); d.innerHTML = '';
+  [['ИИ', aiOn()], ['Vercel', VERCEL.connected], ['Telegram', !!TG.account]].forEach(([n, on]) => {
+    const i = document.createElement('i'); i.className = on ? 'on' : ''; i.title = n + (on ? ': подключён' : ': не подключён'); d.appendChild(i);
+  });
+  const pill = (id, on) => { const p = $(id); p.textContent = on ? 'Подключено' : 'Не подключено'; p.className = 'pill' + (on ? ' on' : ''); };
+  pill('#aiPill', aiOn()); pill('#vcPill', VERCEL.connected); pill('#tgPill', !!TG.account);
+}
+
+/* ---------- демо-сайт: мастер в 3 шага ---------- */
+let DM = null;          // {lead, content, rec}
+let DOPTS = {fonts: {}, layouts: {}, accents: [], sections: {}};
+let dmMethod = 'builder', dmOpenSec = null;
+const SEC_FIELDS = {
+  services: {cols: [['name', 'Услуга'], ['price', 'Цена: от 1 500 ₽']], blank: {name: '', price: '', note: ''}},
+  benefits: {cols: [['title', 'Заголовок'], ['text', 'Пояснение']], blank: {title: '', text: ''}},
+  reviews: {cols: [['text', 'Текст отзыва'], ['author', 'Подпись']], blank: {text: '', author: 'Отзыв из 2ГИС'}},
+  steps: {cols: [['title', 'Шаг'], ['text', 'Пояснение']], blank: {title: '', text: ''}},
+  faq: {cols: [['q', 'Вопрос'], ['a', 'Ответ']], blank: {q: '', a: ''}},
+};
 async function openDemo(r) {
   const res = await api().demo_open(r);
   if (!res.ok) { toast(res.error); return; }
   if (res.counts) setCounts(res.counts);
   if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
-  DM = {lead: res.lead, content: res.content};
-  $('#dmWish').value = res.content.wishes || ''; $('#dmSrc').textContent = '';
-  $('#dmEnrich').textContent = 'Подтянуть с сайта и 2ГИС';
-  $('#dmTitle').textContent = 'Демо-сайт — ' + res.lead.name;
-  fillDemo(); $('#dmFrame').srcdoc = res.html;
-  $('#dmAnswer').value = '';
-  const url = DEMO_URLS[res.lead.id];
-  setDmRes(url ? url : '');
-  $('#dmPublish').textContent = VERCEL.connected ? (url ? 'Обновить на Vercel' : 'Опубликовать на Vercel') : 'Подключить Vercel';
+  DM = {lead: res.lead, content: res.content, rec: r};
+  $('#dmTitle').textContent = res.lead.name;
+  $('#dmTitle').title = res.lead.name;
+  $('#dmSrc').textContent = ''; $('#dmEnrich').textContent = 'Подтянуть данные';
+  $('#dmPrompt').hidden = true; $('#dmPromptBtns').hidden = true; $('#dmAnswer').value = '';
+  $('#dmWish').value = res.content.wishes || '';
+  dmMethod = res.content.custom_html ? (aiOn() ? 'ai' : 'claude') : 'builder';
+  renderFacts(); renderPhotos(); fillDemo(); $('#dmFrame').srcdoc = res.html;
+  goStep(res.content.custom_html || DEMO_URLS[res.lead.id] ? 2 : 1);
   $('#demoModal').hidden = false;
 }
-function setDmRes(url, path) {
-  const el = $('#dmRes'); el.innerHTML = '';
-  if (url) {
-    el.append('Ссылка: ');
-    const a = document.createElement('a'); a.textContent = url.replace(/^https?:\/\//, ''); a.title = 'Открыть'; a.onclick = () => api().open_url(url);
-    const c = document.createElement('button'); c.className = 'linkbtn'; c.style.marginLeft = '8px'; c.textContent = 'Копировать'; c.onclick = () => copyText(url);
-    el.append(a, c);
-  } else if (path) el.textContent = 'Сохранено: ' + path.split(/[\\/]/).pop();
-  else el.textContent = VERCEL.connected ? 'Vercel: ' + VERCEL.account : 'Vercel не подключён — демо сохранится HTML-файлом';
+function goStep(n) {
+  document.querySelectorAll('#dmSteps button').forEach(b => { const k = +b.dataset.s; b.setAttribute('aria-current', String(k === n)); b.classList.toggle('done', k < n); });
+  document.querySelectorAll('.step-p').forEach(p => p.hidden = +p.dataset.p !== n);
+  $('#dmEd').scrollTop = 0;
+  if (n === 3) renderPublish();
 }
-function fillDemo() {
-  const c = DM.content;
-  $('#dmHeadline').value = c.headline || ''; $('#dmSubtitle').value = c.subtitle || ''; $('#dmAbout').value = c.about || '';
-  $('#dmServices').value = (c.services || []).join('\n'); $('#dmCta').value = c.cta || '';
-  const th = $('#dmTheme'); th.innerHTML = '';
-  Object.entries(THEMES).forEach(([k, v]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = v; b.setAttribute('aria-pressed', String(c.theme === k));
-    b.onclick = () => { DM.content.theme = k; fillDemo(); preview(); }; th.appendChild(b); });
-  renderPhotos();
-  const custom = !!c.custom_html;
-  $('#dmMode').textContent = custom ? 'Дизайн от Claude' : 'Быстрый шаблон';
-  $('#dmTemplate').hidden = !custom; $('#dmReset').hidden = custom;
-  if (c.wishes && !$('#dmWish').value) $('#dmWish').value = c.wishes;
-  const src = c.source;
-  if (src && !$('#dmSrc').textContent) $('#dmSrc').textContent = 'Уже собрано: ' + ((src.sites || []).length ? (src.sites || []).map(x => (x.url || '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0]).join(', ') + ', ' : '') + '2ГИС';
+document.querySelectorAll('#dmSteps button').forEach(b => b.onclick = () => goStep(+b.dataset.s));
+document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => goStep(+b.dataset.go));
+function renderFacts() {
+  const L = DM.lead, box = $('#dmFacts'); box.innerHTML = '';
+  const rows = [['Название', L.name], ['Сфера', (L.category || '').split(',')[0]], ['Адрес', L.address], ['Телефон', (L.phone || '').split(', ')[0]],
+    ['Часы', L.schedule], ['Рейтинг', L.rating ? String(L.rating).replace('.', ',') + (L.reviews ? ' · ' + L.reviews + ' отзывов' : '') : ''],
+    ['Соцсети', ['whatsapp', 'telegram', 'vkontakte', 'instagram'].filter(k => L[k]).map(k => ({whatsapp: 'WhatsApp', telegram: 'Telegram', vkontakte: 'VK', instagram: 'Instagram'})[k]).join(', ')],
+    ['Сайт', L.website]];
+  rows.forEach(([k, v]) => { const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v || '—'; b.title = v || ''; box.append(a, b); });
 }
-function readDemo() {
-  DM.content.wishes = $('#dmWish').value;
-  Object.assign(DM.content, {headline: $('#dmHeadline').value, subtitle: $('#dmSubtitle').value, about: $('#dmAbout').value,
-    services: $('#dmServices').value.split('\n').map(s => s.trim()).filter(Boolean), cta: $('#dmCta').value});
-  return DM.content;
-}
-async function preview() { if (!DM) return; $('#dmFrame').srcdoc = await api().demo_preview(DM.lead.id, readDemo()); }
-['#dmHeadline', '#dmSubtitle', '#dmAbout', '#dmServices', '#dmCta'].forEach(id => $(id).addEventListener('input', () => { clearTimeout(preview.t); preview.t = setTimeout(preview, 300); }));
 function renderPhotos() {
   const box = $('#dmPhotos'); box.innerHTML = '';
   (DM.content.photos || []).forEach((p, i) => {
-    const d = document.createElement('div'); d.className = 'ph'; d.style.backgroundImage = 'url(' + p + ')';
+    const d = document.createElement('div'); d.className = 'ph'; d.style.backgroundImage = 'url("' + p + '")';
     const x = document.createElement('button'); x.textContent = '×'; x.title = 'Убрать'; x.onclick = () => { DM.content.photos.splice(i, 1); renderPhotos(); preview(); };
     d.appendChild(x); box.appendChild(d);
   });
   if ((DM.content.photos || []).length < 8) { const a = document.createElement('button'); a.className = 'add'; a.textContent = '+'; a.title = 'Добавить фото'; a.onclick = () => $('#dmFile').click(); box.appendChild(a); }
 }
-function shrink(file) {  // фото → JPEG не больше 1400px, чтобы сайт открывался быстро
+function fillDemo() {
+  const c = DM.content;
+  // способ
+  document.querySelectorAll('#dmMethods button').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.m === dmMethod));
+    if (b.dataset.m === 'ai') { b.disabled = false; $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Подключите ключ в Настройках'; }
+  });
+  $('#mBuilder').hidden = dmMethod !== 'builder';
+  $('#mWish').hidden = dmMethod === 'builder';
+  $('#mAI').hidden = dmMethod !== 'ai'; $('#mClaude').hidden = dmMethod !== 'claude';
+  $('#dmCustom').hidden = !c.custom_html || dmMethod !== 'builder';
+  $('#dmMode').textContent = c.custom_html ? 'Сайт от ИИ' : 'Конструктор';
+  // стиль
+  const th = $('#dmThemes'); th.innerHTML = '';
+  Object.entries(THEMES).forEach(([k, v]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(c.theme === k));
+    b.innerHTML = '<span class="sw"><i></i></span><span></span>';
+    b.querySelector('.sw').style.background = v.bg; b.querySelector('.sw i').style.background = v.accent; b.lastChild.textContent = v.title;
+    b.onclick = () => { c.theme = k; c.accent = ''; c.font = ''; c.custom_html = ''; fillDemo(); preview(); };
+    th.appendChild(b);
+  });
+  const ac = $('#dmAccents'); ac.innerHTML = '';
+  const auto = document.createElement('button'); auto.type = 'button'; auto.className = 'auto'; auto.textContent = 'Как в стиле'; auto.setAttribute('aria-pressed', String(!c.accent));
+  auto.onclick = () => { c.accent = ''; fillDemo(); preview(); }; ac.appendChild(auto);
+  DOPTS.accents.forEach(col => { const b = document.createElement('button'); b.type = 'button'; b.style.background = col; b.title = col; b.setAttribute('aria-pressed', String((c.accent || '').toLowerCase() === col.toLowerCase()));
+    b.onclick = () => { c.accent = col; fillDemo(); preview(); }; ac.appendChild(b); });
+  const pick = document.createElement('input'); pick.type = 'color'; pick.title = 'Свой цвет'; pick.value = c.accent || '#0F7B63';
+  pick.oninput = () => { c.accent = pick.value; clearTimeout(preview.t); preview.t = setTimeout(preview, 250); }; pick.onchange = () => fillDemo(); ac.appendChild(pick);
+  const seg = (id, opts, key, def) => { const box = $(id); box.innerHTML = ''; Object.entries(opts).forEach(([k, v]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = v; b.setAttribute('aria-pressed', String((c[key] || def) === k));
+    b.onclick = () => { c[key] = k; fillDemo(); preview(); }; box.appendChild(b); }); };
+  seg('#dmFonts', DOPTS.fonts, 'font', (THEMES[c.theme] || {}).font || 'grotesk');
+  seg('#dmLayouts', DOPTS.layouts, 'layout', 'split');
+  $('#dmHeadline').value = c.headline || ''; $('#dmSubtitle').value = c.subtitle || ''; $('#dmCta').value = c.cta || '';
+  renderSecs();
+}
+function renderSecs() {
+  const c = DM.content, box = $('#dmSecs'); box.innerHTML = '';
+  Object.entries(DOPTS.sections).forEach(([key, label]) => {
+    const S = c.sections[key] || (c.sections[key] = {on: false});
+    const el = document.createElement('div'); el.className = 'sec' + (S.on ? '' : ' off') + (dmOpenSec === key ? ' open' : '');
+    const h = document.createElement('div'); h.className = 'sec-h';
+    const tg = document.createElement('input'); tg.type = 'checkbox'; tg.className = 'tog'; tg.checked = !!S.on; tg.title = 'Показывать на сайте';
+    tg.onclick = e => e.stopPropagation();
+    tg.onchange = () => { S.on = tg.checked; el.classList.toggle('off', !S.on); preview(); };
+    const b = document.createElement('b'); b.textContent = label;
+    const sm = document.createElement('small'); sm.textContent = (S.items ? S.items.length + ' шт.' : '');
+    const ch = document.createElement('span'); ch.className = 'chev'; ch.textContent = '›';
+    h.append(tg, b, sm, ch);
+    h.onclick = () => { dmOpenSec = dmOpenSec === key ? null : key; renderSecs(); };
+    el.appendChild(h);
+    if (dmOpenSec === key) {
+      const body = document.createElement('div'); body.className = 'sec-b';
+      const field = (lbl, val, set, area) => { const l = document.createElement('label'); l.textContent = lbl; const i = document.createElement(area ? 'textarea' : 'input');
+        if (!area) i.type = 'text'; else i.rows = 4; i.value = val || ''; i.oninput = () => { set(i.value); previewSoon(); }; body.append(l, i); };
+      if (key !== 'gallery' && key !== 'about') field('Заголовок раздела', S.title, v => S.title = v);
+      if (key === 'offer') field('Текст', S.text, v => S.text = v);
+      if (key === 'about') field('Текст «О нас»', c.about, v => c.about = v, true);
+      if (key === 'gallery') { const p = document.createElement('p'); p.className = 'hint'; p.textContent = 'Показывает фото из шага 1, кроме первого (оно на первом экране). Нужно минимум 2 фото.'; body.appendChild(p); }
+      if (key === 'contacts') { const l = document.createElement('label'); l.className = 'opt'; l.innerHTML = '<input type="checkbox" class="tog"><span>Показывать карту</span>';
+        const i = l.querySelector('input'); i.checked = S.map !== false; i.onchange = () => { S.map = i.checked; preview(); }; body.appendChild(l); }
+      if (SEC_FIELDS[key]) {
+        const spec = SEC_FIELDS[key], list = document.createElement('div'); list.className = 'items';
+        S.items = S.items || [];
+        S.items.forEach((it, idx) => {
+          const row = document.createElement('div'); row.className = 'item';
+          spec.cols.forEach(([f, ph]) => { const big = f === 'text' && key === 'reviews';
+            const i = document.createElement(big || f === 'a' ? 'textarea' : 'input'); if (i.tagName === 'INPUT') i.type = 'text'; else i.rows = 2;
+            i.placeholder = ph; i.value = it[f] || ''; i.oninput = () => { it[f] = i.value; previewSoon(); }; row.appendChild(i); });
+          const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'rm'; rm.textContent = '×'; rm.title = 'Удалить';
+          rm.onclick = () => { S.items.splice(idx, 1); renderSecs(); preview(); }; row.appendChild(rm);
+          list.appendChild(row);
+        });
+        body.appendChild(list);
+        const add = document.createElement('button'); add.type = 'button'; add.className = 'linkbtn addit'; add.textContent = '+ Добавить';
+        add.onclick = () => { S.items.push(Object.assign({}, spec.blank)); S.on = true; renderSecs(); };
+        body.appendChild(add);
+      }
+      el.appendChild(body);
+    }
+    box.appendChild(el);
+  });
+}
+function previewSoon() { clearTimeout(preview.t); preview.t = setTimeout(preview, 300); }
+function readDemo() {
+  Object.assign(DM.content, {headline: $('#dmHeadline').value, subtitle: $('#dmSubtitle').value, cta: $('#dmCta').value, wishes: $('#dmWish').value});
+  return DM.content;
+}
+async function preview() { if (!DM) return; $('#dmFrame').srcdoc = await api().demo_preview(DM.lead.id, readDemo()); }
+['#dmHeadline', '#dmSubtitle', '#dmCta'].forEach(id => $(id).addEventListener('input', () => { DM.content.custom_html = ''; $('#dmCustom').hidden = true; previewSoon(); }));
+document.querySelectorAll('#dmMethods button').forEach(b => b.onclick = () => {
+  if (b.dataset.m === 'ai' && !aiOn()) { openSettings('conn'); toast('Вставьте API-ключ любого сервиса — программа сама поймёт, какой это'); return; }
+  dmMethod = b.dataset.m; fillDemo();
+});
+$('#dmTemplate').onclick = () => { DM.content.custom_html = ''; fillDemo(); preview(); };
+$('#dmReset').onclick = async () => { const r = await api().demo_reset(DM.lead.id); DM.content = Object.assign(r.content, {photos: DM.content.photos || [], source: DM.content.source}); fillDemo(); preview(); };
+const QUICK = ['Тёмный стиль', 'Светлый и минималистичный', 'Прайс с ценами с их сайта', 'Отзывы клиентов', 'Большая кнопка WhatsApp', 'Галерея работ', 'Блок с акцией', 'Премиальный вид', 'Ярко и молодёжно'];
+QUICK.forEach(q => { const b = document.createElement('button'); b.type = 'button'; b.textContent = '+ ' + q;
+  b.onclick = () => { const t = $('#dmWish'); t.value = (t.value.trim() ? t.value.trim().replace(/[.,]$/, '') + ', ' : '') + q.toLowerCase(); }; $('#dmQuick').appendChild(b); });
+async function addPhotos(files) {
+  DM.content.photos = DM.content.photos || [];
+  for (const f of files) { if (!/^image\//.test(f.type) || DM.content.photos.length >= 8) continue; const d = await shrink(f); if (d) DM.content.photos.push(d); }
+  renderPhotos(); preview();
+}
+function shrink(file) {
   return new Promise(res => {
     const fr = new FileReader();
     fr.onload = () => { const img = new Image(); img.onload = () => {
@@ -1018,105 +1302,140 @@ function shrink(file) {  // фото → JPEG не больше 1400px, чтоб
     fr.onerror = () => res(null); fr.readAsDataURL(file);
   });
 }
-async function addPhotos(files) {
-  DM.content.photos = DM.content.photos || [];
-  for (const f of files) { if (!/^image\//.test(f.type) || DM.content.photos.length >= 8) continue; const d = await shrink(f); if (d) DM.content.photos.push(d); }
-  renderPhotos(); preview();
-}
 $('#dmFile').onchange = e => { addPhotos([...e.target.files]); e.target.value = ''; };
 $('#demoModal').addEventListener('dragover', e => e.preventDefault());
 $('#demoModal').addEventListener('drop', e => { e.preventDefault(); if (DM) addPhotos([...e.dataTransfer.files]); });
-document.addEventListener('paste', e => { if ($('#demoModal').hidden || !DM) return; const fs = [...(e.clipboardData || {}).files || []].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); addPhotos(fs); } });
+document.addEventListener('paste', e => { if ($('#demoModal').hidden || !DM) return; const fs = [...((e.clipboardData || {}).files || [])].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); addPhotos(fs); } });
 $('#dmClose').onclick = () => { $('#demoModal').hidden = true; if (DM) api().demo_save_file(DM.lead.id, readDemo()); };
 document.querySelectorAll('#dmDevice button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#dmDevice button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   $('#dmWrap').classList.toggle('mobile', b.dataset.d === 'mobile');
 });
-$('#dmReset').onclick = async () => { const r = await api().demo_reset(DM.lead.id); DM.content = Object.assign(r.content, {photos: DM.content.photos || []}); fillDemo(); preview(); };
 $('#dmEnrich').onclick = async () => {
   const b = $('#dmEnrich'); b.disabled = true; b.textContent = 'Собираю… до 30 секунд'; $('#dmSrc').textContent = '';
   const r = await api().demo_enrich(DM.lead.id, readDemo());
   b.disabled = false; b.textContent = 'Подтянуть ещё раз';
   if (!r.ok) { toast(r.error); return; }
-  DM.content = r.content; fillDemo(); $('#dmFrame').srcdoc = r.html;
+  DM.content = r.content; renderPhotos(); fillDemo(); $('#dmFrame').srcdoc = r.html;
   $('#dmSrc').textContent = r.summary.join(' · ');
 };
-$('#dmSitePrompt').onclick = async () => {
-  const text = await api().demo_site_prompt(DM.lead.id, readDemo(), $('#dmWish').value);
-  copyText(text, true); DM.content.wishes = $('#dmWish').value;
-  api().open_url('https://claude.ai/new');
-  toast('Промпт в буфере — вставьте его в Claude (Ctrl+V), потом скопируйте код страницы сюда');
+$('#dmAI').onclick = async () => {
+  const b = $('#dmAI'); b.disabled = true; b.textContent = 'ИИ верстает сайт… 1–3 минуты';
+  const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value);
+  b.disabled = false; b.textContent = 'Сгенерировать заново';
+  if (!r.ok) { toast(r.error); return; }
+  DM.content = r.content; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово. Не нравится — поправьте пожелания и сгенерируйте заново');
 };
+$('#dmBuild').onclick = async () => {
+  const text = await api().demo_site_prompt(DM.lead.id, readDemo(), $('#dmWish').value);
+  $('#dmPrompt').value = text; $('#dmPrompt').hidden = false; $('#dmPromptBtns').hidden = false; $('#dmBuild').textContent = 'Собрать заново';
+};
+$('#dmCopy').onclick = () => { copyText($('#dmPrompt').value, true); toast('Промпт скопирован — вставьте его в claude.ai'); };
+$('#dmOpenClaude').onclick = () => { copyText($('#dmPrompt').value, true); api().open_url('https://claude.ai/new'); toast('Промпт в буфере — в claude.ai нажмите Ctrl+V и Enter'); };
 $('#dmApply').onclick = async () => {
   const r = await api().demo_apply_site(DM.lead.id, readDemo(), $('#dmAnswer').value);
   if (!r.ok) { toast(r.error); return; }
-  DM.content = r.content; $('#dmAnswer').value = ''; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — это сайт от Claude. Можно публиковать');
+  DM.content = r.content; $('#dmAnswer').value = ''; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — это сайт от Claude');
 };
-$('#dmTemplate').onclick = () => { DM.content.custom_html = ''; fillDemo(); preview(); };
+function renderPublish() {
+  const url = DEMO_URLS[DM.lead.id];
+  $('#dmVcState').textContent = VERCEL.connected ? 'Vercel: ' + VERCEL.account : 'Vercel не подключён — можно сохранить файлом';
+  $('#dmPublish').textContent = VERCEL.connected ? (url ? 'Обновить на Vercel' : 'Опубликовать на Vercel') : 'Подключить Vercel';
+  setDmRes(url || '');
+  const box = $('#dmSend'); box.innerHTML = '';
+  [['whatsapp', 'WhatsApp', 'ch-wa', 'i-wa'], ['telegram', 'Telegram', 'ch-tg', 'i-tg'], ['vkontakte', 'ВКонтакте', 'ch-vk', 'i-vk']].forEach(([k, t, cls, ico]) => {
+    const has = k === 'whatsapp' ? (DM.lead.whatsapp || mobileOf(DM.lead.phone)) : DM.lead[k];
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.disabled = !has; b.textContent = t + (has ? '' : ' — нет');
+    b.onclick = () => openChat(DM.lead, k); box.appendChild(b);
+  });
+}
+function setDmRes(url, path) {
+  const el = $('#dmRes'); el.innerHTML = '';
+  if (url) {
+    el.append('Ссылка: ');
+    const a = document.createElement('a'); a.textContent = url.replace(/^https?:\/\//, ''); a.title = 'Открыть'; a.onclick = () => api().open_url(url);
+    const c = document.createElement('button'); c.className = 'linkbtn'; c.style.marginLeft = '10px'; c.textContent = 'Копировать'; c.onclick = () => copyText(url);
+    el.append(a, c);
+  } else if (path) el.textContent = 'Сохранено: ' + path.split(/[\\/]/).pop();
+}
 $('#dmFileBtn').onclick = async () => { const r = await api().demo_save_file(DM.lead.id, readDemo()); if (r.ok) { setDmRes('', r.path); api().reveal(r.path); } };
 $('#dmPublish').onclick = async () => {
-  if (!VERCEL.connected) { $('#demoModal').hidden = true; const d = document.querySelector('.order details'); if (d) { d.open = true; $('#vercelBox').scrollIntoView({block: 'center'}); } toast('Вставьте токен Vercel — и демо будут публиковаться по ссылке'); return; }
+  if (!VERCEL.connected) { openSettings('conn'); toast('Вставьте токен Vercel — и демо будут публиковаться по ссылке'); return; }
   const b = $('#dmPublish'); b.disabled = true; b.textContent = 'Публикую… до минуты';
   const r = await api().demo_publish(DM.lead.id, readDemo());
   b.disabled = false; b.textContent = 'Обновить на Vercel';
   if (!r.ok) { toast(r.error || 'Не получилось опубликовать'); setDmRes('', r.path); return; }
-  DEMO_URLS[DM.lead.id] = r.url; setDmRes(r.url); copyText(r.url, true); toast('Опубликовано, ссылка в буфере');
+  DEMO_URLS[DM.lead.id] = r.url; DM.lead.demo_url = r.url; setDmRes(r.url); copyText(r.url, true); toast('Опубликовано, ссылка в буфере');
   refreshDemoMarks();
 };
 function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }
 
 /* ---------- ИИ ---------- */
-let AI = {connected: false}, AIP = {};
+let AI = {connected: false}, AIP = {}, aiEdit = false, aiFound = null;
 function aiOn() { return !!AI.connected; }
 function renderAI() {
   const box = $('#aiBox'); box.innerHTML = '';
-  const prov = AI.provider || 'yandex', meta = AIP[prov] || {};
-  box.innerHTML = '<div style="font-size:13px">' + (aiOn() ? '<span class="ok">Подключён</span> · ' + esc((AIP[AI.provider] || {}).title || '') + (AI.key_hint ? ' · ключ ' + esc(AI.key_hint) : '')
-      : 'С ключом демо и личные сообщения генерируются одной кнопкой. Без ключа — копипаст в claude.ai.') + '</div>'
-    + '<select id="aiProv">' + Object.entries(AIP).map(([k, v]) => '<option value="' + k + '">' + esc(v.title) + '</option>').join('') + '</select>'
-    + '<input type="password" id="aiKey" autocomplete="off" placeholder="' + (aiOn() && AI.provider === prov ? 'Ключ сохранён — можно не вводить' : 'API-ключ') + '">'
-    + (meta.needs && meta.needs.includes('folder') ? '<input id="aiFolder" placeholder="ID каталога Yandex Cloud (b1g…)">' : '')
-    + (meta.needs && meta.needs.includes('base') ? '<input id="aiBase" placeholder="Адрес API, например https://api.deepseek.com/v1">' : '')
-    + '<input id="aiModel" placeholder="Модель">'
-    + '<textarea id="aiOffer" rows="2" placeholder="Что вы предлагаете — для ИИ-сообщений (например: сайт с онлайн-записью за 3 дня, от 15 000 ₽)"></textarea>'
-    + '<p class="hint">' + (meta.help ? '<button class="linkbtn" id="aiHelp">Где взять ключ</button> &nbsp; ' : '') + '<button class="linkbtn" id="aiSave">' + (aiOn() ? 'Сохранить и проверить' : 'Подключить') + '</button>'
-    + (aiOn() ? ' &nbsp; <button class="linkbtn" id="aiOff">Отключить</button>' : '') + '</p><div class="hint" id="aiErr"></div>';
-  $('#aiProv').value = prov;
-  $('#aiModel').value = (AI.provider === prov && AI.model) || meta.model || '';
-  if ($('#aiFolder')) $('#aiFolder').value = AI.folder || '';
-  if ($('#aiBase')) $('#aiBase').value = AI.base || meta.base || '';
-  $('#aiOffer').value = AI.offer || '';
-  $('#aiProv').onchange = e => { AI = Object.assign({}, AI, {provider: e.target.value, model: ''}); renderAI(); };
-  if ($('#aiHelp')) $('#aiHelp').onclick = () => api().open_url(meta.help);
-  $('#aiOffer').onchange = () => { AI.offer = $('#aiOffer').value; api().ai_offer(AI.offer); };
-  $('#aiSave').onclick = async () => {
-    $('#aiErr').textContent = 'Проверяю ключ…';
-    const r = await api().ai_save({provider: $('#aiProv').value, key: $('#aiKey').value, model: $('#aiModel').value,
-      folder: $('#aiFolder') ? $('#aiFolder').value : '', base: $('#aiBase') ? $('#aiBase').value : '', offer: $('#aiOffer').value});
+  if (aiOn() && !aiEdit) {
+    box.innerHTML = '<div><span class="ok">✓</span> <b></b> · модель <b></b>' + (AI.key_hint ? ' · ключ ' + esc(AI.key_hint) : '') + '</div>'
+      + '<label class="sub-l" style="display:block">Что вы предлагаете — ИИ учтёт это в сообщениях</label><textarea id="aiOffer" rows="2" placeholder="Например: сайт с онлайн-записью за 3 дня, от 15 000 ₽"></textarea>'
+      + '<div class="btnrow"><button class="btn" id="aiChange">Сменить ключ или модель</button><button class="btn danger-txt" id="aiOff">Отключить</button></div>';
+    const bs = box.querySelectorAll('b'); bs[0].textContent = AI.title || (AIP[AI.provider] || {}).title || AI.provider; bs[1].textContent = AI.model || 'по умолчанию';
+    $('#aiOffer').value = AI.offer || '';
+    $('#aiOffer').onchange = () => { AI.offer = $('#aiOffer').value; api().ai_offer(AI.offer); };
+    $('#aiChange').onclick = () => { aiEdit = true; aiFound = null; renderAI(); };
+    $('#aiOff').onclick = async () => { await api().ai_disconnect(); AI = {connected: false, offer: AI.offer}; if (ACTIVE_TPL === '__ai__') ACTIVE_TPL = ''; renderAI(); renderTplSelect(); renderDots(); };
+    $('#dmAI').hidden = false;
+    return;
+  }
+  box.innerHTML = '<div>Вставьте API-ключ любого сервиса — программа сама определит, чей он, и покажет модели.</div>'
+    + '<div class="hint">Подходят: OpenRouter (через него Gemini, Claude, DeepSeek — работает из России), DeepSeek, YandexGPT, Claude API, OpenAI, Gemini, Groq, xAI.</div>'
+    + '<input type="password" id="aiKey" autocomplete="off" placeholder="' + (aiOn() ? 'Новый ключ (пусто — оставить прежний)' : 'API-ключ, например sk-or-…') + '">'
+    + '<div class="btnrow"><button class="btn primary" id="aiDetect">Проверить ключ</button><button class="linkbtn" id="aiCustom">У меня другой сервис</button>'
+    + (aiOn() ? '<button class="linkbtn" id="aiCancel">Отмена</button>' : '') + '</div>'
+    + '<input id="aiBase" placeholder="Адрес API, например https://api.example.com/v1" hidden>'
+    + '<div id="aiFound"></div><div class="hint" id="aiErr"></div>';
+  $('#aiCustom').onclick = () => { $('#aiBase').hidden = false; $('#aiBase').focus(); };
+  if ($('#aiCancel')) $('#aiCancel').onclick = () => { aiEdit = false; renderAI(); };
+  const detect = async () => {
+    $('#aiErr').textContent = 'Проверяю ключ…'; $('#aiFound').innerHTML = '';
+    const r = await api().ai_detect($('#aiKey').value, $('#aiBase').hidden ? '' : $('#aiBase').value);
     if (!r.ok) { $('#aiErr').innerHTML = '<span class="bad"></span>'; $('#aiErr').firstChild.textContent = r.error; return; }
-    AI = r.ai; renderAI(); renderTplSelect(); toast('ИИ подключён');
+    $('#aiErr').textContent = ''; aiFound = r; renderFound();
   };
-  if ($('#aiOff')) $('#aiOff').onclick = async () => { await api().ai_disconnect(); AI = {connected: false, offer: AI.offer}; if (ACTIVE_TPL === '__ai__') ACTIVE_TPL = ''; renderAI(); renderTplSelect(); };
+  $('#aiDetect').onclick = detect;
+  $('#aiKey').addEventListener('paste', () => setTimeout(detect, 50));
   $('#dmAI').hidden = !aiOn();
+  if (aiFound) renderFound();
 }
-$('#dmAI').onclick = async () => {
-  const b = $('#dmAI'); b.disabled = true; b.textContent = 'ИИ верстает… 1–3 мин';
-  const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value);
-  b.disabled = false; b.textContent = 'Сгенерировать ИИ';
-  if (!r.ok) { toast(r.error); return; }
-  DM.content = r.content; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — сайт от ИИ. Можно публиковать');
-};
+function renderFound() {
+  const r = aiFound, box = $('#aiFound');
+  box.innerHTML = '<div class="detected"><b class="ok">✓ Это ' + esc(r.title) + ' — ключ рабочий</b>'
+    + (r.not_in_russia ? '<div class="warnx" style="font-size:12.5px;margin-top:4px">Из России этот сервис работает только через VPN. Без VPN лучше OpenRouter, DeepSeek или YandexGPT.</div>' : '')
+    + '<label class="sub-l" style="display:block">Модель</label><select id="aiModel"></select>'
+    + (r.needs_folder ? '<label class="sub-l" style="display:block">ID каталога Yandex Cloud</label><input id="aiFolder" placeholder="b1g…">' : '')
+    + '<div class="btnrow"><button class="btn primary" id="aiSave">Подключить</button></div></div>';
+  const sel = $('#aiModel');
+  r.models.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m + (m === r.model ? '  — рекомендуем' : ''); sel.appendChild(o); });
+  sel.value = r.model;
+  $('#aiSave').onclick = async () => {
+    $('#aiErr').textContent = 'Пробный запрос…';
+    const res = await api().ai_save({provider: r.provider, key: $('#aiKey').value, model: sel.value, folder: $('#aiFolder') ? $('#aiFolder').value : '',
+      base: $('#aiBase').hidden ? '' : $('#aiBase').value, offer: AI.offer || ''});
+    if (!res.ok) { $('#aiErr').innerHTML = '<span class="bad"></span>'; $('#aiErr').firstChild.textContent = res.error; return; }
+    AI = res.ai; aiEdit = false; aiFound = null; renderAI(); renderTplSelect(); renderDots(); toast('ИИ подключён: ' + r.title);
+  };
+}
 
 /* ---------- Telegram ---------- */
 let TG = {configured: false}, tgStep = 'creds', tgTimer = null;
-async function loadTg() { TG = await api().tg_info(); renderTg(); renderTgStrip(); }
+async function loadTg() { TG = await api().tg_info(); renderTg(); renderTgStrip(); renderDots(); }
 function renderTg() {
   const box = $('#tgBox');
   if (TG.account) {
     box.innerHTML = '<div style="font-size:13px"><span class="ok">Вход выполнен:</span> <b></b></div>'
       + '<div class="row"><span>Сообщений в день, не больше</span><input type="number" id="tgLimit" min="1" max="50"></div>'
       + '<p class="hint">Сообщения уходят с вашего аккаунта только лидам с Telegram-username, с паузой 45–120 секунд. Больше 15–20 холодных сообщений в день — риск спам-блока.</p>'
-      + '<button class="linkbtn" id="tgOut">Выйти из Telegram</button>';
+      + '<div class="btnrow"><button class="btn danger-txt" id="tgOut">Выйти из Telegram</button></div>';
     box.querySelector('b').textContent = TG.account;
     $('#tgLimit').value = TG.daily_limit || 15;
     $('#tgLimit').onchange = async e => { const r = await api().tg_limit(+e.target.value); TG.daily_limit = r.daily_limit; e.target.value = r.daily_limit; };
@@ -1127,7 +1446,7 @@ function renderTg() {
     box.innerHTML = tgStep === 'code'
       ? '<div style="font-size:13px">Код пришёл в Telegram (в чат «Telegram» на телефоне).</div><input id="tgCode" placeholder="Код" autocomplete="one-time-code">'
       : '<div style="font-size:13px">У аккаунта включена двухэтапная проверка.</div><input type="password" id="tgPass" placeholder="Облачный пароль Telegram">';
-    box.innerHTML += '<p class="hint"><button class="linkbtn" id="tgGo">Войти</button> &nbsp; <button class="linkbtn" id="tgBack">Назад</button></p><div class="hint" id="tgErr"></div>';
+    box.innerHTML += '<div class="btnrow"><button class="btn primary" id="tgGo">Войти</button><button class="btn" id="tgBack">Назад</button></div><div class="hint" id="tgErr"></div>';
     $('#tgBack').onclick = () => { tgStep = 'creds'; renderTg(); };
     $('#tgGo').onclick = async () => {
       $('#tgErr').textContent = 'Вхожу…';
@@ -1141,7 +1460,7 @@ function renderTg() {
   box.innerHTML = '<div style="font-size:13px">Программа сама пишет лидам в Telegram с вашего аккаунта по выбранному тексту.</div>'
     + '<ol><li>Откройте my.telegram.org, войдите по номеру.</li><li>«API development tools» → создайте приложение (название любое).</li><li>Скопируйте сюда api_id и api_hash.</li></ol>'
     + '<input id="tgId" placeholder="api_id (число)" inputmode="numeric"><input id="tgHash" placeholder="api_hash"><input id="tgPhone" placeholder="Номер телефона, +79001234567">'
-    + '<p class="hint"><button class="linkbtn" id="tgSite">Открыть my.telegram.org</button> &nbsp; <button class="linkbtn" id="tgSend">Получить код</button></p><div class="hint" id="tgErr"></div>';
+    + '<div class="btnrow"><button class="btn primary" id="tgSend">Получить код</button><button class="btn" id="tgSite">Открыть my.telegram.org</button></div><div class="hint" id="tgErr"></div>';
   $('#tgSite').onclick = () => api().open_url('https://my.telegram.org/apps');
   $('#tgSend').onclick = async () => {
     $('#tgErr').textContent = 'Отправляю код…';
@@ -1166,7 +1485,7 @@ function renderTgStrip() {
 }
 function pollTg() { clearTimeout(tgTimer); tgTimer = setTimeout(async () => { if (TG.sending || MODE === 'base') { const before = TG.sent_today; await loadTg(); if (MODE === 'base' && TG.sent_today !== before) loadBase(); } pollTg(); }, 3000); }
 $('#bTg').onclick = async () => {
-  if (!TG.account) { const d = document.querySelector('.order details'); if (d) { d.open = true; $('#tgBox').scrollIntoView({block: 'center'}); } toast('Сначала войдите в Telegram в «Дополнительно»'); return; }
+  if (!TG.account) { openSettings('conn'); toast('Сначала войдите в Telegram'); return; }
   if (!ACTIVE_TPL) { toast('Выберите внизу «Текст сообщения» — шаблон или ИИ'); return; }
   const ids = [...document.querySelectorAll('#baseCards .card')].map(c => c._lid).filter(Boolean);
   if (!ids.length) { toast('В списке нет лидов'); return; }
@@ -1184,14 +1503,15 @@ $('#bTg').onclick = async () => {
 function renderVercel() {
   const box = $('#vercelBox'); box.innerHTML = '';
   if (VERCEL.connected) {
-    box.innerHTML = '<div>Подключён: <b></b></div><p class="hint">Демо публикуются на этот аккаунт, ссылка вида имя-сайта.vercel.app.</p><button class="linkbtn">Отключить</button>';
+    box.innerHTML = '<div><span class="ok">✓</span> Аккаунт <b></b></div><div class="hint">Демо публикуются на ваш Vercel: ссылка вида имя-сайта.vercel.app. Проверьте, что ссылка открывается с телефона без VPN.</div><div class="btnrow"><button class="btn danger-txt" id="vcOff">Отключить</button></div>';
     box.querySelector('b').textContent = VERCEL.account;
-    box.querySelector('button').onclick = async () => { await api().vercel_disconnect(); VERCEL = {connected: false, account: ''}; renderVercel(); };
-    return;
+    $('#vcOff').onclick = async () => { await api().vercel_disconnect(); VERCEL = {connected: false, account: ''}; renderVercel(); };
+    renderDots(); return;
   }
-  box.innerHTML = '<div style="font-size:13px">Чтобы демо открывались по ссылке, вставьте токен своего Vercel. Без него демо сохраняются HTML-файлом.</div>'
+  box.innerHTML = '<div>Без Vercel демо сохраняются HTML-файлом — его можно отправить клиенту в мессенджер.</div>'
+    + '<ol style="margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px"><li>Зарегистрируйтесь на vercel.com (бесплатно).</li><li>Откройте «Где взять токен» → Create Token → скопируйте.</li><li>Вставьте сюда и нажмите «Подключить».</li></ol>'
     + '<input type="password" id="vcToken" placeholder="Токен Vercel" autocomplete="off">'
-    + '<p class="hint"><button class="linkbtn" id="vcGet">Где взять токен</button> &nbsp; <button class="linkbtn" id="vcSave">Подключить</button></p><div class="hint" id="vcErr"></div>';
+    + '<div class="btnrow"><button class="btn primary" id="vcSave">Подключить</button><button class="btn" id="vcGet">Где взять токен</button></div><div class="hint" id="vcErr"></div>';
   $('#vcGet').onclick = () => api().open_url('https://vercel.com/account/tokens');
   $('#vcSave').onclick = async () => {
     $('#vcErr').textContent = 'Проверяю…';
@@ -1199,6 +1519,7 @@ function renderVercel() {
     if (!r.ok) { $('#vcErr').textContent = r.error; return; }
     VERCEL = {connected: true, account: r.account}; renderVercel(); toast('Vercel подключён: ' + r.account);
   };
+  renderDots();
 }
 
 /* ---------- база лидов ---------- */
@@ -1406,9 +1727,9 @@ async function boot() {
   setView(d.settings.view || 'cards');
   STATUSES = d.statuses || {}; BASE_IDS = new Set(d.base_ids || []);
   TEMPLATES = d.templates || []; TVARS = d.template_vars || []; ACTIVE_TPL = d.active_template || ''; DEMO_URLS = d.demo_urls || {};
-  VERCEL = d.vercel || VERCEL; THEMES = d.themes || {};
+  VERCEL = d.vercel || VERCEL; THEMES = d.themes || {}; DOPTS = d.demo_opts || DOPTS;
   AI = d.ai || AI; AIP = d.ai_providers || {};
-  renderAI(); renderTplSelect(); renderVars(); renderVercel();
+  renderAI(); renderTplSelect(); renderVars(); renderVercel(); renderDots();
   TG = Object.assign({}, d.tg); renderTg(); if (d.tg && d.tg.configured) loadTg(); pollTg();
   api().base_list('', '').then(r => setCounts(r.counts));
   setMode('found');

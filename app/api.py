@@ -201,10 +201,12 @@ class Api:
             'template_vars': TEMPLATE_VARS,
             'active_template': s.get('active_template', ''),
             'vercel': {'connected': bool(s.get('vercel_token')), 'account': s.get('vercel_account', '')},
-            'themes': {k: v['title'] for k, v in demo_site.THEMES.items()},
+            'themes': {k: {'title': v['title'], 'bg': v['bg'], 'accent': v['accent'], 'ink': v['ink']}
+                       for k, v in demo_site.THEMES.items()},
+            'demo_opts': {'fonts': {k: v['title'] for k, v in demo_site.FONTS.items()}, 'layouts': demo_site.LAYOUTS,
+                          'accents': demo_site.ACCENTS, 'sections': demo_site.SECTION_TITLES},
             'ai': ai_mod.public_cfg(s.get('ai')),
-            'ai_providers': {k: {'title': v['title'], 'model': v['model'], 'help': v['help'], 'needs': v['needs'],
-                                 'base': v.get('base', '')} for k, v in ai_mod.PROVIDERS.items()},
+            'ai_providers': {k: {'title': v['title'], 'help': v['help']} for k, v in ai_mod.PROVIDERS.items()},
             'tg': {'configured': bool((s.get('tg') or {}).get('api_id')),
                    'daily_limit': (s.get('tg') or {}).get('daily_limit', 15)},
         }
@@ -344,7 +346,7 @@ class Api:
         lead = self._lead_for(rec)
         if not lead:
             return {'ok': False, 'error': 'Пустая карточка'}
-        content = self._base.get_demo(lead['id']) or demo_site.default_content(lead)
+        content = demo_site.normalize(self._base.get_demo(lead['id']) or demo_site.default_content(lead), lead)
         return {'ok': True, 'lead': lead, 'content': content, 'html': demo_site.render(lead, content),
                 'counts': self._base.counts()}
 
@@ -383,6 +385,7 @@ class Api:
             if u not in have and len(have) < 8:
                 have.append(u)
         content['photos'] = have
+        content = demo_site.apply_source(content, lead)
         self._base.save_demo(lid, content)
         return {'ok': True, 'content': content, 'summary': got['summary'],
                 'html': demo_site.render(lead, content)}
@@ -526,6 +529,17 @@ class Api:
             return ai_mod.clean_message(out)
         t = next((x for x in self._base.templates() if x['id'] == tid), None)
         return render_message(t['body'], lead) if t else ''
+
+    def ai_detect(self, key: str, base: str = '') -> Dict[str, Any]:
+        """Вставили ключ — определяем сервис и модели. Пустой ключ = уже сохранённый."""
+        old = self._ai_cfg()
+        key = (key or '').strip() or old.get('key', '')
+        try:
+            info = ai_mod.detect(key, (base or '').strip())
+        except ai_mod.AIError as e:
+            return {'ok': False, 'error': str(e)}
+        info['ok'] = True
+        return info
 
     def ai_save(self, cfg: Dict[str, Any]) -> Dict[str, Any]:
         """Сохраняет и проверяет подключение. Пустой ключ = оставить прежний."""
