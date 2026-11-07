@@ -43,7 +43,7 @@ def main() -> None:
     api = Api()
     window = webview.create_window(
         brand.APP_TITLE, url=_ui_path(), js_api=api,
-        width=1180, height=800, min_size=(960, 660), background_color='#F5F7FA',
+        width=1180, height=800, min_size=(960, 660), background_color='#0B0B0C',
     )
     api.attach(window)
     window.events.closing += api.shutdown

@@ -19,18 +19,20 @@
 @font-face{font-family:Unbounded;font-weight:600;src:url(fonts/unbounded-latin-600-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
 
 :root{
-  --ink:#000000;        /* основной текст, кнопки */
-  --ink-2:#4D4D4D;      /* второстепенный текст */
-  --ink-3:#8F8F8F;      /* подсказки */
-  --paper:#F4F4F4;      /* фон окна */
-  --sheet:#FFFFFF;      /* таблица */
-  --grid:#E0E0E0;       /* линии сетки */
-  --gutter:#EFEFEF;     /* шапка/номера строк таблицы */
-  --mark:#D4D4D4;       /* серая плашка под счётчиком */
-  --ok:#000000;
-  --bad:#000000;
+  --ink:#F2F2F3;        /* основной текст, кнопки */
+  --on-ink:#0B0B0C;     /* текст на светлых кнопках */
+  --ink-2:#A6A6AD;      /* второстепенный текст */
+  --ink-3:#6D6D75;      /* подсказки */
+  --paper:#0B0B0C;      /* фон окна */
+  --sheet:#141416;      /* таблица, поля */
+  --grid:#27272C;       /* линии сетки */
+  --gutter:#1B1B1F;     /* шапка/номера строк таблицы */
+  --mark:#3A3A41;       /* плашка под счётчиком */
+  --ok:#F2F2F3;
+  --bad:#F2F2F3;
   --radius-s:6px;
   --radius-m:10px;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -56,14 +58,14 @@ button,input,select{font:inherit;color:inherit}
   background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-m);cursor:text}
 .field:focus-within{border-color:var(--ink)}
 .field input{flex:1;min-width:110px;border:0;outline:0;background:transparent;padding:4px 2px}
-.tag{display:inline-flex;align-items:center;gap:4px;background:var(--ink);color:#fff;border-radius:var(--radius-s);
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--ink);color:var(--on-ink);border-radius:var(--radius-s);
   padding:3px 4px 3px 9px;font-size:13px;font-weight:500}
-.tag button{border:0;background:transparent;color:#fff;opacity:.7;cursor:pointer;width:18px;height:18px;line-height:16px;padding:0;border-radius:4px}
-.tag button:hover{opacity:1;background:rgba(255,255,255,.15)}
+.tag button{border:0;background:transparent;color:var(--on-ink);opacity:.7;cursor:pointer;width:18px;height:18px;line-height:16px;padding:0;border-radius:4px}
+.tag button:hover{opacity:1;background:rgba(0,0,0,.12)}
 .tag small{opacity:.65;font-weight:400}
 
 .drop{position:absolute;left:-1px;right:-1px;top:calc(100% + 4px);background:var(--sheet);border:1px solid var(--ink);
-  border-radius:var(--radius-m);padding:4px;z-index:20;max-height:260px;overflow:auto;box-shadow:0 12px 28px rgba(0,0,0,.12)}
+  border-radius:var(--radius-m);padding:4px;z-index:20;max-height:260px;overflow:auto;box-shadow:0 16px 36px rgba(0,0,0,.55)}
 .drop div{padding:7px 10px;border-radius:var(--radius-s);cursor:pointer;display:flex;justify-content:space-between}
 .drop div small{color:var(--ink-3)}
 .drop div.on,.drop div:hover{background:var(--gutter)}
@@ -71,7 +73,7 @@ button,input,select{font:inherit;color:inherit}
 
 .seg{display:flex;border:1px solid var(--grid);border-radius:var(--radius-m);background:var(--sheet);padding:3px;gap:2px}
 .seg button{flex:1;border:0;background:transparent;padding:7px 0;border-radius:7px;cursor:pointer;font-weight:500;color:var(--ink-2)}
-.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--on-ink)}
 
 .chips{display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-m);overflow:hidden}
 .chip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--grid);background:transparent;
@@ -80,7 +82,7 @@ button,input,select{font:inherit;color:inherit}
 .chip:hover{background:var(--gutter)}
 .chip::before{content:"";width:14px;height:14px;border-radius:3px;border:1.5px solid var(--ink-3);flex:none}
 .chip[aria-pressed=true]{color:var(--ink);font-weight:500}
-.chip[aria-pressed=true]::before{background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat;border-color:var(--ink)}
+.chip[aria-pressed=true]::before{background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5' fill='none' stroke='%230B0B0C' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat;border-color:var(--ink)}
 .chip:disabled{cursor:default;opacity:.6}
 .chip:disabled:hover{background:transparent}
 .subhead{font-size:12px;color:var(--ink-2);margin:10px 0 6px}
@@ -89,9 +91,9 @@ button,input,select{font:inherit;color:inherit}
 
 .opt{display:flex;gap:10px;align-items:flex-start;padding:6px 0;cursor:pointer}
 .opt input{appearance:none;flex:none;width:30px;height:18px;border-radius:9px;background:var(--grid);position:relative;margin:1px 0 0;cursor:pointer;transition:background .15s}
-.opt input::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .15s}
+.opt input::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#8E8E96;top:2px;left:2px;transition:left .15s,background .15s}
 .opt input:checked{background:var(--ink)}
-.opt input:checked::after{left:14px}
+.opt input:checked::after{left:14px;background:var(--on-ink)}
 .opt span small{display:block;color:var(--ink-3);font-size:12px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
 .row select,.row input[type=number]{border:1px solid var(--grid);border-radius:var(--radius-s);background:var(--sheet);padding:5px 8px}
@@ -105,12 +107,12 @@ details[open] summary::before{transform:rotate(45deg)}
 .path{font-size:12px;color:var(--ink-2);word-break:break-all;background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-s);padding:6px 8px;margin-top:4px}
 
 .go{padding:16px 24px 20px;border-top:1px solid var(--grid);background:var(--paper)}
-.go button{width:100%;height:48px;border:0;border-radius:var(--radius-m);background:var(--ink);color:#fff;font-weight:600;font-size:15px;cursor:pointer}
-.go button:hover{background:#2E2E2E}
+.go button{width:100%;height:48px;border:0;border-radius:var(--radius-m);background:var(--ink);color:var(--on-ink);font-weight:600;font-size:15px;cursor:pointer}
+.go button:hover{background:#FFFFFF}
 .go button.stop{background:var(--sheet);color:var(--ink);border:1.5px solid var(--ink)}
 .go .err{color:var(--ink);font-weight:600;font-size:13px;margin:0 0 10px}
 .go .err:empty{display:none}
-.warn{margin:8px 24px 0;padding:10px 12px;border-radius:var(--radius-m);background:#EBEBEB;border:1px solid #C4C4C4;font-size:13px}
+.warn{margin:8px 24px 0;padding:10px 12px;border-radius:var(--radius-m);background:#1D1D21;border:1px solid #3A3A41;font-size:13px}
 .warn[hidden]{display:none}
 
 /* ---------- правая часть: лист ---------- */
@@ -134,13 +136,13 @@ thead tr.letters th{top:0;height:24px;padding:3px 10px;color:var(--ink-3);font-w
 thead tr.titles th{top:24px;color:var(--ink)}
 th.n,td.n{position:sticky;left:0;background:var(--gutter);color:var(--ink-3);text-align:right;width:44px;min-width:44px;font-size:11px;z-index:1}
 thead th.n{z-index:3}
-td a{color:var(--ink);text-decoration:underline;text-decoration-color:#B5B5B5;text-underline-offset:2px}
+td a{color:var(--ink);text-decoration:underline;text-decoration-color:#55555C;text-underline-offset:2px}
 td.muted{color:var(--ink-3)}
 tr.fresh td:not(.n){animation:marker 1.6s ease-out}
-@keyframes marker{from{background:#E4E4E4}to{background:transparent}}
+@keyframes marker{from{background:#2C2C31}to{background:transparent}}
 tbody.ghost td{height:31px}
 
-.empty{position:absolute;inset:86px 0 0;background:linear-gradient(rgba(255,255,255,.92),#fff 40%);display:flex;flex-direction:column;align-items:center;padding:40px 24px;text-align:center;color:var(--ink-2);pointer-events:none}
+.empty{position:absolute;inset:86px 0 0;background:linear-gradient(rgba(20,20,22,.9),var(--sheet) 40%);display:flex;flex-direction:column;align-items:center;padding:40px 24px;text-align:center;color:var(--ink-2);pointer-events:none}
 .empty p{max-width:420px;margin:0 0 4px}
 .empty p:first-child{color:var(--ink);font-weight:600;font-size:15px}
 .empty[hidden],.recent[hidden]{display:none}
@@ -159,7 +161,7 @@ tbody.ghost td{height:31px}
 .foot .msg.bad{color:var(--ink);font-weight:600;white-space:normal}
 .btn{border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:8px 14px;cursor:pointer;font-weight:500;white-space:nowrap}
 .btn:hover{border-color:var(--ink)}
-.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .btn[hidden]{display:none}
 
 .log{margin:0 28px;max-height:0;overflow:auto;font-size:12px;color:var(--ink-2);transition:max-height .2s}
@@ -172,7 +174,7 @@ tbody.ghost td{height:31px}
 
 /* тип сайта в таблице */
 .kind{display:inline-block;border-radius:var(--radius-s);padding:1px 8px;font-size:12px;font-weight:600;border:1px solid var(--ink)}
-.kind.nosite{background:var(--ink);color:#fff}
+.kind.nosite{background:var(--ink);color:var(--on-ink)}
 .kind.social,.kind.template{background:var(--sheet);color:var(--ink)}
 .kind.template{border-style:dashed}
 .kind.site{border-color:var(--grid);color:var(--ink-3);font-weight:500}
@@ -180,7 +182,7 @@ tbody.ghost td{height:31px}
 .spheres{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
 .sph{border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:3px 8px;font-size:12px;color:var(--ink-2);cursor:pointer}
 .sph:hover{border-color:var(--ink)}
-.sph[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.sph[aria-pressed=true]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .sph i{font-style:normal;opacity:.6;margin-left:3px}
 .subs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding:8px;border:1px solid var(--grid);border-radius:var(--radius-m);background:var(--sheet)}
 .subs[hidden]{display:none}
