@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from parser_2gis.paths import data_path
 
 from . import brand
+from . import ai as ai_mod
 from . import demo as demo_site
 from .base import STATUSES, TEMPLATE_VARS, LeadBase, lead_id, render_message
 from .browsers import find_browsers
@@ -79,6 +80,21 @@ def _reveal(path: str) -> None:
         subprocess.Popen(['xdg-open', os.path.dirname(path) if os.path.isfile(path) else path])
 
 
+def _tg_error(e: Exception) -> str:
+    name = e.__class__.__name__
+    known = {
+        'PhoneNumberInvalidError': 'Неверный номер телефона — пишите в формате +79001234567',
+        'PhoneCodeInvalidError': 'Неверный код из Telegram',
+        'PhoneCodeExpiredError': 'Код устарел — запросите новый',
+        'PasswordHashInvalidError': 'Неверный пароль двухэтапной проверки',
+        'ApiIdInvalidError': 'Неверные api_id / api_hash — скопируйте их заново с my.telegram.org',
+        'FloodWaitError': 'Telegram просит подождать перед новой попыткой входа',
+        'TimeoutError': 'Telegram не ответил — проверьте интернет',
+        'ConnectionError': 'Нет связи с Telegram',
+    }
+    return known.get(name) or '%s: %s' % (name, str(e)[:200])
+
+
 def _dialog(kind: str):
     """Константа типа диалога для pywebview 5 и 6."""
     import webview
@@ -110,6 +126,8 @@ class Api:
             self._loc_by_name.setdefault(_norm(x['n']), []).append(x)
         self._settings = load_settings()
         self._base = LeadBase(data_dir() / 'leads.db')
+        self._tg = None          # TelegramSender, создаётся при первом обращении
+        self._tg_tid: Dict[str, str] = {}
 
     def _resolve_city(self, key: str) -> Optional[Dict[str, str]]:
         """'ekaterinburg' -> регион 2ГИС; 'loc:Полевской@ekaterinburg' -> населённый пункт внутри региона.
@@ -184,6 +202,11 @@ class Api:
             'active_template': s.get('active_template', ''),
             'vercel': {'connected': bool(s.get('vercel_token')), 'account': s.get('vercel_account', '')},
             'themes': {k: v['title'] for k, v in demo_site.THEMES.items()},
+            'ai': ai_mod.public_cfg(s.get('ai')),
+            'ai_providers': {k: {'title': v['title'], 'model': v['model'], 'help': v['help'], 'needs': v['needs'],
+                                 'base': v.get('base', '')} for k, v in ai_mod.PROVIDERS.items()},
+            'tg': {'configured': bool((s.get('tg') or {}).get('api_id')),
+                   'daily_limit': (s.get('tg') or {}).get('daily_limit', 15)},
         }
 
     def recent(self) -> List[Dict[str, Any]]:
@@ -459,7 +482,10 @@ class Api:
         if not lead:
             return {'ok': False, 'error': 'Пустая карточка'}
         t = next((x for x in self._base.templates() if x['id'] == tid), None) if tid else None
-        text = render_message(t['body'], lead) if t else ''
+        try:
+            text = self._message_text(lead, tid) if tid else ''
+        except ai_mod.AIError as e:
+            return {'ok': False, 'error': str(e), 'lid': lead['id'], 'counts': self._base.counts()}
         need_demo = bool(t and '{демо}' in t['body'] and not lead.get('demo_url'))
         if need_demo and not force:  # окно спросит: сделать демо или отправить без ссылки
             return {'ok': False, 'need_demo': True, 'lid': lead['id'], 'counts': self._base.counts()}
@@ -486,6 +512,199 @@ class Api:
             self._base.set_status(lead['id'], 'contacted')
         return {'ok': True, 'text': text, 'prefilled': channel == 'whatsapp' and bool(text) and '?text=' in url,
                 'marked': marked, 'need_demo': need_demo, 'lid': lead['id'], 'counts': self._base.counts()}
+
+    # ---------- ИИ ----------
+    def _ai_cfg(self) -> Dict[str, Any]:
+        return dict(self._settings.get('ai') or {})
+
+    def _message_text(self, lead: Dict[str, Any], tid: str) -> str:
+        """Текст для лида: шаблон или, если выбран режим «ИИ», личное сообщение от модели."""
+        if tid == '__ai__':
+            cfg = self._ai_cfg()
+            out = ai_mod.complete(cfg, ai_mod.message_prompt(lead, cfg.get('offer', '')), ai_mod.MESSAGE_SYSTEM,
+                                  max_tokens=700, timeout=90)
+            return ai_mod.clean_message(out)
+        t = next((x for x in self._base.templates() if x['id'] == tid), None)
+        return render_message(t['body'], lead) if t else ''
+
+    def ai_save(self, cfg: Dict[str, Any]) -> Dict[str, Any]:
+        """Сохраняет и проверяет подключение. Пустой ключ = оставить прежний."""
+        old = self._ai_cfg()
+        new = {k: (cfg.get(k) or '').strip() for k in ('provider', 'model', 'folder', 'base', 'offer')}
+        new['key'] = (cfg.get('key') or '').strip() or (old.get('key') if old.get('provider') == new['provider'] else '')
+        if new['provider'] not in ai_mod.PROVIDERS:
+            return {'ok': False, 'error': 'Выберите сервис ИИ'}
+        try:
+            reply = ai_mod.check(new)
+        except ai_mod.AIError as e:
+            return {'ok': False, 'error': str(e)}
+        self._settings['ai'] = new
+        save_settings(self._settings)
+        return {'ok': True, 'reply': reply, 'ai': ai_mod.public_cfg(new)}
+
+    def ai_offer(self, offer: str) -> Dict[str, Any]:
+        cfg = self._ai_cfg()
+        cfg['offer'] = (offer or '').strip()[:500]
+        self._settings['ai'] = cfg
+        save_settings(self._settings)
+        return {'ok': True}
+
+    def ai_disconnect(self) -> Dict[str, Any]:
+        offer = self._ai_cfg().get('offer', '')
+        self._settings['ai'] = {'offer': offer}
+        save_settings(self._settings)
+        if self._settings.get('active_template') == '__ai__':
+            self._settings['active_template'] = ''
+            save_settings(self._settings)
+        return {'ok': True}
+
+    def demo_ai(self, lid: str, content: Dict[str, Any], wishes: str = '') -> Dict[str, Any]:
+        """Тот же промпт, что для claude.ai, но отправляется в ИИ пользователя по его ключу."""
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        content = dict(content or {}, wishes=wishes or '')
+        prompt = demo_site.site_prompt(lead, content, wishes or '')
+        try:
+            answer = ai_mod.complete(self._ai_cfg(), prompt, 'Ты опытный веб-дизайнер и верстальщик.',
+                                     max_tokens=16000, timeout=300)
+        except ai_mod.AIError as e:
+            return {'ok': False, 'error': str(e)}
+        try:
+            page = demo_site.parse_site_answer(answer)
+        except ValueError as e:
+            return {'ok': False, 'error': 'ИИ ответил не страницей: %s' % e}
+        content['custom_html'] = page
+        self._base.save_demo(lid, content)
+        return {'ok': True, 'content': content, 'html': demo_site.render(lead, content)}
+
+    def message_ai_preview(self, rec: Dict[str, Any]) -> Dict[str, Any]:
+        lead = self._lead_for(rec) if rec else {'name': 'Sweet Skin Studio', 'category': 'Косметология',
+                                                'city': 'Екатеринбург', 'rating': 4.8, 'reviews': 37,
+                                                'site_kind': 'Только соцсети'}
+        try:
+            return {'ok': True, 'text': self._message_text(lead, '__ai__')}
+        except ai_mod.AIError as e:
+            return {'ok': False, 'error': str(e)}
+
+    # ---------- Telegram (автоотправка) ----------
+    def _tg_sender(self):
+        if self._tg is None:
+            from .tg import TelegramSender
+
+            def on_sent(lid: str, ok: bool, info: str) -> None:
+                self._base.log_send(lid, 'telegram', ok, info)
+
+            def make_text(lid: str) -> str:
+                lead = self._base.get(lid)
+                if not lead:
+                    raise ValueError('лид удалён из базы')
+                return self._message_text(lead, self._tg_tid.get(lid, ''))
+            self._tg = TelegramSender(data_dir(), on_sent, make_text)
+        return self._tg
+
+    def _tg_api(self):
+        t = self._settings.get('tg') or {}
+        try:
+            return int(t.get('api_id') or 0), (t.get('api_hash') or '').strip()
+        except ValueError:
+            return 0, ''
+
+    def tg_info(self) -> Dict[str, Any]:
+        api_id, api_hash = self._tg_api()
+        account = ''
+        if api_id and api_hash:
+            try:
+                s = self._tg_sender()
+                if not s.me and not getattr(self, '_tg_restored', False):
+                    self._tg_restored = True  # сохранённую сессию поднимаем один раз за запуск
+                    s.restore(api_id, api_hash)
+                account = s.me
+            except Exception:
+                account = ''
+        st = self._tg.status() if self._tg else {'queue': [], 'sending': False, 'next_in': 0, 'log': []}
+        st.update({'configured': bool(api_id and api_hash), 'account': account,
+                   'sent_today': self._base.sent_today(),
+                   'daily_limit': (self._settings.get('tg') or {}).get('daily_limit', 15)})
+        return st
+
+    def tg_send_code(self, api_id: str, api_hash: str, phone: str) -> Dict[str, Any]:
+        try:
+            aid = int(str(api_id).strip())
+        except ValueError:
+            return {'ok': False, 'error': 'api_id — это число с my.telegram.org'}
+        api_hash = (api_hash or '').strip()
+        if len(api_hash) < 20:
+            return {'ok': False, 'error': 'Проверьте api_hash — длинная строка с my.telegram.org'}
+        tg = dict(self._settings.get('tg') or {}, api_id=aid, api_hash=api_hash)
+        self._settings['tg'] = tg
+        save_settings(self._settings)
+        try:
+            self._tg_sender().send_code(aid, api_hash, phone)
+        except Exception as e:
+            return {'ok': False, 'error': _tg_error(e)}
+        return {'ok': True}
+
+    def tg_sign_in(self, code: str = '', password: str = '') -> Dict[str, Any]:
+        try:
+            self._tg_restored = True
+            return self._tg_sender().sign_in(code, password)
+        except Exception as e:
+            return {'ok': False, 'error': _tg_error(e)}
+
+    def tg_logout(self) -> Dict[str, Any]:
+        if self._tg:
+            self._tg.logout()
+        return {'ok': True}
+
+    def tg_limit(self, n: int) -> Dict[str, Any]:
+        n = max(1, min(int(n or 15), 50))
+        self._settings['tg'] = dict(self._settings.get('tg') or {}, daily_limit=n)
+        save_settings(self._settings)
+        return {'ok': True, 'daily_limit': n}
+
+    def tg_enqueue(self, ids: List[str], tid: str) -> Dict[str, Any]:
+        """Ставит лидов из базы в очередь автоотправки в Telegram."""
+        from .tg import username_of
+        if not tid:
+            return {'ok': False, 'error': 'Выберите «Текст сообщения» — шаблон или ИИ'}
+        s = self._tg_sender()
+        if not s.me:
+            return {'ok': False, 'error': 'Войдите в Telegram: Дополнительно → Автоотправка в Telegram'}
+        t = next((x for x in self._base.templates() if x['id'] == tid), None)
+        items, no_tg, sent, no_demo = [], 0, 0, 0
+        for lid in ids:
+            lead = self._base.get(lid)
+            if not lead:
+                continue
+            user = username_of(lead.get('telegram'))
+            if not user:
+                no_tg += 1
+                continue
+            if self._base.was_sent(lid) or lead.get('status') != 'new':  # уже писали — вручную или автоматически
+                sent += 1
+                continue
+            if t and '{демо}' in t['body'] and not lead.get('demo_url'):
+                no_demo += 1
+                continue
+            self._tg_tid[lid] = tid
+            items.append({'id': lid, 'name': lead.get('name') or '', 'username': user})
+        added = s.enqueue(items)
+        limit = (self._settings.get('tg') or {}).get('daily_limit', 15)
+        if added:
+            s.start(self._base.sent_today, limit)
+        return {'ok': True, 'added': added, 'no_tg': no_tg, 'sent': sent, 'no_demo': no_demo}
+
+    def tg_stop(self) -> Dict[str, Any]:
+        if self._tg:
+            self._tg.stop()
+        return {'ok': True}
+
+    def tg_clear(self) -> Dict[str, Any]:
+        if self._tg:
+            self._tg.stop()
+            self._tg.queue.clear()
+        return {'ok': True}
 
     def set_view(self, view: str) -> Dict[str, Any]:
         """Карточки или таблица — запоминаем между запусками."""
@@ -586,6 +805,11 @@ class Api:
         if self._job.running:
             self._job.stop()
             self._job.wait(8)
+        try:
+            if self._tg:
+                self._tg.stop()
+        except Exception:
+            pass
         try:
             self._base.close()
         except Exception:

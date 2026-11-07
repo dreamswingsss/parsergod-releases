@@ -318,6 +318,13 @@ tbody.ghost td{height:31px}
 .toast button:hover{background:rgba(0,0,0,.08)}
 .vc{border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-m);padding:10px 12px;margin-top:4px}
 .vc input{width:100%;margin-top:6px;border:1px solid var(--grid);background:var(--paper);border-radius:var(--radius-s);padding:6px 8px;outline:0;color:var(--ink)}
+.vc select,.vc textarea{width:100%;margin-top:6px;border:1px solid var(--grid);background:var(--paper);border-radius:var(--radius-s);padding:6px 8px;outline:0;color:var(--ink);font-family:inherit;font-size:13px}
+.vc .ok{color:#3DDC84}.vc .bad{color:#FF7A7F}
+.vc ol{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--ink-2)}
+.tgstrip{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-m);padding:8px 12px;margin-bottom:10px;font-size:12.5px;color:var(--ink-2)}
+.tgstrip[hidden]{display:none}
+.tgstrip b{color:var(--ink)}
+.tgstrip .sp{flex:1}
 .copied{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:50}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -395,6 +402,10 @@ tbody.ghost td{height:31px}
           <p class="hint"><button class="linkbtn" id="pickBrowser">Указать вручную</button> &nbsp; <button class="linkbtn" id="resetBrowser" hidden>Определять автоматически</button></p>
           <div class="subhead">Публикация демо-сайтов (Vercel)</div>
           <div class="vc" id="vercelBox"></div>
+          <div class="subhead">ИИ — свой ключ (демо и сообщения по кнопке)</div>
+          <div class="vc" id="aiBox"></div>
+          <div class="subhead">Автоотправка в Telegram — со своего аккаунта</div>
+          <div class="vc" id="tgBox"></div>
           <div class="subhead">Папка для таблиц</div>
           <div class="path" id="outDir"></div>
           <p class="hint"><button class="linkbtn" id="pickDir">Изменить</button> &nbsp; <button class="linkbtn" id="openDir">Открыть папку</button></p>
@@ -430,8 +441,10 @@ tbody.ghost td{height:31px}
       <div class="basebar">
         <div class="stfil" id="stFilter"></div>
         <input class="bsearch" id="bSearch" placeholder="Поиск по базе и заметкам" autocomplete="off">
+        <button class="btn" id="bTg" title="Отправить показанным лидам с Telegram, со своего аккаунта">Разослать в Telegram</button>
         <button class="btn" id="bExport">Выгрузить в Excel</button>
       </div>
+      <div class="tgstrip" id="tgStrip" hidden></div>
       <div class="basescroll">
         <div class="cards" id="baseCards"></div>
         <div class="empty" id="baseEmpty" hidden></div>
@@ -439,7 +452,7 @@ tbody.ghost td{height:31px}
     </div>
     <div class="log" id="log"></div>
     <div class="foot">
-      <div class="tplpick"><span>Текст сообщения:</span><select id="activeTpl" title="Какой шаблон подставлять при нажатии на мессенджер"></select><button id="tplBtn" title="Шаблоны сообщений">Шаблоны</button></div>
+      <div class="tplpick"><span>Текст:</span><select id="activeTpl" title="Какой шаблон подставлять при нажатии на мессенджер"></select><button id="tplBtn" title="Шаблоны сообщений">Шаблоны</button></div>
       <div class="msg" id="footMsg"></div>
       <button class="btn" id="logBtn">Журнал</button>
       <button class="btn" id="revealBtn" hidden>Показать в папке</button>
@@ -463,7 +476,7 @@ tbody.ghost td{height:31px}
         <div class="claude">
           <b>2. Сайт под заведение через Claude</b>
           <textarea id="dmWish" rows="3" placeholder="Что хотите видеть: например, «тёмный стиль, прайс с ценами с их сайта, отзывы, большая кнопка записи в WhatsApp»" style="margin-top:6px"></textarea>
-          <div class="row2"><button class="btn primary" id="dmSitePrompt">Скопировать промпт и открыть Claude</button></div>
+          <div class="row2"><button class="btn primary" id="dmAI" hidden>Сгенерировать ИИ</button><button class="btn primary" id="dmSitePrompt">Скопировать промпт и открыть Claude</button></div>
           <p class="hint">Вставьте промпт в claude.ai (Ctrl+V), дождитесь кода, нажмите Copy под ним и вставьте сюда:</p>
           <textarea id="dmAnswer" rows="3" placeholder="Ответ Claude — код страницы"></textarea>
           <div class="row2"><button class="btn" id="dmApply">Показать сайт</button></div>
@@ -835,6 +848,7 @@ function card(r, inBase) {
   q.textContent = inBase ? 'в базе с ' + r.added + (r._query ? ' · ' + r._query : '') : (r._query || '');
   foot.append(db, q);
   if (inBase) {
+    c._lid = r.id;
     const st = document.createElement('select'); st.className = 'st s-' + r.status; st.title = 'Статус';
     Object.entries(STATUSES).forEach(([k, v]) => { const o = document.createElement('option'); o.value = k; o.textContent = v; o.selected = k === r.status; st.appendChild(o); });
     st.onchange = async () => { st.className = 'st s-' + st.value; const res = await api().base_status(r.id, st.value); r.status = st.value; setCounts(res.counts); if (baseStatus) loadBase(); };
@@ -877,12 +891,15 @@ function toast(text, actions) {
 }
 function renderTplSelect() {
   const s = $('#activeTpl');
-  if (ACTIVE_TPL && !TEMPLATES.some(t => t.id === ACTIVE_TPL)) ACTIVE_TPL = '';
-  s.innerHTML = '<option value="">без текста</option>' + TEMPLATES.map(t => '<option value="' + esc(t.id) + '">' + esc(t.title) + '</option>').join('');
+  if (ACTIVE_TPL && ACTIVE_TPL !== '__ai__' && !TEMPLATES.some(t => t.id === ACTIVE_TPL)) ACTIVE_TPL = '';
+  if (ACTIVE_TPL === '__ai__' && !aiOn()) ACTIVE_TPL = '';
+  s.innerHTML = '<option value="">без текста</option>' + (aiOn() ? '<option value="__ai__">✨ ИИ под каждого лида</option>' : '')
+    + TEMPLATES.map(t => '<option value="' + esc(t.id) + '">' + esc(t.title) + '</option>').join('');
   s.value = ACTIVE_TPL;
 }
 $('#activeTpl').onchange = e => { ACTIVE_TPL = e.target.value; api().set_active_template(ACTIVE_TPL); };
 async function openChat(r, channel, cardEl, force) {
+  if (ACTIVE_TPL === '__ai__') toast('ИИ пишет сообщение…');
   const res = await api().open_chat(r, channel, ACTIVE_TPL, !!force);
   if (res.counts) setCounts(res.counts);
   if (res.lid && !BASE_IDS.has(res.lid)) { BASE_IDS.add(res.lid); markFound(res.lid); }
@@ -1047,6 +1064,121 @@ $('#dmPublish').onclick = async () => {
   refreshDemoMarks();
 };
 function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }
+
+/* ---------- ИИ ---------- */
+let AI = {connected: false}, AIP = {};
+function aiOn() { return !!AI.connected; }
+function renderAI() {
+  const box = $('#aiBox'); box.innerHTML = '';
+  const prov = AI.provider || 'yandex', meta = AIP[prov] || {};
+  box.innerHTML = '<div style="font-size:13px">' + (aiOn() ? '<span class="ok">Подключён</span> · ' + esc((AIP[AI.provider] || {}).title || '') + (AI.key_hint ? ' · ключ ' + esc(AI.key_hint) : '')
+      : 'С ключом демо и личные сообщения генерируются одной кнопкой. Без ключа — копипаст в claude.ai.') + '</div>'
+    + '<select id="aiProv">' + Object.entries(AIP).map(([k, v]) => '<option value="' + k + '">' + esc(v.title) + '</option>').join('') + '</select>'
+    + '<input type="password" id="aiKey" autocomplete="off" placeholder="' + (aiOn() && AI.provider === prov ? 'Ключ сохранён — можно не вводить' : 'API-ключ') + '">'
+    + (meta.needs && meta.needs.includes('folder') ? '<input id="aiFolder" placeholder="ID каталога Yandex Cloud (b1g…)">' : '')
+    + (meta.needs && meta.needs.includes('base') ? '<input id="aiBase" placeholder="Адрес API, например https://api.deepseek.com/v1">' : '')
+    + '<input id="aiModel" placeholder="Модель">'
+    + '<textarea id="aiOffer" rows="2" placeholder="Что вы предлагаете — для ИИ-сообщений (например: сайт с онлайн-записью за 3 дня, от 15 000 ₽)"></textarea>'
+    + '<p class="hint">' + (meta.help ? '<button class="linkbtn" id="aiHelp">Где взять ключ</button> &nbsp; ' : '') + '<button class="linkbtn" id="aiSave">' + (aiOn() ? 'Сохранить и проверить' : 'Подключить') + '</button>'
+    + (aiOn() ? ' &nbsp; <button class="linkbtn" id="aiOff">Отключить</button>' : '') + '</p><div class="hint" id="aiErr"></div>';
+  $('#aiProv').value = prov;
+  $('#aiModel').value = (AI.provider === prov && AI.model) || meta.model || '';
+  if ($('#aiFolder')) $('#aiFolder').value = AI.folder || '';
+  if ($('#aiBase')) $('#aiBase').value = AI.base || meta.base || '';
+  $('#aiOffer').value = AI.offer || '';
+  $('#aiProv').onchange = e => { AI = Object.assign({}, AI, {provider: e.target.value, model: ''}); renderAI(); };
+  if ($('#aiHelp')) $('#aiHelp').onclick = () => api().open_url(meta.help);
+  $('#aiOffer').onchange = () => { AI.offer = $('#aiOffer').value; api().ai_offer(AI.offer); };
+  $('#aiSave').onclick = async () => {
+    $('#aiErr').textContent = 'Проверяю ключ…';
+    const r = await api().ai_save({provider: $('#aiProv').value, key: $('#aiKey').value, model: $('#aiModel').value,
+      folder: $('#aiFolder') ? $('#aiFolder').value : '', base: $('#aiBase') ? $('#aiBase').value : '', offer: $('#aiOffer').value});
+    if (!r.ok) { $('#aiErr').innerHTML = '<span class="bad"></span>'; $('#aiErr').firstChild.textContent = r.error; return; }
+    AI = r.ai; renderAI(); renderTplSelect(); toast('ИИ подключён');
+  };
+  if ($('#aiOff')) $('#aiOff').onclick = async () => { await api().ai_disconnect(); AI = {connected: false, offer: AI.offer}; if (ACTIVE_TPL === '__ai__') ACTIVE_TPL = ''; renderAI(); renderTplSelect(); };
+  $('#dmAI').hidden = !aiOn();
+}
+$('#dmAI').onclick = async () => {
+  const b = $('#dmAI'); b.disabled = true; b.textContent = 'ИИ верстает… 1–3 мин';
+  const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value);
+  b.disabled = false; b.textContent = 'Сгенерировать ИИ';
+  if (!r.ok) { toast(r.error); return; }
+  DM.content = r.content; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — сайт от ИИ. Можно публиковать');
+};
+
+/* ---------- Telegram ---------- */
+let TG = {configured: false}, tgStep = 'creds', tgTimer = null;
+async function loadTg() { TG = await api().tg_info(); renderTg(); renderTgStrip(); }
+function renderTg() {
+  const box = $('#tgBox');
+  if (TG.account) {
+    box.innerHTML = '<div style="font-size:13px"><span class="ok">Вход выполнен:</span> <b></b></div>'
+      + '<div class="row"><span>Сообщений в день, не больше</span><input type="number" id="tgLimit" min="1" max="50"></div>'
+      + '<p class="hint">Сообщения уходят с вашего аккаунта только лидам с Telegram-username, с паузой 45–120 секунд. Больше 15–20 холодных сообщений в день — риск спам-блока.</p>'
+      + '<button class="linkbtn" id="tgOut">Выйти из Telegram</button>';
+    box.querySelector('b').textContent = TG.account;
+    $('#tgLimit').value = TG.daily_limit || 15;
+    $('#tgLimit').onchange = async e => { const r = await api().tg_limit(+e.target.value); TG.daily_limit = r.daily_limit; e.target.value = r.daily_limit; };
+    $('#tgOut').onclick = async () => { await api().tg_logout(); tgStep = 'creds'; loadTg(); };
+    return;
+  }
+  if (tgStep === 'code' || tgStep === 'password') {
+    box.innerHTML = tgStep === 'code'
+      ? '<div style="font-size:13px">Код пришёл в Telegram (в чат «Telegram» на телефоне).</div><input id="tgCode" placeholder="Код" autocomplete="one-time-code">'
+      : '<div style="font-size:13px">У аккаунта включена двухэтапная проверка.</div><input type="password" id="tgPass" placeholder="Облачный пароль Telegram">';
+    box.innerHTML += '<p class="hint"><button class="linkbtn" id="tgGo">Войти</button> &nbsp; <button class="linkbtn" id="tgBack">Назад</button></p><div class="hint" id="tgErr"></div>';
+    $('#tgBack').onclick = () => { tgStep = 'creds'; renderTg(); };
+    $('#tgGo').onclick = async () => {
+      $('#tgErr').textContent = 'Вхожу…';
+      const r = tgStep === 'code' ? await api().tg_sign_in($('#tgCode').value, '') : await api().tg_sign_in('', $('#tgPass').value);
+      if (r.need_password) { tgStep = 'password'; renderTg(); return; }
+      if (!r.ok) { $('#tgErr').textContent = r.error; return; }
+      toast('Telegram подключён: ' + r.account); loadTg();
+    };
+    return;
+  }
+  box.innerHTML = '<div style="font-size:13px">Программа сама пишет лидам в Telegram с вашего аккаунта по выбранному тексту.</div>'
+    + '<ol><li>Откройте my.telegram.org, войдите по номеру.</li><li>«API development tools» → создайте приложение (название любое).</li><li>Скопируйте сюда api_id и api_hash.</li></ol>'
+    + '<input id="tgId" placeholder="api_id (число)" inputmode="numeric"><input id="tgHash" placeholder="api_hash"><input id="tgPhone" placeholder="Номер телефона, +79001234567">'
+    + '<p class="hint"><button class="linkbtn" id="tgSite">Открыть my.telegram.org</button> &nbsp; <button class="linkbtn" id="tgSend">Получить код</button></p><div class="hint" id="tgErr"></div>';
+  $('#tgSite').onclick = () => api().open_url('https://my.telegram.org/apps');
+  $('#tgSend').onclick = async () => {
+    $('#tgErr').textContent = 'Отправляю код…';
+    const r = await api().tg_send_code($('#tgId').value, $('#tgHash').value, $('#tgPhone').value);
+    if (!r.ok) { $('#tgErr').textContent = r.error; return; }
+    tgStep = 'code'; renderTg();
+  };
+}
+function renderTgStrip() {
+  const el = $('#tgStrip'), q = (TG.queue || []).length;
+  const last = (TG.log || []).slice(-1)[0];
+  el.hidden = !(TG.account && (q || TG.sending || last));
+  if (el.hidden) return;
+  el.innerHTML = '<span>Telegram ' + esc(TG.account || '') + ':</span> <b>' + (TG.sending ? 'отправляю' : 'пауза') + '</b>'
+    + '<span>в очереди ' + q + ' · сегодня ' + (TG.sent_today || 0) + ' из ' + (TG.daily_limit || 15) + (TG.next_in ? ' · следующее через ' + TG.next_in + ' с' : '') + '</span>'
+    + '<span class="sp"></span><span class="last"></span>'
+    + (TG.sending ? '<button class="btn" id="tgStop">Стоп</button>' : (q ? '<button class="btn" id="tgResume">Продолжить</button><button class="btn" id="tgClear">Очистить</button>' : ''));
+  if (last) el.querySelector('.last').textContent = last.t + ' ' + last.text;
+  const st = $('#tgStop'); if (st) st.onclick = async () => { await api().tg_stop(); loadTg(); };
+  const rs = $('#tgResume'); if (rs) rs.onclick = async () => { const ids = (TG.queue || []).map(x => x.id); await api().tg_clear(); await api().tg_enqueue(ids, ACTIVE_TPL); loadTg(); };
+  const cl = $('#tgClear'); if (cl) cl.onclick = async () => { await api().tg_clear(); loadTg(); };
+}
+function pollTg() { clearTimeout(tgTimer); tgTimer = setTimeout(async () => { if (TG.sending || MODE === 'base') { const before = TG.sent_today; await loadTg(); if (MODE === 'base' && TG.sent_today !== before) loadBase(); } pollTg(); }, 3000); }
+$('#bTg').onclick = async () => {
+  if (!TG.account) { const d = document.querySelector('.order details'); if (d) { d.open = true; $('#tgBox').scrollIntoView({block: 'center'}); } toast('Сначала войдите в Telegram в «Дополнительно»'); return; }
+  if (!ACTIVE_TPL) { toast('Выберите внизу «Текст сообщения» — шаблон или ИИ'); return; }
+  const ids = [...document.querySelectorAll('#baseCards .card')].map(c => c._lid).filter(Boolean);
+  if (!ids.length) { toast('В списке нет лидов'); return; }
+  const b = $('#bTg');
+  if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = 'Отправить ' + ids.length + '? Нажмите ещё раз'; setTimeout(() => { delete b.dataset.arm; b.textContent = 'Разослать в Telegram'; }, 4000); return; }
+  delete b.dataset.arm; b.textContent = 'Разослать в Telegram';
+  const r = await api().tg_enqueue(ids, ACTIVE_TPL);
+  if (!r.ok) { toast(r.error); return; }
+  const skip = [r.no_tg ? 'без Telegram ' + r.no_tg : '', r.sent ? 'уже писали ' + r.sent : '', r.no_demo ? 'нет демо ' + r.no_demo : ''].filter(Boolean).join(', ');
+  toast('В очереди ' + r.added + (skip ? ' · пропущено: ' + skip : ''));
+  loadTg();
+};
 
 /* ---------- Vercel ---------- */
 function renderVercel() {
@@ -1275,7 +1407,9 @@ async function boot() {
   STATUSES = d.statuses || {}; BASE_IDS = new Set(d.base_ids || []);
   TEMPLATES = d.templates || []; TVARS = d.template_vars || []; ACTIVE_TPL = d.active_template || ''; DEMO_URLS = d.demo_urls || {};
   VERCEL = d.vercel || VERCEL; THEMES = d.themes || {};
-  renderTplSelect(); renderVars(); renderVercel();
+  AI = d.ai || AI; AIP = d.ai_providers || {};
+  renderAI(); renderTplSelect(); renderVars(); renderVercel();
+  TG = Object.assign({}, d.tg); renderTg(); if (d.tg && d.tg.configured) loadTg(); pollTg();
   api().base_list('', '').then(r => setCounts(r.counts));
   setMode('found');
   $('#appName').textContent = d.app.name; $('#appVer').textContent = 'версия ' + d.app.version;

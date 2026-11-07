@@ -93,6 +93,12 @@ def run() -> int:
         custom = demo_site.parse_site_answer('```html\n<!doctype html><html><img src="{{PHOTO_1}}"></html>\n```')
         assert 'data:x' in demo_site.render(rec, {'custom_html': custom, 'photos': ['data:x']})
         lines.append('demo: %d bytes' % len(page))
+        from .tg import username_of
+        import telethon  # noqa: F401 — автоотправка в Telegram есть в сборке
+        assert username_of('https://t.me/barber_wolf') == 'barber_wolf' and not username_of('https://t.me/+abc')
+        from . import ai as ai_mod
+        assert ai_mod.clean_message('«Привет»') == 'Привет'
+        lines.append('telegram/ai: ok')
         import webview  # noqa: F401  — проверяем, что GUI-библиотека в сборке
         lines.append('webview: ok')
         browsers = find_browsers()

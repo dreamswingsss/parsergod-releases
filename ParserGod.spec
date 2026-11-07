@@ -25,6 +25,10 @@ core_hidden = [
 if sys.platform.startswith('win'):
     core_hidden.append('winreg')
 
+# Автоотправка в Telegram (Telethon) — модули схемы API подгружаются динамически.
+from PyInstaller.utils.hooks import collect_submodules  # noqa: E402
+core_hidden += collect_submodules('telethon')
+
 
 def _core_datas():
     out = []

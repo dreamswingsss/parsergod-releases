@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS templates (
   pos   INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
+CREATE TABLE IF NOT EXISTS sends (lead_id TEXT, channel TEXT, ok INTEGER, info TEXT, at REAL);
 """
 
 # Колонки, добавленные после первой версии базы: старые leads.db дополняются при запуске.
@@ -220,6 +221,29 @@ class LeadBase:
     def delete_template(self, tid: str) -> None:
         with self._lock:
             self._db.execute('DELETE FROM templates WHERE id=?', (tid,))
+
+    # ----- журнал отправок (автоотправка в Telegram) -----
+    def log_send(self, lid: str, channel: str, ok: bool, info: str = '') -> None:
+        with self._lock:
+            self._db.execute('INSERT INTO sends(lead_id, channel, ok, info, at) VALUES (?,?,?,?,?)',
+                             (lid, channel, 1 if ok else 0, info, time.time()))
+            if ok:
+                self._db.execute("UPDATE leads SET status='contacted', updated_at=? WHERE id=? AND status='new'",
+                                 (time.time(), lid))
+            elif info:
+                self._db.execute("UPDATE leads SET note=CASE WHEN note='' THEN ? ELSE note || char(10) || ? END "
+                                 "WHERE id=?", ('Telegram: ' + info, 'Telegram: ' + info, lid))
+
+    def sent_today(self, channel: str = 'telegram') -> int:
+        midnight = time.mktime(time.localtime()[:3] + (0, 0, 0, 0, 0, -1))
+        with self._lock:
+            return self._db.execute('SELECT COUNT(*) FROM sends WHERE channel=? AND ok=1 AND at>=?',
+                                    (channel, midnight)).fetchone()[0]
+
+    def was_sent(self, lid: str, channel: str = 'telegram') -> bool:
+        with self._lock:
+            return bool(self._db.execute('SELECT 1 FROM sends WHERE lead_id=? AND channel=? AND ok=1',
+                                         (lid, channel)).fetchone())
 
     def counts(self) -> Dict[str, int]:
         with self._lock:
