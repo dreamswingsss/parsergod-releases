@@ -200,7 +200,8 @@ class Api:
             'templates': self._base.templates(),
             'template_vars': TEMPLATE_VARS,
             'active_template': s.get('active_template', ''),
-            'vercel': {'connected': bool(s.get('vercel_token')), 'account': s.get('vercel_account', '')},
+            'vercel': {'connected': bool(s.get('vercel_token')), 'account': s.get('vercel_account', ''),
+                       'hint': ('…' + s['vercel_token'][-4:]) if len(s.get('vercel_token') or '') > 8 else ''},
             'themes': {k: {'title': v['title'], 'bg': v['bg'], 'accent': v['accent'], 'ink': v['ink']}
                        for k, v in demo_site.THEMES.items()},
             'demo_opts': {'fonts': {k: v['title'] for k, v in demo_site.FONTS.items()}, 'layouts': demo_site.LAYOUTS,
@@ -325,7 +326,7 @@ class Api:
             return {'ok': False, 'error': str(e)}
         self._settings.update({'vercel_token': token, 'vercel_account': account})
         save_settings(self._settings)
-        return {'ok': True, 'account': account}
+        return {'ok': True, 'account': account, 'hint': ('…' + token[-4:]) if len(token) > 8 else ''}
 
     def vercel_disconnect(self) -> Dict[str, Any]:
         self._settings.pop('vercel_token', None)

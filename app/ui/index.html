@@ -683,6 +683,7 @@ tbody.ghost td{height:31px}
         <!-- шаг 3 -->
         <div class="step-p" data-p="3" hidden>
           <p class="lead">Опубликуйте демо и отправьте ссылку владельцу.</p>
+          <div class="pcard"><div class="pcard-h"><b>Токен Vercel</b><small>Тот же, что в Настройках — подтвердите перед публикацией</small></div><div class="conn-b lft" id="dmVcBox"></div></div>
           <div class="pcard"><div class="pcard-h"><b>Ссылка на сайт</b><small id="dmVcState"></small></div>
             <div class="btnrow"><button class="btn primary" id="dmPublish">Опубликовать на Vercel</button><button class="btn" id="dmFileBtn">Сохранить HTML-файл</button></div>
             <div class="res" id="dmRes"></div></div>
@@ -1161,6 +1162,7 @@ function renderDots() {
 
 /* ---------- демо-сайт: мастер в 3 шага ---------- */
 let DM = null;          // {lead, content, rec}
+let DMC = {ai: false, vc: false};  // ключ ИИ и токен Vercel подтверждены в этом окне демо
 let DOPTS = {fonts: {}, layouts: {}, accents: [], sections: {}};
 let dmMethod = 'builder', dmOpenSec = null;
 const SEC_FIELDS = {
@@ -1176,6 +1178,8 @@ async function openDemo(r) {
   if (res.counts) setCounts(res.counts);
   if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
   DM = {lead: res.lead, content: res.content, rec: r};
+  DMC = {ai: false, vc: false}; vcEdit = false; aiEdit = false;
+  renderAI(); renderVercel();
   $('#dmTitle').textContent = res.lead.name;
   $('#dmTitle').title = res.lead.name;
   $('#dmSrc').textContent = ''; $('#dmEnrich').textContent = 'Подтянуть данные';
@@ -1343,6 +1347,7 @@ $('#dmEnrich').onclick = async () => {
 };
 $('#dmAI').onclick = async () => {
   if (!aiOn()) { toast('Сначала вставьте API-ключ выше'); return; }
+  if (!DMC.ai) { toast('Подтвердите API-ключ выше'); return; }
   const b = $('#dmAI'); b.disabled = true; b.textContent = 'ИИ верстает сайт… 1–3 минуты';
   const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value);
   b.disabled = false; b.textContent = 'Сгенерировать заново';
@@ -1360,10 +1365,15 @@ $('#dmApply').onclick = async () => {
   if (!r.ok) { toast(r.error); return; }
   DM.content = r.content; $('#dmAnswer').value = ''; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — проверьте сайт справа. Криво — попросите Claude поправить и вставьте новый код');
 };
+function renderPublishBtn() {
+  const url = DEMO_URLS[DM.lead.id], b = $('#dmPublish');
+  $('#dmVcState').textContent = !VERCEL.connected ? 'Vercel не подключён — можно сохранить файлом' : DMC.vc ? 'Vercel: ' + VERCEL.account : 'Подтвердите токен выше';
+  b.textContent = url ? 'Обновить на Vercel' : 'Опубликовать на Vercel';
+  b.disabled = !(VERCEL.connected && DMC.vc);
+}
 function renderPublish() {
   const url = DEMO_URLS[DM.lead.id];
-  $('#dmVcState').textContent = VERCEL.connected ? 'Vercel: ' + VERCEL.account : 'Vercel не подключён — можно сохранить файлом';
-  $('#dmPublish').textContent = VERCEL.connected ? (url ? 'Обновить на Vercel' : 'Опубликовать на Vercel') : 'Подключить Vercel';
+  renderVercel(); renderPublishBtn();
   setDmRes(url || '');
   const box = $('#dmSend'); box.innerHTML = '';
   [['whatsapp', 'WhatsApp', 'ch-wa', 'i-wa'], ['telegram', 'Telegram', 'ch-tg', 'i-tg'], ['vkontakte', 'ВКонтакте', 'ch-vk', 'i-vk']].forEach(([k, t, cls, ico]) => {
@@ -1383,7 +1393,8 @@ function setDmRes(url, path) {
 }
 $('#dmFileBtn').onclick = async () => { const r = await api().demo_save_file(DM.lead.id, readDemo()); if (r.ok) { setDmRes('', r.path); api().reveal(r.path); } };
 $('#dmPublish').onclick = async () => {
-  if (!VERCEL.connected) { openSettings('conn'); toast('Вставьте токен Vercel — и демо будут публиковаться по ссылке'); return; }
+  if (!VERCEL.connected) { toast('Вставьте токен Vercel выше'); return; }
+  if (!DMC.vc) { toast('Подтвердите токен Vercel выше'); return; }
   const b = $('#dmPublish'); b.disabled = true; b.textContent = 'Публикую… до минуты';
   const r = await api().demo_publish(DM.lead.id, readDemo());
   b.disabled = false; b.textContent = 'Обновить на Vercel';
@@ -1398,6 +1409,15 @@ let AI = {connected: false}, AIP = {}, aiEdit = false, aiFound = null, aiFoundHo
 function aiOn() { return !!AI.connected; }
 function renderAIInto(box) {
   const q = sel => box.querySelector(sel); box.innerHTML = '';
+  if (aiOn() && !aiEdit && box.id === 'dmAiBox') {
+    box.innerHTML = '<div><span class="ok">✓</span> <b></b> · модель <b></b>' + (AI.key_hint ? ' · ключ ' + esc(AI.key_hint) : '') + '</div>'
+      + (DMC.ai ? '<div class="hint ok" style="margin-top:6px">Подтверждено — можно генерировать</div>' : '<div class="hint">Это ключ из Настроек. Проверьте и подтвердите.</div>')
+      + '<div class="btnrow">' + (DMC.ai ? '' : '<button class="btn primary" id="aiOk">Подтвердить</button>') + '<button class="btn" id="aiChange">Сменить ключ или модель</button></div>';
+    const bs = box.querySelectorAll('b'); bs[0].textContent = AI.title || (AIP[AI.provider] || {}).title || AI.provider; bs[1].textContent = AI.model || 'по умолчанию';
+    if (q('#aiOk')) q('#aiOk').onclick = () => { DMC.ai = true; renderAI(); };
+    q('#aiChange').onclick = () => { aiEdit = true; aiFound = null; renderAI(); };
+    return;
+  }
   if (aiOn() && !aiEdit) {
     box.innerHTML = '<div><span class="ok">✓</span> <b></b> · модель <b></b>' + (AI.key_hint ? ' · ключ ' + esc(AI.key_hint) : '') + '</div>'
       + '<label class="sub-l" style="display:block">Что вы предлагаете — ИИ учтёт это в сообщениях</label><textarea id="aiOffer" rows="2" placeholder="Например: сайт с онлайн-записью за 3 дня, от 15 000 ₽"></textarea>'
@@ -1444,14 +1464,15 @@ function renderFound(host) {
     const res = await api().ai_save({provider: r.provider, key: q('#aiKey').value, model: sel.value, folder: q('#aiFolder') ? q('#aiFolder').value : '',
       base: q('#aiBase').hidden ? '' : q('#aiBase').value, offer: AI.offer || ''});
     if (!res.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = res.error; return; }
-    AI = res.ai; aiEdit = false; aiFound = null; renderAI(); renderTplSelect(); renderDots(); toast('ИИ подключён: ' + r.title);
+    AI = res.ai; aiEdit = false; aiFound = null; if (host.id === 'dmAiBox') DMC.ai = true;
+    renderAI(); renderTplSelect(); renderDots(); toast('ИИ подключён: ' + r.title);
   };
 }
 
 function renderAI() {
   ['#aiBox', '#aiLeft', '#dmAiBox'].forEach(id => { const b = $(id); if (b) renderAIInto(b); });
   if ($('#dmAiSub')) $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Свой дизайн · нужен API-ключ';
-  if ($('#dmAI')) $('#dmAI').disabled = !aiOn();
+  if ($('#dmAI')) $('#dmAI').disabled = !(aiOn() && DMC.ai);
   renderDots();
 }
 
@@ -1535,25 +1556,46 @@ $('#bTg').onclick = async () => {
 };
 
 /* ---------- Vercel ---------- */
-function renderVercel() {
-  const box = $('#vercelBox'); box.innerHTML = '';
-  if (VERCEL.connected) {
-    box.innerHTML = '<div><span class="ok">✓</span> Аккаунт <b></b></div><div class="hint">Демо публикуются на ваш Vercel: ссылка вида имя-сайта.vercel.app. Проверьте, что ссылка открывается с телефона без VPN.</div><div class="btnrow"><button class="btn danger-txt" id="vcOff">Отключить</button></div>';
-    box.querySelector('b').textContent = VERCEL.account;
-    $('#vcOff').onclick = async () => { await api().vercel_disconnect(); VERCEL = {connected: false, account: ''}; renderVercel(); };
-    renderDots(); return;
+let vcEdit = false;
+function renderVercelInto(box) {
+  const q = sel => box.querySelector(sel), inDemo = box.id === 'dmVcBox';
+  box.innerHTML = '';
+  if (VERCEL.connected && !(inDemo && vcEdit)) {
+    if (inDemo) {
+      box.innerHTML = '<div><span class="ok">✓</span> Аккаунт <b></b>' + (VERCEL.hint ? ' · токен ' + esc(VERCEL.hint) : '') + '</div>'
+        + (DMC.vc ? '<div class="hint ok" style="margin-top:6px">Подтверждено — можно публиковать</div>'
+          : '<div class="hint">Проверьте, что это ваш аккаунт Vercel, и подтвердите.</div>')
+        + '<div class="btnrow">' + (DMC.vc ? '' : '<button class="btn primary" id="vcOk">Подтвердить</button>') + '<button class="btn" id="vcChange">Сменить токен</button></div>';
+      q('b').textContent = VERCEL.account;
+      if (q('#vcOk')) q('#vcOk').onclick = () => { DMC.vc = true; renderVercel(); };
+      q('#vcChange').onclick = () => { vcEdit = true; renderVercel(); };
+      return;
+    }
+    box.innerHTML = '<div><span class="ok">✓</span> Аккаунт <b></b>' + (VERCEL.hint ? ' · токен ' + esc(VERCEL.hint) : '') + '</div><div class="hint">Демо публикуются на ваш Vercel: ссылка вида имя-сайта.vercel.app. Проверьте, что ссылка открывается с телефона без VPN.</div><div class="btnrow"><button class="btn danger-txt" id="vcOff">Отключить</button></div>';
+    q('b').textContent = VERCEL.account;
+    q('#vcOff').onclick = async () => { await api().vercel_disconnect(); VERCEL = {connected: false, account: ''}; DMC.vc = false; renderVercel(); };
+    return;
   }
-  box.innerHTML = '<div>Без Vercel демо сохраняются HTML-файлом — его можно отправить клиенту в мессенджер.</div>'
-    + '<ol style="margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px"><li>Зарегистрируйтесь на vercel.com (бесплатно).</li><li>Откройте «Где взять токен» → Create Token → скопируйте.</li><li>Вставьте сюда и нажмите «Подключить».</li></ol>'
+  box.innerHTML = (inDemo ? '<div>Вставьте токен Vercel — демо откроется по ссылке. Без него можно сохранить HTML-файлом.</div>'
+      : '<div>Без Vercel демо сохраняются HTML-файлом — его можно отправить клиенту в мессенджер.</div>')
+    + '<ol style="margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px"><li>Зарегистрируйтесь на vercel.com (бесплатно).</li><li>«Где взять токен» → Create Token → скопируйте.</li><li>Вставьте сюда и нажмите «Подключить».</li></ol>'
     + '<input type="password" id="vcToken" placeholder="Токен Vercel" autocomplete="off">'
-    + '<div class="btnrow"><button class="btn primary" id="vcSave">Подключить</button><button class="btn" id="vcGet">Где взять токен</button></div><div class="hint" id="vcErr"></div>';
-  $('#vcGet').onclick = () => api().open_url('https://vercel.com/account/tokens');
-  $('#vcSave').onclick = async () => {
-    $('#vcErr').textContent = 'Проверяю…';
-    const r = await api().vercel_connect($('#vcToken').value);
-    if (!r.ok) { $('#vcErr').textContent = r.error; return; }
-    VERCEL = {connected: true, account: r.account}; renderVercel(); toast('Vercel подключён: ' + r.account);
+    + '<div class="btnrow"><button class="btn primary" id="vcSave">Подключить</button><button class="btn" id="vcGet">Где взять токен</button>'
+    + (inDemo && VERCEL.connected ? '<button class="btn" id="vcCancel">Отмена</button>' : '') + '</div><div class="hint" id="vcErr"></div>';
+  q('#vcGet').onclick = () => api().open_url('https://vercel.com/account/tokens');
+  if (q('#vcCancel')) q('#vcCancel').onclick = () => { vcEdit = false; renderVercel(); };
+  q('#vcSave').onclick = async () => {
+    q('#vcErr').textContent = 'Проверяю…';
+    const r = await api().vercel_connect(q('#vcToken').value);
+    if (!r.ok) { q('#vcErr').textContent = r.error; return; }
+    VERCEL = {connected: true, account: r.account, hint: r.hint}; vcEdit = false;
+    if (inDemo) DMC.vc = true;  // только что вставил сам — подтверждать ещё раз не нужно
+    renderVercel(); toast('Vercel подключён: ' + r.account);
   };
+}
+function renderVercel() {
+  ['#vercelBox', '#dmVcBox'].forEach(id => { const b = $(id); if (b) renderVercelInto(b); });
+  if (DM && !$('#demoModal').hidden) renderPublishBtn();
   renderDots();
 }
 
