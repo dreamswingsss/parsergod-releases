@@ -12,10 +12,12 @@ from typing import Any, Dict, List, Optional
 from parser_2gis.paths import data_path
 
 from . import brand
+from .base import STATUSES, LeadBase, lead_id
 from .browsers import find_browsers
+from .excel import write_xlsx
 from .job import Job, Params, Task
 from .records import FIELDS
-from .storage import default_output_dir, load_settings, save_settings
+from .storage import data_dir, default_output_dir, load_settings, safe_filename, save_settings
 
 COUNTRY_NAMES = {
     'ru': 'Россия', 'kz': 'Казахстан', 'by': 'Беларусь', 'az': 'Азербайджан',
@@ -104,6 +106,7 @@ class Api:
             x['c'] = [c for c in x['c'] if c in self._by_code]
             self._loc_by_name.setdefault(_norm(x['n']), []).append(x)
         self._settings = load_settings()
+        self._base = LeadBase(data_dir() / 'leads.db')
 
     def _resolve_city(self, key: str) -> Optional[Dict[str, str]]:
         """'ekaterinburg' -> регион 2ГИС; 'loc:Полевской@ekaterinburg' -> населённый пункт внутри региона.
@@ -170,6 +173,8 @@ class Api:
                 'source': '2gis',
             },
             'recent': [],  # история сборов на старте не показывается
+            'statuses': STATUSES,
+            'base_ids': self._base.ids(),
         }
 
     def recent(self) -> List[Dict[str, Any]]:
@@ -231,6 +236,50 @@ class Api:
         except Exception as e:
             return {'ok': False, 'error': str(e)}
 
+    # ---------- база лидов ----------
+    def base_add(self, rec: Dict[str, Any]) -> Dict[str, Any]:
+        if not rec or not rec.get('name'):
+            return {'ok': False, 'error': 'Пустая карточка'}
+        if rec.get('_lid') and not rec.get('_id'):
+            rec = dict(rec, _id=rec['_lid'])
+        return {'ok': True, 'lead': self._base.add(rec), 'counts': self._base.counts()}
+
+    def base_remove(self, lid: str) -> Dict[str, Any]:
+        self._base.remove(lid)
+        return {'ok': True, 'counts': self._base.counts()}
+
+    def base_list(self, status: str = '', search: str = '') -> Dict[str, Any]:
+        return {'items': self._base.list(status, search), 'counts': self._base.counts()}
+
+    def base_status(self, lid: str, status: str) -> Dict[str, Any]:
+        try:
+            self._base.set_status(lid, status)
+        except ValueError as e:
+            return {'ok': False, 'error': str(e)}
+        return {'ok': True, 'counts': self._base.counts()}
+
+    def base_note(self, lid: str, note: str) -> Dict[str, Any]:
+        self._base.set_note(lid, note)
+        return {'ok': True}
+
+    def base_export(self, status: str = '', search: str = '', fields: Optional[List[str]] = None) -> Dict[str, Any]:
+        rows = self._base.list(status, search)
+        if not rows:
+            return {'ok': False, 'error': 'В базе нет лидов под этот фильтр'}
+        for r in rows:
+            r['_status'] = r['status_title']
+            r['_added'] = r['added']
+        cols = [f for f in (fields or self._settings.get('fields') or DEFAULT_FIELDS) if f in FIELDS]
+        out_dir = self._settings.get('output_dir') or str(default_output_dir())
+        os.makedirs(out_dir, exist_ok=True)
+        label = ('База — ' + STATUSES[status]) if status in STATUSES else 'База лидов'
+        path = os.path.join(out_dir, safe_filename('%s — %s' % (label, time.strftime('%Y-%m-%d %H-%M'))) + '.xlsx')
+        try:
+            write_xlsx(path, rows, cols, extra=[('_status', 'Статус'), ('note', 'Заметка'), ('_added', 'Добавлен')])
+        except Exception as e:
+            return {'ok': False, 'error': str(e)}
+        return {'ok': True, 'path': path, 'n': len(rows)}
+
     def set_view(self, view: str) -> Dict[str, Any]:
         """Карточки или таблица — запоминаем между запусками."""
         self._settings['view'] = 'table' if view == 'table' else 'cards'
@@ -252,7 +301,7 @@ class Api:
         return {
             'state': j.state,
             'count': len(j.rows),
-            'rows': [{k: r.get(k) for k in list(FIELDS) + ['_query']} for r in rows],
+            'rows': [dict({k: r.get(k) for k in list(FIELDS) + ['_query']}, _lid=lead_id(r)) for r in rows],
             'row_cursor': row_cursor + len(rows),
             'logs': logs,
             'log_cursor': log_cursor + len(logs),
@@ -330,3 +379,7 @@ class Api:
         if self._job.running:
             self._job.stop()
             self._job.wait(8)
+        try:
+            self._base.close()
+        except Exception:
+            pass

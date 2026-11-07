@@ -14,7 +14,8 @@ _LINK_LABELS = {'yandex': 'Открыть в Яндексе'}
 
 
 def write_xlsx(path: str, rows: List[Dict[str, Any]], fields: Sequence[str],
-               add_query_column: bool = False, drop_empty: bool = True) -> int:
+               add_query_column: bool = False, drop_empty: bool = True,
+               extra: Sequence[tuple] = ()) -> int:
     """Пишет `rows` в `path`. Возвращает количество строк."""
     cols = [f for f in fields if f in FIELDS]
     if 'name' not in cols:
@@ -27,6 +28,9 @@ def write_xlsx(path: str, rows: List[Dict[str, Any]], fields: Sequence[str],
     if add_query_column:
         headers = ['Запрос'] + headers
         keys = ['_query'] + keys
+    for key, title in extra:  # доп. колонки в конце (статус и заметка из базы лидов)
+        headers.append(title)
+        keys.append(key)
 
     with Workbook(path, {'strings_to_urls': False, 'strings_to_numbers': False}) as wb:
         ws = wb.add_worksheet('Организации')

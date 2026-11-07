@@ -195,6 +195,7 @@ tbody.ghost td{height:31px}
 .viewseg button{border:0;background:transparent;padding:6px 14px;border-radius:7px;cursor:pointer;font-weight:500;color:var(--ink-2);font-size:13px}
 .viewseg button[aria-pressed=true]{background:var(--ink);color:var(--on-ink)}
 .cards{display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;padding:12px;align-content:start}
+.sheetwrap[hidden]{display:none}
 .sheetwrap.as-cards{background:transparent;border-color:transparent}
 .sheetwrap.as-cards table{display:none}
 .sheetwrap.as-cards .cards{display:grid}
@@ -225,6 +226,32 @@ tbody.ghost td{height:31px}
 .ch-web{color:var(--ink-2);border-color:var(--grid);background:var(--gutter)}
 .ch-2g{width:auto;padding:0 6px;margin-left:auto;color:#3DDC84;border-color:rgba(61,220,132,.35);background:rgba(61,220,132,.07);font:700 10.5px/1 Golos,sans-serif}
 .card .q{font-size:11px;color:var(--ink-3)}
+.viewseg small{opacity:.6;margin-left:4px;font-weight:600}
+.head-mid{display:flex;gap:10px;align-items:flex-end;margin-right:auto;margin-left:8px}
+.card-foot{display:flex;align-items:center;gap:8px;min-width:0}
+.card-foot .q{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tobase{border:1px solid var(--grid);background:transparent;border-radius:var(--radius-s);padding:4px 10px;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;margin-left:auto}
+.tobase:hover{border-color:var(--ink)}
+.tobase.in{color:var(--ink-3);font-weight:500;border-style:dashed}
+.st{height:28px;border-radius:var(--radius-s);border:1px solid var(--grid);background:var(--gutter);padding:0 6px;font-size:12px;font-weight:600;cursor:pointer;outline:0;color:var(--ink)}
+.st.s-contacted{color:#6FB1FF;border-color:rgba(111,177,255,.4)} .st.s-replied{color:#F5C84B;border-color:rgba(245,200,75,.4)}
+.st.s-deal{color:#3DDC84;border-color:rgba(61,220,132,.4)} .st.s-refused{color:#FF7A7F;border-color:rgba(255,122,127,.4)}
+.unbase{border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:12px;padding:4px;margin-left:auto}
+.unbase:hover{color:var(--ink)}
+.note{width:100%;min-height:46px;max-height:140px;resize:vertical;border:1px solid var(--grid);background:var(--paper);border-radius:var(--radius-s);padding:6px 8px;font-size:12.5px;color:var(--ink-2);outline:0;font-family:inherit}
+.note:focus{border-color:#4A4A52;color:var(--ink)}
+.basewrap{flex:1;display:flex;flex-direction:column;margin:0 28px;min-height:0}
+.basewrap[hidden]{display:none}
+.basebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.stfil{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.stfil button{border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:5px 10px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.stfil button small{opacity:.6;margin-left:4px}
+.stfil button[aria-pressed=true]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.bsearch{height:32px;width:220px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:0 10px;outline:0}
+.bsearch:focus{border-color:#4A4A52}
+.basescroll{flex:1;overflow:auto;min-height:0;position:relative}
+.basescroll .cards{display:grid;padding:0 0 12px}
+.basescroll .empty{position:static;background:transparent;padding:60px 24px}
 .copied{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:var(--radius-m);font-weight:600;font-size:13px;z-index:50}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -315,7 +342,10 @@ tbody.ghost td{height:31px}
   <main class="result">
     <div class="head">
       <div class="count"><b id="count">0</b><span id="countLabel">организаций</span></div>
+      <div class="head-mid">
+      <div class="viewseg" id="modeSeg" role="group" aria-label="Раздел"><button data-m="found">Найдено<small id="mFound">0</small></button><button data-m="base">База<small id="mBase">0</small></button></div>
       <div class="viewseg" id="viewSeg" role="group" aria-label="Вид"><button data-v="cards">Карточки</button><button data-v="table">Таблица</button></div>
+      </div>
       <div class="status" id="status"><strong>Готов к сбору</strong>Таблица появится справа по мере поиска</div>
     </div>
     <div class="attn" id="attn" role="alert" hidden></div>
@@ -326,6 +356,17 @@ tbody.ghost td{height:31px}
         <p>Здесь появятся организации</p>
         <p>Выберите город, впишите запрос и нажмите «Собрать контакты». Вид — карточки или таблица — переключается сверху, в Excel попадают поля, отмеченные слева.</p>
         <div class="recent" id="recent" hidden><h3>Последние таблицы</h3><div id="recentList"></div></div>
+      </div>
+    </div>
+    <div class="basewrap" id="basewrap" hidden>
+      <div class="basebar">
+        <div class="stfil" id="stFilter"></div>
+        <input class="bsearch" id="bSearch" placeholder="Поиск по базе и заметкам" autocomplete="off">
+        <button class="btn" id="bExport">Выгрузить в Excel</button>
+      </div>
+      <div class="basescroll">
+        <div class="cards" id="baseCards"></div>
+        <div class="empty" id="baseEmpty" hidden></div>
       </div>
     </div>
     <div class="log" id="log"></div>
@@ -601,7 +642,7 @@ const LINKS = [['instagram', 'Instagram', 'ch-ig', 'i-ig', true], ['telegram', '
                ['vkontakte', 'ВКонтакте', 'ch-vk', 'i-vk', true], ['website', 'Сайт', 'ch-web', 'i-web', false],
                ['url', '2ГИС', 'ch-2g', null, false]];
 const SVGNS = 'http://www.w3.org/2000/svg';
-function card(r) {
+function card(r, inBase) {
   const c = document.createElement('div'); c.className = 'card fresh';
   const top = document.createElement('div'); top.className = 'card-top';
   if (r.site_kind) top.appendChild(cell('site_kind', r.site_kind).firstChild);
@@ -634,9 +675,78 @@ function card(r) {
     links.appendChild(b);
   });
   c.appendChild(links);
-  if (r._query) { const q = document.createElement('div'); q.className = 'q'; q.textContent = r._query; c.appendChild(q); }
+  const foot = document.createElement('div'); foot.className = 'card-foot';
+  const q = document.createElement('span'); q.className = 'q';
+  q.textContent = inBase ? 'в базе с ' + r.added + (r._query ? ' · ' + r._query : '') : (r._query || '');
+  foot.appendChild(q);
+  if (inBase) {
+    const st = document.createElement('select'); st.className = 'st s-' + r.status; st.title = 'Статус';
+    Object.entries(STATUSES).forEach(([k, v]) => { const o = document.createElement('option'); o.value = k; o.textContent = v; o.selected = k === r.status; st.appendChild(o); });
+    st.onchange = async () => { st.className = 'st s-' + st.value; const res = await api().base_status(r.id, st.value); r.status = st.value; setCounts(res.counts); if (baseStatus) loadBase(); };
+    const un = document.createElement('button'); un.type = 'button'; un.className = 'unbase'; un.textContent = 'Убрать';
+    un.onclick = async () => {
+      if (un.dataset.arm) { const res = await api().base_remove(r.id); BASE_IDS.delete(r.id); setCounts(res.counts); markFound(r.id); c.remove(); if (!$('#baseCards').children.length) loadBase(); return; }
+      un.dataset.arm = '1'; un.textContent = 'Точно убрать?'; setTimeout(() => { delete un.dataset.arm; un.textContent = 'Убрать'; }, 3000);
+    };
+    foot.append(un, st);
+    c.appendChild(foot);
+    const note = document.createElement('textarea'); note.className = 'note'; note.rows = 1; note.placeholder = 'Заметка: о чём договорились, когда написать…'; note.value = r.note || '';
+    note.onchange = () => api().base_note(r.id, note.value);
+    c.appendChild(note);
+  } else {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tobase'; b.dataset.lid = r._lid;
+    paintToBase(b);
+    b.onclick = async () => {
+      if (BASE_IDS.has(r._lid)) { setMode('base'); return; }
+      const res = await api().base_add(r); if (!res.ok) return;
+      BASE_IDS.add(r._lid); setCounts(res.counts); markFound(r._lid);
+    };
+    foot.appendChild(b);
+    c.appendChild(foot);
+  }
   return c;
 }
+
+/* ---------- база лидов ---------- */
+let STATUSES = {}, BASE_IDS = new Set(), MODE = 'found', baseStatus = '', baseCounts = {};
+function paintToBase(b) { const inb = BASE_IDS.has(b.dataset.lid); b.classList.toggle('in', inb); b.textContent = inb ? '✓ В базе' : '+ В базу'; b.title = inb ? 'Уже в базе — открыть базу' : 'Добавить в базу лидов'; }
+function markFound(lid) { document.querySelectorAll('#cards .tobase').forEach(b => { if (b.dataset.lid === lid) paintToBase(b); }); }
+function setCounts(c) {
+  baseCounts = c || baseCounts;
+  $('#mBase').textContent = baseCounts.all || 0;
+  const box = $('#stFilter'); box.innerHTML = '';
+  [['', 'Все']].concat(Object.entries(STATUSES)).forEach(([k, v]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(baseStatus === k));
+    b.textContent = v; const sm = document.createElement('small'); sm.textContent = (k ? baseCounts[k] : baseCounts.all) || 0; b.appendChild(sm);
+    b.onclick = () => { baseStatus = k; setCounts(); loadBase(); };
+    box.appendChild(b);
+  });
+}
+async function loadBase() {
+  const res = await api().base_list(baseStatus, $('#bSearch').value);
+  setCounts(res.counts);
+  const box = $('#baseCards'); box.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  res.items.forEach(r => { const c = card(r, true); c.classList.remove('fresh'); frag.appendChild(c); });
+  box.appendChild(frag);
+  const e = $('#baseEmpty'); e.hidden = !!res.items.length;
+  e.innerHTML = baseCounts.all ? '<p>Под этот фильтр никого нет</p><p>Выберите другой статус или очистите поиск.</p>'
+    : '<p>В базе пока пусто</p><p>На карточке во вкладке «Найдено» нажмите «+ В базу». Лид останется здесь насовсем: со статусом, заметкой, после перезапуска и новых сборов.</p>';
+}
+function setMode(m) {
+  MODE = m === 'base' ? 'base' : 'found';
+  document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === MODE)));
+  $('#sheetwrap').hidden = MODE === 'base'; $('#basewrap').hidden = MODE !== 'base'; $('#viewSeg').hidden = MODE === 'base';
+  if (MODE === 'base') loadBase();
+}
+document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+let bSearchT = null;
+$('#bSearch').addEventListener('input', () => { clearTimeout(bSearchT); bSearchT = setTimeout(loadBase, 200); });
+$('#bExport').onclick = async () => {
+  const r = await api().base_export(baseStatus, $('#bSearch').value, S.fields);
+  if (!r.ok) { const t = document.createElement('div'); t.className = 'copied'; t.textContent = r.error; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); return; }
+  api().open_file(r.path);
+};
 function copyText(text) {
   const done = () => { const t = document.createElement('div'); t.className = 'copied'; t.textContent = 'Скопировано: ' + text; document.body.appendChild(t); setTimeout(() => t.remove(), 1600); };
   const fallback = () => { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); done(); };
@@ -670,7 +780,8 @@ function appendRows(rows) {
 
 /* ---------- состояние ---------- */
 const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? one : (a >= 2 && a <= 4 && (b < 10 || b >= 20)) ? few : many; };
-function setCount(n) { $('#count').textContent = n.toLocaleString('ru-RU'); $('#countLabel').textContent = plural(n, 'организация', 'организации', 'организаций'); }
+function setCount(n) { $('#mFound').textContent = n.toLocaleString('ru-RU'); setCount0(n); }
+function setCount0(n) { $('#count').textContent = n.toLocaleString('ru-RU'); $('#countLabel').textContent = plural(n, 'организация', 'организации', 'организаций'); }
 const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 function setStatus(html) { $('#status').innerHTML = html; }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
@@ -696,6 +807,7 @@ $('#goBtn').onclick = async () => {
   const multi = (S.cities.length > 1 || S.queries.length > 1);
   renderHeader(multi);
   $('#cards').innerHTML = '';
+  setMode('found');
   setCount(0);
   ['#openBtn', '#revealBtn', '#saveAsBtn'].forEach(id => $(id).hidden = true);
   $('#footMsg').className = 'msg'; $('#footMsg').textContent = '';
@@ -798,6 +910,9 @@ async function boot() {
   CITIES = d.cities; LOCS = d.localities || []; FIELDS = d.fields; BROWSERS = d.browsers;
   Object.assign(S, d.settings);
   setView(d.settings.view || 'cards');
+  STATUSES = d.statuses || {}; BASE_IDS = new Set(d.base_ids || []);
+  api().base_list('', '').then(r => setCounts(r.counts));
+  setMode('found');
   $('#appName').textContent = d.app.name; $('#appVer').textContent = 'версия ' + d.app.version;
   document.title = d.app.title;
   renderCityTags(); renderQueryTags(); renderLimit(); renderSource(); renderChips(); renderOptions(); renderHeader(); renderRecent(d.recent);

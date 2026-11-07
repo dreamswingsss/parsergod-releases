@@ -73,6 +73,16 @@ def run() -> int:
         out = os.path.join(tempfile.mkdtemp(), 'selftest.xlsx')
         write_xlsx(out, [rec], list(FIELDS))
         lines.append('xlsx: %d bytes' % os.path.getsize(out))
+        from pathlib import Path
+        from .base import LeadBase
+        base = LeadBase(Path(tempfile.mkdtemp()) / 'leads.db')
+        lead = base.add(dict(rec, _id='selftest'))
+        base.set_status(lead['id'], 'replied')
+        base.set_note(lead['id'], 'тест')
+        assert base.counts() == {'replied': 1, 'all': 1}, base.counts()
+        assert base.list('', 'тест')[0]['note'] == 'тест'
+        base.close()
+        lines.append('base: ok')
         import webview  # noqa: F401  — проверяем, что GUI-библиотека в сборке
         lines.append('webview: ok')
         browsers = find_browsers()
