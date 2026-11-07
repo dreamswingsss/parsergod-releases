@@ -1,7 +1,7 @@
 ﻿; Установщик Windows (Inno Setup 6). Собирается из build_windows.bat или CI.
 #define MyAppName "ParserGod"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "2.0.0"
 #endif
 #define MyAppExe "ParserGod.exe"
 

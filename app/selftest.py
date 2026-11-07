@@ -68,6 +68,16 @@ def run() -> int:
         out = os.path.join(tempfile.mkdtemp(), 'selftest.xlsx')
         write_xlsx(out, [rec], list(FIELDS))
         lines.append('xlsx: %d bytes' % os.path.getsize(out))
+        from pathlib import Path
+        from .leads import LeadStore, classify
+        assert classify(rec) == 'site', classify(rec)
+        store = LeadStore(Path(tempfile.mkdtemp()) / 'leads.db')
+        store.save_parsed(dict(rec, _id='selftest'), 'кофейня')
+        store.add_to_base(['selftest'])
+        st = store.stats()
+        assert st['base'] == 1 and len(store.templates()) >= 3, st
+        store.close()
+        lines.append('leads db: ok (%s)' % st)
         import webview  # noqa: F401  — проверяем, что GUI-библиотека в сборке
         lines.append('webview: ok')
         browsers = find_browsers()

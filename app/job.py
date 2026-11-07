@@ -156,6 +156,7 @@ class Job:
         self._cancel = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._parser = None
+        self.on_record: Optional[Callable[[Dict[str, Any], Optional[str]], None]] = None  # → база лидов
         self.reset()
 
     # ---------- состояние ----------
@@ -276,6 +277,11 @@ class Job:
             rec['_query'] = task.label
         with self._lock:
             self.rows.append(rec)
+        if self.on_record:
+            try:
+                self.on_record(rec, task.query)
+            except Exception as e:  # база не должна ронять сбор
+                self.log('error', 'Не удалось сохранить лид в базу: %s' % e)
         self._task_kept += 1
         if p.limit and self._task_kept >= p.limit:
             raise _LimitReached()

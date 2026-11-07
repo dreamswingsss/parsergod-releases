@@ -13,9 +13,11 @@ from parser_2gis.paths import data_path
 
 from . import brand
 from .browsers import find_browsers
+from .excel import write_xlsx
 from .job import Job, Params, Task
+from .leads import KINDS, STATUSES, TEMPLATE_VARS, LeadStore, chat_link, render_template
 from .records import FIELDS
-from .storage import default_output_dir, load_settings, save_settings
+from .storage import data_dir, default_output_dir, load_settings, safe_filename, save_settings
 
 COUNTRY_NAMES = {
     'ru': 'Россия', 'kz': 'Казахстан', 'by': 'Беларусь', 'az': 'Азербайджан',
@@ -104,6 +106,8 @@ class Api:
             x['c'] = [c for c in x['c'] if c in self._by_code]
             self._loc_by_name.setdefault(_norm(x['n']), []).append(x)
         self._settings = load_settings()
+        self._leads = LeadStore(data_dir() / 'leads.db')
+        self._job.on_record = self._leads.save_parsed
 
     def _resolve_city(self, key: str) -> Optional[Dict[str, str]]:
         """'ekaterinburg' -> регион 2ГИС; 'loc:Полевской@ekaterinburg' -> населённый пункт внутри региона.
@@ -156,6 +160,10 @@ class Api:
                 'source': '2gis',
             },
             'recent': [],  # история сборов на старте не показывается
+            'kinds': KINDS,
+            'statuses': STATUSES,
+            'template_vars': list(TEMPLATE_VARS),
+            'active_template': s.get('active_template', ''),
         }
 
     def recent(self) -> List[Dict[str, Any]]:
@@ -263,11 +271,121 @@ class Api:
             return {'ok': False, 'error': str(e)}
 
     def open_url(self, url: str) -> Dict[str, Any]:
-        if not url.startswith(('https://', 'http://')):
+        if not url.startswith(('https://', 'http://', 'viber://')):
             return {'ok': False}
+        if url.startswith('viber://'):
+            try:
+                _open(url)
+                return {'ok': True}
+            except Exception as e:
+                return {'ok': False, 'error': 'Viber не установлен (%s)' % e}
         import webbrowser
         webbrowser.open(url)
         return {'ok': True}
+
+    # ---------- лиды ----------
+    def leads(self, q: Dict[str, Any]) -> Dict[str, Any]:
+        res = self._leads.query(tab=q.get('tab', 'parser'), search=q.get('search', ''),
+                                city=q.get('city', ''), kind=q.get('kind', ''), status=q.get('status', ''),
+                                sort=q.get('sort', 'new'), offset=int(q.get('offset') or 0),
+                                limit=int(q.get('limit') or 200))
+        res['stats'] = self._leads.stats()
+        return res
+
+    def leads_stats(self) -> Dict[str, Any]:
+        return self._leads.stats()
+
+    def leads_to_base(self, ids: List[str], on: bool = True) -> Dict[str, Any]:
+        return {'ok': True, 'n': self._leads.add_to_base(list(ids), bool(on))}
+
+    def leads_status(self, ids: List[str], status: str) -> Dict[str, Any]:
+        try:
+            return {'ok': True, 'n': self._leads.set_status(list(ids), status)}
+        except ValueError as e:
+            return {'ok': False, 'error': str(e)}
+
+    def leads_note(self, lid: str, note: str) -> Dict[str, Any]:
+        self._leads.set_note(lid, note or '')
+        return {'ok': True}
+
+    def leads_delete(self, ids: List[str]) -> Dict[str, Any]:
+        return {'ok': True, 'n': self._leads.delete(list(ids))}
+
+    def leads_clear_parser(self) -> Dict[str, Any]:
+        return {'ok': True, 'n': self._leads.clear_parsed()}
+
+    def leads_export(self, ids: List[str], fields: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Выбранные лиды → .xlsx в папке выгрузок (с колонками «Тип» и «Статус»)."""
+        rows = self._leads.get_many(list(ids))
+        if not rows:
+            return {'ok': False, 'error': 'Не выбрано ни одного лида'}
+        for r in rows:
+            r['_query'] = '%s · %s' % (KINDS.get(r['kind'], ''), STATUSES.get(r['status'], '')) \
+                if r.get('in_base') else KINDS.get(r['kind'], '')
+        fields = [f for f in (fields or []) if f in FIELDS] or self._settings.get('fields') or DEFAULT_FIELDS
+        out_dir = self._settings.get('output_dir') or str(default_output_dir())
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, safe_filename('Лиды — %d шт — %s' % (
+            len(rows), time.strftime('%Y-%m-%d %H-%M'))) + '.xlsx')
+        try:
+            write_xlsx(path, rows, fields, add_query_column=True)
+        except Exception as e:
+            return {'ok': False, 'error': str(e)}
+        return {'ok': True, 'path': path, 'n': len(rows)}
+
+    # ---------- сообщения ----------
+    def templates(self) -> List[Dict[str, Any]]:
+        return self._leads.templates()
+
+    def template_save(self, t: Dict[str, Any]) -> Dict[str, Any]:
+        return {'ok': True, 'template': self._leads.save_template(t.get('id'), t.get('title', ''), t.get('body', ''))}
+
+    def template_delete(self, tid: str) -> Dict[str, Any]:
+        self._leads.delete_template(tid)
+        if self._settings.get('active_template') == tid:
+            self._settings['active_template'] = ''
+            save_settings(self._settings)
+        return {'ok': True}
+
+    def set_active_template(self, tid: str) -> Dict[str, Any]:
+        self._settings['active_template'] = tid or ''
+        save_settings(self._settings)
+        return {'ok': True}
+
+    def message_for(self, lid: str, tid: str) -> Dict[str, Any]:
+        lead = self._leads.get(lid)
+        t = next((x for x in self._leads.templates() if x['id'] == tid), None)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        return {'ok': True, 'text': render_template(t['body'], lead) if t else ''}
+
+    def preview_template(self, body: str, lid: str = '') -> str:
+        lead = (self._leads.get(lid) if lid else None) or {
+            'name': 'Sweet Skin Studio', 'category': 'Косметология', 'city': 'Екатеринбург',
+            'address': 'ул. Малышева, 51', 'rating': 4.8, 'reviews': 37}
+        return render_template(body or '', lead)
+
+    def open_chat(self, lid: str, channel: str, tid: str = '') -> Dict[str, Any]:
+        """Открывает чат с лидом. Возвращает текст — окно кладёт его в буфер обмена
+        (в WhatsApp он уже подставлен в поле ввода). Лид уходит в базу со статусом «Написал»."""
+        lead = self._leads.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        t = next((x for x in self._leads.templates() if x['id'] == tid), None) if tid else None
+        text = render_template(t['body'], lead) if t else ''
+        url = chat_link(lead, channel, text)
+        if not url:
+            return {'ok': False, 'error': 'У этой организации нет такого контакта'}
+        if not url.startswith(('http://', 'https://', 'viber://')):
+            url = 'https://' + url
+        res = self.open_url(url)
+        if not res.get('ok'):
+            return res
+        is_message = channel in ('whatsapp', 'telegram', 'viber', 'instagram', 'vkontakte')
+        if is_message and text and lead['status'] == 'new':
+            self._leads.set_status([lid], 'contacted')
+        return {'ok': True, 'text': text, 'prefilled': channel == 'whatsapp' and bool(text),
+                'marked': is_message and bool(text) and lead['status'] == 'new'}
 
     def save_as(self) -> Dict[str, Any]:
         if not self._job.rows or not self._window:
@@ -309,3 +427,7 @@ class Api:
         if self._job.running:
             self._job.stop()
             self._job.wait(8)
+        try:
+            self._leads.close()
+        except Exception:
+            pass
