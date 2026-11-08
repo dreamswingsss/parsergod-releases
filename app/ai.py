@@ -229,7 +229,7 @@ MESSAGE_SYSTEM = ('Ты пишешь первые сообщения владе�
                   'без рекламных штампов, без смайликов, ничего не выдумываешь.')
 
 
-def message_prompt(lead: Dict[str, Any], offer: str = '') -> str:
+def message_prompt(lead: Dict[str, Any], offer: str = '', base: str = '', wishes: str = '') -> str:
     facts = {k: lead.get(k) for k in ('name', 'category', 'city', 'rating', 'reviews', 'site_kind', 'website')
              if lead.get(k) not in (None, '')}
     demo = lead.get('demo_url') or ''
@@ -238,9 +238,12 @@ def message_prompt(lead: Dict[str, Any], offer: str = '') -> str:
             '%s'
             'Что я предлагаю: %s\n'
             'Опирайся на конкретику (рейтинг, сфера, нет сайта / только соцсети / сайт на конструкторе). '
-            'Закончи простым вопросом. Ответь только текстом сообщения, без кавычек и пояснений.'
+            'Закончи простым вопросом.%s%s Ответь только текстом сообщения, без кавычек и пояснений.'
             % (facts, ('Ссылка на демо-сайт, который я уже сделал для них (вставь её в сообщение как есть): %s\n' % demo)
-               if demo else '', offer.strip() or 'сделать сайт с онлайн-записью и контактами за несколько дней'))
+               if demo else '', offer.strip() or 'сделать сайт с онлайн-записью и контактами за несколько дней',
+               ('\nВозьми за основу смысл и тон этого шаблона, но перепиши живо и под эту организацию:\n«%s»\n' % base.strip()[:1500])
+               if base.strip() else '',
+               ('\nПожелания к тексту: %s.' % wishes.strip()[:300]) if wishes.strip() else ''))
 
 
 def clean_message(text: str) -> str:

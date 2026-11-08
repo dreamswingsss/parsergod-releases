@@ -493,6 +493,21 @@ class Api:
         t = next((x for x in self._base.templates() if x['id'] == tid), None)
         return {'ok': True, 'text': text, 'no_demo': bool(t and '{демо}' in t['body'] and not lead.get('demo_url'))}
 
+    def message_ai(self, lid: str, tid: str = '', wishes: str = '') -> Dict[str, Any]:
+        """Личное сообщение от ИИ: выбранный шаблон — как основа по смыслу и тону, плюс пожелания."""
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        t = next((x for x in self._base.templates() if x['id'] == tid), None)
+        cfg = self._ai_cfg()
+        try:
+            out = ai_mod.complete(cfg, ai_mod.message_prompt(lead, cfg.get('offer', ''),
+                                                             render_message(t['body'], lead) if t else '', wishes),
+                                  ai_mod.MESSAGE_SYSTEM, max_tokens=700, timeout=90)
+        except ai_mod.AIError as e:
+            return {'ok': False, 'error': str(e)}
+        return {'ok': True, 'text': ai_mod.clean_message(out)}
+
     def open_chat(self, rec: Dict[str, Any], channel: str, tid: str = '', force: bool = False,
                   text_override: str = '') -> Dict[str, Any]:
         """Открывает чат с лидом. В WhatsApp текст подставляется сам, для остальных окно кладёт его

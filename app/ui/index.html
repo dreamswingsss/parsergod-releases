@@ -698,7 +698,12 @@ tbody.ghost td{height:31px}
             <div class="msgpick"><span>Текст:</span><select id="dmTpl"></select><button class="linkbtn" id="dmMsgRe">Обновить</button></div>
             <textarea id="dmMsg" rows="6" placeholder="Выберите шаблон или ИИ — здесь появится сообщение"></textarea>
             <div class="hint" id="dmMsgNote"></div>
-            <div class="btnrow"><button class="btn primary" id="dmMsgCopy">Скопировать текст</button></div>
+            <div class="btnrow"><button class="btn primary" id="dmMsgCopy">Скопировать текст</button><button class="btn" id="dmMsgAi">✨ Сгенерировать ИИ</button></div>
+            <div id="dmMsgAiBox" hidden>
+              <input type="text" id="dmMsgWish" placeholder="Что учесть ИИ (необязательно): короче, на «ты», упомянуть акцию…" style="margin-top:8px">
+              <div class="hint">ИИ возьмёт выбранный шаблон за основу и перепишет под этого владельца. Нажмите «Сгенерировать» ещё раз — будет другой вариант.</div>
+              <div class="conn-b lft" id="dmMsgKey" style="margin-top:8px"></div>
+            </div>
             <div class="sub-l">Или открыть чат с этим текстом</div>
             <div class="btnrow" id="dmSend" style="margin-top:0"></div>
             <p class="hint">Отправляете сами, с телефона или компьютера, — подключать Telegram для этого не нужно. В WhatsApp текст встанет в поле сам, в остальных — Ctrl+V.</p></div>
@@ -1192,6 +1197,7 @@ async function openDemo(r) {
   if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
   DM = {lead: res.lead, content: res.content, rec: r};
   DMC = {ai: false, vc: false}; vcEdit = false; aiEdit = false; $('#dmMsg').value = ''; $('#dmMsg').dataset.lid = '';
+  $('#dmMsgAiBox').hidden = true; $('#dmMsgWish').value = ''; $('#dmMsgAi').textContent = '✨ Сгенерировать ИИ';
   renderAI(); renderVercel();
   $('#dmTitle').textContent = res.lead.name;
   $('#dmTitle').title = res.lead.name;
@@ -1414,6 +1420,16 @@ async function loadDemoMsg() {
 }
 $('#dmTpl').onchange = () => { ACTIVE_TPL = $('#dmTpl').value; api().set_active_template(ACTIVE_TPL); renderTplSelect(); loadDemoMsg(); };
 $('#dmMsgRe').onclick = loadDemoMsg;
+$('#dmMsgAi').onclick = async () => {
+  $('#dmMsgAiBox').hidden = false;
+  if (!aiOn()) { renderAI(); toast('Вставьте API-ключ ниже — и сообщение сгенерируется'); return; }
+  const b = $('#dmMsgAi'), tid = $('#dmTpl').value === '__ai__' ? '' : $('#dmTpl').value;
+  b.disabled = true; b.textContent = 'ИИ пишет…';
+  const r = await api().message_ai(DM.lead.id, tid, $('#dmMsgWish').value);
+  b.disabled = false; b.textContent = '✨ Сгенерировать ещё';
+  if (!r.ok) { toast(r.error); return; }
+  $('#dmMsg').value = r.text; $('#dmMsgNote').textContent = DM.lead.demo_url || DEMO_URLS[DM.lead.id] ? '' : 'Ссылки на демо пока нет — опубликуйте выше и сгенерируйте ещё раз.';
+};
 $('#dmMsgCopy').onclick = () => { if (!$('#dmMsg').value.trim()) { toast('Сначала выберите текст'); return; } copyText($('#dmMsg').value, true); toast('Текст скопирован — вставьте его владельцу в любой мессенджер'); };
 function setDmRes(url, path) {
   const el = $('#dmRes'); el.innerHTML = '';
@@ -1505,6 +1521,7 @@ function renderFound(host) {
 
 function renderAI() {
   ['#aiBox', '#aiLeft', '#dmAiBox'].forEach(id => { const b = $(id); if (b) renderAIInto(b); });
+  const mk = $('#dmMsgKey'); if (mk) { if (aiOn()) { mk.innerHTML = ''; mk.hidden = true; } else { mk.hidden = false; renderAIInto(mk); } }
   if ($('#dmAiSub')) $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Свой дизайн · нужен API-ключ';
   if ($('#dmAI')) $('#dmAI').disabled = !(aiOn() && DMC.ai);
   renderDots();
