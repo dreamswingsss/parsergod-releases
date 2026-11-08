@@ -547,6 +547,25 @@ details.howto{margin-top:8px}
 details.howto summary{color:var(--ink-2)}
 details.howto summary::-webkit-details-marker{display:none}
 details.howto>*:not(summary){margin-top:8px}
+
+/* ключи и токены: не поле пароля (иначе WebView сам запоминает и подставляет), скрытие — своё */
+.secret{-webkit-text-security:disc}
+.secret.shown{-webkit-text-security:none}
+.secret-wrap{position:relative;display:block}
+.secret-wrap .secret{width:100%;padding-right:40px}
+.secret-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;border:0;background:none;color:var(--ink-3);cursor:pointer;display:grid;place-items:center;padding:0}
+.secret-eye:hover{color:var(--ink)}
+.secret-eye svg{width:16px;height:16px}
+
+/* идёт генерация сайта: видно на превью, повторно не запустить */
+#dmPv{position:relative}
+.aibusy{position:absolute;inset:56px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(9,9,10,.94);z-index:3;text-align:center}
+.aibusy[hidden]{display:none}
+.aibusy b{font-size:15px;font-weight:600}
+.aibusy span{color:var(--ink-2);font-size:13px;font-variant-numeric:tabular-nums}
+.aibusy .btn{margin-top:8px}
+.aibusy .spin{width:24px;height:24px;border-radius:50%;border:2px solid var(--grid);border-top-color:var(--ink);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -563,6 +582,7 @@ details.howto>*:not(summary){margin-top:8px}
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z" fill="currentColor"/></symbol>
   <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 9h6v6H9zM9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-tri" viewBox="0 0 24 24"><path d="M12 4.5 20.5 19h-17Z" fill="currentColor"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
 </svg>
 <div class="app">
   <aside class="order">
@@ -803,12 +823,13 @@ details.howto>*:not(summary){margin-top:8px}
           <div class="nav-row"><button class="btn" data-go="2">← Дизайн</button><span></span></div>
         </div>
       </div>
-      <div class="pv">
+      <div class="pv" id="dmPv">
         <div class="pv-bar">
           <div class="viewseg" id="dmDevice"><button data-d="mobile" aria-pressed="true">Телефон</button><button data-d="desktop" aria-pressed="false">Компьютер</button></div>
           <span class="sp"></span><span class="hint" id="dmMode" style="margin:0"></span>
         </div>
         <div class="pv-wrap mobile" id="dmWrap"><iframe id="dmFrame" title="Предпросмотр демо" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div>
+        <div class="aibusy" id="dmBusy" hidden><div class="spin"></div><b id="dmBusyT">ИИ верстает сайт</b><span id="dmBusyS">0:00 · обычно 1–3 минуты</span><button class="btn" id="dmBusyX" type="button">Отменить</button></div>
       </div>
     </div>
   </div>
@@ -1290,7 +1311,7 @@ async function openDemo(r) {
   if (res.counts) setCounts(res.counts);
   if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
   DM = {lead: res.lead, content: res.content, rec: r};
-  DMC = {ai: false, vc: false}; vcEdit = false; aiEdit = false; $('#dmMsg').value = ''; $('#dmMsg').dataset.lid = '';
+  DMC = {ai: false, vc: false}; vcEdit = false; aiEdit = false; aiGen.seq++; aiBusy(false); $('#dmMsg').value = ''; $('#dmMsg').dataset.lid = '';
   $('#dmMsgAiBox').hidden = true; $('#dmMsgWish').value = ''; $('#dmMsgAi').innerHTML = icon('i-wand') + 'Сгенерировать ИИ';
   renderAI(); renderVercel();
   $('#dmTitle').textContent = res.lead.name;
@@ -1458,12 +1479,27 @@ $('#dmEnrich').onclick = async () => {
   DM.content = r.content; renderPhotos(); fillDemo(); $('#dmFrame').srcdoc = r.html;
   $('#dmSrc').textContent = r.summary.join(' · ');
 };
+// Генерация сайта ИИ: один запрос за раз, таймер на превью, ответ отменённого/устаревшего запроса не показываем
+let aiGen = {seq: 0, busy: false, t0: 0, timer: 0};
+function aiBusy(on, title) {
+  aiGen.busy = on; clearInterval(aiGen.timer);
+  $('#dmBusy').hidden = !on; $('#dmAI').disabled = on || !(aiOn() && DMC.ai);
+  if (!on) return;
+  $('#dmBusyT').textContent = title; aiGen.t0 = Date.now();
+  const tick = () => { const sec = Math.round((Date.now() - aiGen.t0) / 1000);
+    $('#dmBusyS').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + ' · обычно 1–3 минуты, зависит от модели'; };
+  tick(); aiGen.timer = setInterval(tick, 1000);
+}
+$('#dmBusyX').onclick = () => { aiGen.seq++; aiBusy(false); toast('Отменено — прежний вариант остался'); };
 $('#dmAI').onclick = async () => {
+  if (aiGen.busy) return;
   if (!aiOn()) { toast('Сначала вставьте API-ключ выше'); return; }
   if (!DMC.ai) { toast('Подтвердите API-ключ выше'); return; }
-  const b = $('#dmAI'); b.disabled = true; b.textContent = 'ИИ верстает сайт… 1–3 минуты';
-  const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
-  b.disabled = false; b.textContent = 'Сгенерировать заново';
+  const my = ++aiGen.seq, lead = DM.lead.id;
+  aiBusy(true, 'ИИ верстает сайт');
+  const r = await api().demo_ai(lead, readDemo(), $('#dmWish').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
+  if (my !== aiGen.seq || !DM || DM.lead.id !== lead) return;  // отменили, начали заново или закрыли окно
+  aiBusy(false); $('#dmAI').textContent = 'Сгенерировать заново';
   if (!r.ok) { toast(r.error); return; }
   DM.content = r.content; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово. Не нравится — поправьте пожелания и сгенерируйте заново');
 };
@@ -1563,6 +1599,20 @@ function collapseHowto(box) {
   d.innerHTML = '<summary>Как подключить</summary>'; pre.forEach(el => d.appendChild(el));
   box.insertBefore(d, first);
 }
+// Поля ключей: своя кнопка «Показать» — видно ровно то, что вставлено сейчас
+function enhanceSecrets(root) {
+  (root || document).querySelectorAll('input.secret:not([data-eye])').forEach(inp => {
+    inp.dataset.eye = '1';
+    const w = document.createElement('span'); w.className = 'secret-wrap';
+    if (inp.hidden) w.hidden = true;
+    inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'secret-eye'; b.title = 'Показать'; b.tabIndex = -1;
+    b.innerHTML = '<svg><use href="#i-eye"/></svg>';
+    b.onclick = () => { const on = inp.classList.toggle('shown'); b.title = on ? 'Скрыть' : 'Показать'; };
+    w.appendChild(b);
+  });
+}
+new MutationObserver(() => enhanceSecrets()).observe(document.body, {childList: true, subtree: true});
 function icon(id) { return '<svg class="ic"><use href="#' + id + '"/></svg>'; }
 let AI = {connected: false}, AIP = {}, aiEdit = false, aiFound = null, aiFoundHost = null;
 function aiOn() { return !!AI.connected; }
@@ -1597,7 +1647,7 @@ function renderAIInto(box) {
   }
   box.innerHTML = '<div>Вставьте API-ключ любого сервиса — программа сама определит, чей он, и покажет модели</div>'
     + '<div class="hint">Подходят: OpenRouter (через него Gemini, Claude, DeepSeek — работает из России), DeepSeek, YandexGPT, Gemini, Claude API, OpenAI, Grok, GLM, Kimi, Qwen, Mistral, Groq, AITunnel</div>'
-    + '<input type="password" id="aiKey" autocomplete="off" placeholder="' + (aiOn() ? 'Новый ключ (пусто — оставить прежний)' : 'API-ключ, например sk-or-…') + '">'
+    + '<input type="text" class="secret" id="aiKey" autocomplete="off" spellcheck="false" placeholder="' + (aiOn() ? 'Новый ключ (пусто — оставить прежний)' : 'API-ключ, например sk-or-…') + '">'
     + '<div class="btnrow"><button class="btn primary" id="aiDetect">Проверить ключ</button><button class="linkbtn" id="aiCustom">У меня другой сервис</button>'
     + (aiOn() ? '<button class="linkbtn" id="aiCancel">Отмена</button>' : '') + '</div>'
     + '<input id="aiBase" placeholder="Адрес API, например https://api.example.com/v1" hidden>'
@@ -1648,7 +1698,7 @@ function renderAI() {
   const mk = $('#dmMsgKey'); if (mk) renderAIInto(mk);
   if ($('#dmMsgAi') && !$('#dmMsgAi').dataset.busy) $('#dmMsgAi').classList.toggle('primary', !!(aiOn() && DMC.ai && !$('#dmMsgAiBox').hidden));
   if ($('#dmAiSub')) $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Свой дизайн · нужен API-ключ';
-  if ($('#dmAI')) $('#dmAI').disabled = !(aiOn() && DMC.ai);
+  if ($('#dmAI')) $('#dmAI').disabled = aiGen.busy || !(aiOn() && DMC.ai);
   renderDots();
 }
 
@@ -1676,7 +1726,7 @@ function renderTgInto(box) {
   if (tgStep === 'code' || tgStep === 'password') {
     box.innerHTML = tgStep === 'code'
       ? '<div style="font-size:13px">Код пришёл в Telegram (в чат «Telegram» на телефоне)</div><input id="tgCode" placeholder="Код" autocomplete="one-time-code">'
-      : '<div style="font-size:13px">У аккаунта включена двухэтапная проверка</div><input type="password" id="tgPass" placeholder="Облачный пароль Telegram">';
+      : '<div style="font-size:13px">У аккаунта включена двухэтапная проверка</div><input type="text" class="secret" id="tgPass" autocomplete="off" spellcheck="false" placeholder="Облачный пароль Telegram">';
     box.innerHTML += '<div class="btnrow"><button class="btn primary" id="tgGo">Войти</button><button class="btn" id="tgBack">Назад</button></div><div class="hint" id="tgErr"></div>';
     q('#tgBack').onclick = () => { tgStep = 'creds'; renderTg(); };
     q('#tgGo').onclick = async () => {
@@ -1755,7 +1805,7 @@ function renderVercelInto(box) {
   box.innerHTML = (inDemo ? '<div>Вставьте токен Vercel — демо откроется по ссылке. Без него можно сохранить HTML-файлом.</div>'
       : '<div>Без Vercel демо сохраняются HTML-файлом — его можно отправить клиенту в мессенджер</div>')
     + '<ol style="margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px"><li>Зарегистрируйтесь на vercel.com (бесплатно)</li><li>«Где взять токен» → Create Token → скопируйте</li><li>Вставьте сюда и нажмите «Подключить»</li></ol>'
-    + '<input type="password" id="vcToken" placeholder="Токен Vercel" autocomplete="off">'
+    + '<input type="text" class="secret" id="vcToken" placeholder="Токен Vercel" autocomplete="off" spellcheck="false">'
     + '<div class="btnrow"><button class="btn primary" id="vcSave">Подключить</button><button class="btn" id="vcGet">Где взять токен</button>'
     + (inDemo && VERCEL.connected ? '<button class="btn" id="vcCancel">Отмена</button>' : '') + '</div><div class="hint" id="vcErr"></div>';
   q('#vcGet').onclick = () => api().open_url('https://vercel.com/account/tokens');
