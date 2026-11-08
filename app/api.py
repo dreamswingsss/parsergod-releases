@@ -579,7 +579,11 @@ class Api:
         """Сохраняет и проверяет подключение. Пустой ключ = оставить прежний."""
         old = self._ai_cfg()
         new = {k: (cfg.get(k) or '').strip() for k in ('provider', 'model', 'folder', 'base', 'offer')}
-        new['key'] = (cfg.get('key') or '').strip() or (old.get('key') if old.get('provider') == new['provider'] else '')
+        new['key'] = (cfg.get('key') or '').strip()
+        if not new['key'] and not cfg.get('fresh') and old.get('provider') == new['provider']:
+            new['key'] = old.get('key') or ''  # смена только модели — ключ прежний
+        if not new['key']:
+            return {'ok': False, 'error': 'Вставьте ключ и нажмите «Проверить ключ»'}
         if new['provider'] not in ai_mod.PROVIDERS:
             return {'ok': False, 'error': 'Выберите сервис ИИ'}
         try:

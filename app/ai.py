@@ -17,6 +17,21 @@ PROVIDERS = {
                    'model': 'google/gemini-2.5-flash', 'help': 'https://openrouter.ai/keys',
                    'prefer': ['google/gemini-2.5-flash', 'anthropic/claude-sonnet', 'deepseek/deepseek-chat',
                               'openai/gpt-5-mini', 'google/gemini-2.5-pro', 'anthropic/claude']},
+    'zai': {'title': 'GLM (Z.ai)', 'kind': 'openai', 'base': 'https://api.z.ai/api/paas/v4',
+            'model': 'glm-4.7', 'help': 'https://z.ai/manage-apikey/apikey-list',
+            'prefer': ['glm-5', 'glm-4.7', 'glm-4.6', 'glm-4.5']},
+    'moonshot': {'title': 'Kimi (Moonshot)', 'kind': 'openai', 'base': 'https://api.moonshot.ai/v1',
+                 'model': 'kimi-k2.6', 'help': 'https://platform.moonshot.ai/console/api-keys',
+                 'prefer': ['kimi-k3', 'kimi-k2']},
+    'qwen': {'title': 'Qwen (Alibaba Cloud)', 'kind': 'openai', 'base': 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+             'model': 'qwen-plus', 'help': 'https://modelstudio.console.alibabacloud.com',
+             'prefer': ['qwen3-max', 'qwen-plus', 'qwen-max', 'qwen3']},
+    'mistral': {'title': 'Mistral', 'kind': 'openai', 'base': 'https://api.mistral.ai/v1',
+                'model': 'mistral-medium-latest', 'help': 'https://console.mistral.ai/api-keys',
+                'prefer': ['mistral-medium', 'mistral-large', 'mistral-small']},
+    'aitunnel': {'title': 'AITunnel', 'kind': 'openai', 'base': 'https://api.aitunnel.ru/v1',
+                 'model': 'gemini-2.5-flash', 'help': 'https://aitunnel.ru',
+                 'prefer': ['gemini-2.5-flash', 'deepseek-chat', 'gpt-5-mini', 'claude-sonnet']},
     'anthropic': {'title': 'Claude API (Anthropic)', 'kind': 'anthropic', 'base': 'https://api.anthropic.com/v1',
                   'model': 'claude-sonnet-5-5', 'help': 'https://console.anthropic.com/settings/keys',
                   'prefer': ['claude-sonnet', 'claude-haiku', 'claude-opus']},
@@ -144,8 +159,10 @@ def complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: int
     headers = {'Authorization': 'Bearer ' + key}
     if provider == 'openrouter':
         headers.update({'HTTP-Referer': 'https://parsergod.app', 'X-Title': 'ParserGod'})
-    data = _post(base + '/chat/completions', headers,
-                 {'model': model, 'messages': msgs2, 'max_tokens': max_tokens, 'temperature': 0.6}, timeout)
+    body3: Dict[str, Any] = {'model': model, 'messages': msgs2, 'max_tokens': max_tokens}
+    if not model.startswith('kimi-'):
+        body3['temperature'] = 0.6
+    data = _post(base + '/chat/completions', headers, body3, timeout)
     try:
         return data['choices'][0]['message']['content'] or ''
     except (KeyError, IndexError, TypeError):
@@ -157,6 +174,8 @@ def complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: int
 def guess(key: str) -> List[str]:
     """Кандидаты-провайдеры по виду ключа, в порядке вероятности."""
     k = (key or '').strip()
+    if k.startswith('sk-aitunnel-'):
+        return ['aitunnel']
     if k.startswith('sk-or-'):
         return ['openrouter']
     if k.startswith('sk-ant-'):
@@ -174,9 +193,13 @@ def guess(key: str) -> List[str]:
     if k.startswith('t1.'):
         return ['yandex']
     if re.fullmatch(r'sk-[0-9a-f]{32}', k):
-        return ['deepseek', 'openai']
-    if k.startswith('sk-'):
-        return ['openai', 'deepseek']
+        return ['deepseek', 'openai', 'moonshot', 'qwen']
+    if k.startswith('sk-'):  # общий вид — у OpenAI, DeepSeek, Kimi, Qwen и многих посредников
+        return ['openai', 'deepseek', 'moonshot', 'qwen']
+    if re.fullmatch(r'[0-9a-f]{32}\.[A-Za-z0-9]{8,}', k):  # id.secret
+        return ['zai']
+    if re.fullmatch(r'[A-Za-z0-9]{32}', k):
+        return ['mistral']
     return []
 
 
@@ -228,7 +251,7 @@ def detect(key: str, base: str = '') -> Dict[str, Any]:
     cands = ['custom'] if base else guess(key)
     if not cands:
         raise AIError('Не узнал этот ключ. Подходят ключи OpenRouter (sk-or-…), Claude (sk-ant-…), OpenAI, DeepSeek, '
-                      'Gemini (AQ.… или AIza…), Groq (gsk_…), xAI, YandexGPT (AQVN…). Для другого сервиса укажите адрес API.')
+                      'Gemini (AQ.… или AIza…), GLM, Kimi, Qwen, Mistral, Groq (gsk_…), xAI, YandexGPT (AQVN…). Для другого сервиса укажите адрес API.')
     last: Optional[Exception] = None
     for prov in cands:
         try:
@@ -240,6 +263,10 @@ def detect(key: str, base: str = '') -> Dict[str, Any]:
         default = p['model'] if p['model'] in models else (models[0] if models else p['model'])
         return {'provider': prov, 'title': p['title'], 'models': models, 'model': default,
                 'needs_folder': p['kind'] == 'yandex', 'not_in_russia': prov in NOT_IN_RUSSIA}
+    if len(cands) > 1 and not base:  # угадывали по общему «sk-» — ни один не подошёл
+        raise AIError('Ключ не подошёл ни к %s. Если он от другого сервиса — нажмите «У меня другой сервис» '
+                      'и вставьте адрес API из его документации (обычно …/v1)'
+                      % ', ни к '.join(PROVIDERS[c]['title'] for c in cands))
     raise AIError(str(last) if last else 'Не удалось проверить ключ')
 
 

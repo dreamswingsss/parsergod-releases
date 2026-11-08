@@ -1590,12 +1590,13 @@ function renderAIInto(box) {
     return;
   }
   box.innerHTML = '<div>Вставьте API-ключ любого сервиса — программа сама определит, чей он, и покажет модели</div>'
-    + '<div class="hint">Подходят: OpenRouter (через него Gemini, Claude, DeepSeek — работает из России), DeepSeek, YandexGPT, Claude API, OpenAI, Gemini, Groq, xAI</div>'
+    + '<div class="hint">Подходят: OpenRouter (через него Gemini, Claude, DeepSeek — работает из России), DeepSeek, YandexGPT, Gemini, Claude API, OpenAI, Grok, GLM, Kimi, Qwen, Mistral, Groq, AITunnel</div>'
     + '<input type="password" id="aiKey" autocomplete="off" placeholder="' + (aiOn() ? 'Новый ключ (пусто — оставить прежний)' : 'API-ключ, например sk-or-…') + '">'
     + '<div class="btnrow"><button class="btn primary" id="aiDetect">Проверить ключ</button><button class="linkbtn" id="aiCustom">У меня другой сервис</button>'
     + (aiOn() ? '<button class="linkbtn" id="aiCancel">Отмена</button>' : '') + '</div>'
     + '<input id="aiBase" placeholder="Адрес API, например https://api.example.com/v1" hidden>'
     + '<div id="aiFound"></div><div class="hint" id="aiErr"></div>';
+  if (aiFound && aiFoundHost === box) { q('#aiKey').value = aiFound.key || ''; if (aiFound.base) { q('#aiBase').hidden = false; q('#aiBase').value = aiFound.base; } }
   q('#aiCustom').onclick = () => { q('#aiBase').hidden = false; q('#aiBase').focus(); };
   if (q('#aiCancel')) q('#aiCancel').onclick = () => { aiEdit = false; renderAI(); };
   const detect = async () => {
@@ -1607,9 +1608,10 @@ function renderAIInto(box) {
     }
     const r = await api().ai_detect(q('#aiKey').value, q('#aiBase').hidden ? '' : q('#aiBase').value);
     if (!r.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = r.error; return; }
-    q('#aiErr').textContent = ''; aiFound = r; aiFoundHost = box; renderFound(box);
+    q('#aiErr').textContent = ''; aiFound = Object.assign({}, r, {key: q('#aiKey').value.trim(), base: q('#aiBase').hidden ? '' : q('#aiBase').value.trim()}); aiFoundHost = box; renderFound(box);
   };
   q('#aiDetect').onclick = detect;
+  q('#aiKey').addEventListener('input', () => { if (aiFoundHost === box && aiFound && q('#aiKey').value.trim() !== aiFound.key) { aiFound = null; q('#aiFound').innerHTML = ''; } });
   q('#aiKey').addEventListener('paste', () => setTimeout(detect, 50));
   q('#aiBase').addEventListener('paste', () => setTimeout(detect, 50));
   if (aiFound && aiFoundHost === box) renderFound(box);
@@ -1623,11 +1625,12 @@ function renderFound(host) {
     + '<div class="btnrow"><button class="btn primary" id="aiSave">Подключить</button></div></div>';
   const sel = q('#aiModel');
   r.models.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m + (m === r.model ? '  — рекомендуем' : ''); sel.appendChild(o); });
-  sel.value = r.model;
+  sel.value = r.picked || r.model;
+  sel.onchange = () => { r.picked = sel.value; };
   q('#aiSave').onclick = async () => {
     q('#aiErr').textContent = 'Пробный запрос…';
-    const res = await api().ai_save({provider: r.provider, key: q('#aiKey').value, model: sel.value, folder: q('#aiFolder') ? q('#aiFolder').value : '',
-      base: q('#aiBase').hidden ? '' : q('#aiBase').value, offer: AI.offer || ''});
+    const res = await api().ai_save({provider: r.provider, key: r.key, model: sel.value, folder: q('#aiFolder') ? q('#aiFolder').value : '',
+      base: r.base, offer: AI.offer || '', fresh: true});
     if (!res.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = res.error; return; }
     AI = res.ai; aiEdit = false; aiFound = null; if (AI_CONFIRM.includes(host.id)) DMC.ai = true;
     renderAI(); renderTplSelect(); renderDots(); toast('ИИ подключён: ' + r.title);
