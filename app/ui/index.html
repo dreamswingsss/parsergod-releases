@@ -526,6 +526,11 @@ tbody.ghost td{height:31px}
         <div class="bh"><i>6</i><div><h2>API-ключ ИИ</h2><small>Демо-сайты и личные сообщения по кнопке</small></div><span class="pill" id="aiPillL"></span></div>
         <div class="conn-b lft" id="aiLeft"></div>
       </section>
+
+      <section class="block">
+        <div class="bh"><i>7</i><div><h2>Vercel для демо-сайтов</h2><small>Демо открываются по ссылке имя.vercel.app</small></div><span class="pill" id="vcPillL"></span></div>
+        <div class="conn-b lft" id="vcLeft"></div>
+      </section>
     </div>
     <div class="go">
       <p class="err" id="formErr" role="alert"></p>
@@ -1165,7 +1170,7 @@ function renderDots() {
   });
   const pill = (id, on) => { const p = $(id); p.textContent = on ? 'Подключено' : 'Не подключено'; p.className = 'pill' + (on ? ' on' : ''); };
   pill('#aiPill', aiOn()); pill('#vcPill', VERCEL.connected); pill('#tgPill', !!TG.account);
-  pill('#aiPillL', aiOn()); pill('#tgPillL', !!TG.account);
+  pill('#aiPillL', aiOn()); pill('#tgPillL', !!TG.account); pill('#vcPillL', VERCEL.connected);
 }
 
 /* ---------- демо-сайт: мастер в 3 шага ---------- */
@@ -1623,7 +1628,7 @@ function renderVercelInto(box) {
   };
 }
 function renderVercel() {
-  ['#vercelBox', '#dmVcBox'].forEach(id => { const b = $(id); if (b) renderVercelInto(b); });
+  ['#vercelBox', '#vcLeft', '#dmVcBox'].forEach(id => { const b = $(id); if (b) renderVercelInto(b); });
   if (DM && !$('#demoModal').hidden) renderPublishBtn();
   renderDots();
 }
