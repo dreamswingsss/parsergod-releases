@@ -26,7 +26,8 @@ PROVIDERS = {
     'deepseek': {'title': 'DeepSeek', 'kind': 'openai', 'base': 'https://api.deepseek.com/v1',
                  'model': 'deepseek-chat', 'help': 'https://platform.deepseek.com/api_keys',
                  'prefer': ['deepseek-chat', 'deepseek-reasoner']},
-    'gemini': {'title': 'Google Gemini', 'kind': 'openai', 'base': 'https://generativelanguage.googleapis.com/v1beta/openai',
+    # родной API Google: новые ключи AQ.… OpenAI-совместимый режим не принимает
+    'gemini': {'title': 'Google Gemini', 'kind': 'gemini', 'base': 'https://generativelanguage.googleapis.com/v1beta',
                'model': 'gemini-2.5-flash', 'help': 'https://aistudio.google.com/apikey',
                'prefer': ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash']},
     'groq': {'title': 'Groq', 'kind': 'openai', 'base': 'https://api.groq.com/openai/v1',
@@ -60,7 +61,9 @@ def _post(url: str, headers: Dict[str, str], body: Dict[str, Any], timeout: floa
         data = r.json()
     except ValueError:
         data = {}
-    if r.status_code in (401, 403):
+    err0 = data.get('error') if isinstance(data, dict) else None
+    emsg = str(err0.get('message') if isinstance(err0, dict) else err0 or '').lower()
+    if r.status_code in (401, 403) or (r.status_code == 400 and ('api key' in emsg or 'api_key' in emsg)):
         raise AIError('Сервис ИИ не принял ключ. Проверьте ключ в настройках.')
     if r.status_code == 402:
         raise AIError('На балансе сервиса ИИ закончились деньги.')
@@ -115,6 +118,25 @@ def complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: int
             raise AIError('Claude вернул пустой ответ.')
         return ''.join(parts)
 
+    if kind == 'gemini':
+        body2: Dict[str, Any] = {'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
+                                 # 2.5-модели тратят часть лимита на «размышления» — не даём лимиту быть крошечным
+                                 'generationConfig': {'maxOutputTokens': max(max_tokens, 2048), 'temperature': 0.6}}
+        if system:
+            body2['systemInstruction'] = {'parts': [{'text': system}]}
+        mid = model if model.startswith('models/') else 'models/' + model
+        data = _post('%s/%s:generateContent' % (PROVIDERS['gemini']['base'], mid), {'x-goog-api-key': key}, body2, timeout)
+        try:
+            cand = (data.get('candidates') or [])[0]
+            text = ''.join(pt.get('text', '') for pt in (cand.get('content') or {}).get('parts') or []
+                           if not pt.get('thought'))
+        except (IndexError, AttributeError):
+            text = ''
+        if not text:
+            fb = (data.get('promptFeedback') or {}).get('blockReason')
+            raise AIError('Gemini отказался отвечать (%s).' % fb if fb else 'Gemini вернул пустой ответ.')
+        return text
+
     base = (cfg.get('base') or PROVIDERS[provider]['base']).rstrip('/')
     if not base:
         raise AIError('Укажите адрес API сервиса.')
@@ -141,7 +163,7 @@ def guess(key: str) -> List[str]:
         return ['anthropic']
     if k.startswith(('sk-proj-', 'sk-svcacct-', 'sk-admin-')):
         return ['openai']
-    if k.startswith('AIza'):
+    if k.startswith(('AIza', 'AQ.')):  # AQ.… — новый формат ключей Google AI Studio
         return ['gemini']
     if k.startswith('gsk_'):
         return ['groq']
@@ -166,13 +188,15 @@ def list_models(provider: str, key: str, base: str = '') -> List[str]:
         return list(p['prefer'])
     if p['kind'] == 'anthropic':
         url, headers = p['base'] + '/models?limit=100', {'x-api-key': key, 'anthropic-version': '2023-06-01'}
+    elif p['kind'] == 'gemini':
+        url, headers = p['base'] + '/models?pageSize=200', {'x-goog-api-key': key}
     else:
         url, headers = (base or p['base']).rstrip('/') + '/models', {'Authorization': 'Bearer ' + key}
     try:
         r = requests.get(url, headers=headers, timeout=20)
     except requests.RequestException as e:
         raise AIError('Нет связи с %s (%s)' % (p['title'], e.__class__.__name__))
-    if r.status_code in (401, 403):
+    if r.status_code in (401, 403) or (r.status_code == 400 and p['kind'] == 'gemini'):
         raise AIError('%s не принял ключ' % p['title'])
     if r.status_code >= 400:
         raise AIError('%s: ошибка %d' % (p['title'], r.status_code))
@@ -180,7 +204,10 @@ def list_models(provider: str, key: str, base: str = '') -> List[str]:
         data = r.json()
     except ValueError:
         data = {}
-    ids = [str(m.get('id')) for m in (data.get('data') or data.get('models') or []) if isinstance(m, dict) and m.get('id')]
+    items = [m for m in (data.get('data') or data.get('models') or []) if isinstance(m, dict)]
+    if p['kind'] == 'gemini':  # только модели, которые умеют писать текст
+        items = [dict(m, id=m.get('name')) for m in items if 'generateContent' in (m.get('supportedGenerationMethods') or [])]
+    ids = [str(m.get('id')) for m in items if m.get('id')]
     ids = [i.replace('models/', '') for i in ids]
     if provider == 'openrouter' and ids:  # проверяем, что ключ рабочий: список моделей там публичный
         k = requests.get(p['base'] + '/key', headers=headers, timeout=20)
@@ -201,7 +228,7 @@ def detect(key: str, base: str = '') -> Dict[str, Any]:
     cands = ['custom'] if base else guess(key)
     if not cands:
         raise AIError('Не узнал этот ключ. Подходят ключи OpenRouter (sk-or-…), Claude (sk-ant-…), OpenAI, DeepSeek, '
-                      'Gemini (AIza…), Groq (gsk_…), xAI, YandexGPT (AQVN…). Для другого сервиса укажите адрес API.')
+                      'Gemini (AQ.… или AIza…), Groq (gsk_…), xAI, YandexGPT (AQVN…). Для другого сервиса укажите адрес API.')
     last: Optional[Exception] = None
     for prov in cands:
         try:
