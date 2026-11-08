@@ -321,6 +321,8 @@ MESSAGE_SYSTEM = ('Ты пишешь первые сообщения владе�
 
 
 def message_prompt(lead: Dict[str, Any], offer: str = '', base: str = '', wishes: str = '') -> str:
+    if re.fullmatch(r'(sk-|AQ\.|AIza|xai-|gsk_|AQVN|t1\.)\S{10,}', (offer or '').strip()):
+        offer = ''  # в поле «что предлагаю» когда-то вставили ключ — в промпт его не отправляем
     facts = {k: lead.get(k) for k in ('name', 'category', 'city', 'rating', 'reviews', 'site_kind', 'website')
              if lead.get(k) not in (None, '')}
     demo = lead.get('demo_url') or ''
@@ -352,4 +354,6 @@ def public_cfg(cfg: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     prov = cfg.get('provider') or ''
     return {'provider': prov, 'title': PROVIDERS.get(prov, {}).get('title', ''), 'model': cfg.get('model') or '',
             'folder': cfg.get('folder') or '', 'base': cfg.get('base') or '', 'connected': bool(prov and key),
-            'key_hint': ('…' + key[-4:]) if len(key) > 8 else '', 'offer': cfg.get('offer') or ''}
+            'key_hint': ('…' + key[-4:]) if len(key) > 8 else '',
+            'offer': '' if re.fullmatch(r'(sk-|AQ\.|AIza|xai-|gsk_|AQVN|t1\.)\S{10,}', (cfg.get('offer') or '').strip())
+            else cfg.get('offer') or ''}

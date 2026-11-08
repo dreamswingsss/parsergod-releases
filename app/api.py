@@ -596,7 +596,10 @@ class Api:
 
     def ai_offer(self, offer: str) -> Dict[str, Any]:
         cfg = self._ai_cfg()
-        cfg['offer'] = (offer or '').strip()[:500]
+        offer = (offer or '').strip()
+        if re.fullmatch(r'(sk-|AQ\.|AIza|xai-|gsk_|AQVN|t1\.)\S{10,}', offer):
+            return {'ok': False, 'error': 'Похоже на ключ, а не на описание услуги'}
+        cfg['offer'] = offer[:500]
         self._settings['ai'] = cfg
         save_settings(self._settings)
         return {'ok': True}

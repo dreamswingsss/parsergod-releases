@@ -1584,7 +1584,13 @@ function renderAIInto(box) {
     const bs = box.querySelectorAll('b'); bs[0].textContent = AI.title || (AIP[AI.provider] || {}).title || AI.provider; bs[1].textContent = AI.model || 'по умолчанию';
     if (box.id === 'dmAiBox') { q('#aiOffer').previousElementSibling.remove(); q('#aiOffer').remove(); }  // в окне демо лишнее
     else q('#aiOffer').value = AI.offer || '';
-    if (q('#aiOffer')) q('#aiOffer').onchange = () => { AI.offer = q('#aiOffer').value; api().ai_offer(AI.offer); };
+    if (q('#aiOffer')) q('#aiOffer').onchange = () => {
+      const v = q('#aiOffer').value.trim();
+      if (/^(sk-|AQ\.|AIza|xai-|gsk_|AQVN|t1\.)\S{10,}$/.test(v)) {  // сюда по ошибке вставили ключ
+        q('#aiOffer').value = AI.offer || ''; toast('Это поле для описания вашей услуги, а не для ключа. Ключ меняется кнопкой «Сменить ключ или модель»'); return;
+      }
+      AI.offer = v; api().ai_offer(AI.offer);
+    };
     q('#aiChange').onclick = () => { aiEdit = true; aiFound = null; renderAI(); };
     q('#aiOff').onclick = async () => { await api().ai_disconnect(); AI = {connected: false, offer: AI.offer}; if (ACTIVE_TPL === '__ai__') ACTIVE_TPL = ''; renderAI(); renderTplSelect(); renderDots(); };
     return;
