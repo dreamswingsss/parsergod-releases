@@ -507,6 +507,15 @@ body{background:radial-gradient(1100px 600px at 85% -10%,#1C1C21 0%,transparent 
 .pill.on{box-shadow:0 0 0 3px rgba(61,220,132,.06)}
 .pv{background:radial-gradient(800px 400px at 50% 0%,#1A1A1E,#09090A)}
 ::-webkit-scrollbar-thumb{background:#34343B}
+
+/* обводка карточки в базе по статусу */
+.card.cs-contacted{border-color:rgba(111,177,255,.75);box-shadow:0 0 0 1px rgba(111,177,255,.35),0 8px 24px -14px rgba(111,177,255,.35)}
+.card.cs-replied{border-color:rgba(245,200,75,.75);box-shadow:0 0 0 1px rgba(245,200,75,.3),0 8px 24px -14px rgba(245,200,75,.3)}
+.card.cs-deal{border-color:rgba(61,220,132,.8);box-shadow:0 0 0 1px rgba(61,220,132,.35),0 8px 24px -14px rgba(61,220,132,.35);background:linear-gradient(180deg,#18241D 0%,#151A17 100%)}
+.card.cs-refused{border-color:rgba(255,122,127,.6);box-shadow:0 0 0 1px rgba(255,122,127,.25);opacity:.75}
+.card.cs-refused:hover{opacity:1}
+.card.cs-contacted{background:linear-gradient(180deg,#181E28 0%,#15181D 100%)}
+.card.cs-replied{background:linear-gradient(180deg,#221F16 0%,#1A1915 100%)}
 </style>
 </head>
 <body>
@@ -1104,10 +1113,10 @@ function card(r, inBase) {
   q.textContent = inBase ? 'в базе с ' + r.added + (r._query ? ' · ' + r._query : '') : (r._query || '');
   foot.append(db, q);
   if (inBase) {
-    c._lid = r.id;
+    c._lid = r.id; c.classList.add('cs-' + r.status);
     const st = document.createElement('select'); st.className = 'st s-' + r.status; st.title = 'Статус';
     Object.entries(STATUSES).forEach(([k, v]) => { const o = document.createElement('option'); o.value = k; o.textContent = v; o.selected = k === r.status; st.appendChild(o); });
-    st.onchange = async () => { st.className = 'st s-' + st.value; const res = await api().base_status(r.id, st.value); r.status = st.value; setCounts(res.counts); if (baseStatus) loadBase(); };
+    st.onchange = async () => { st.className = 'st s-' + st.value; c.classList.remove('cs-' + r.status); c.classList.add('cs-' + st.value); const res = await api().base_status(r.id, st.value); r.status = st.value; setCounts(res.counts); if (baseStatus) loadBase(); };
     const un = document.createElement('button'); un.type = 'button'; un.className = 'unbase'; un.textContent = 'Убрать';
     un.onclick = async () => {
       if (un.dataset.arm) { const res = await api().base_remove(r.id); BASE_IDS.delete(r.id); setCounts(res.counts); markFound(r.id); c.remove(); if (!$('#baseCards').children.length) loadBase(); return; }
@@ -1469,11 +1478,13 @@ $('#dmTpl').onchange = () => { ACTIVE_TPL = $('#dmTpl').value; api().set_active_
 $('#dmMsgRe').onclick = loadDemoMsg;
 $('#dmMsgAi').onclick = async () => {
   $('#dmMsgAiBox').hidden = false;
-  if (!aiOn()) { renderAI(); toast('Вставьте API-ключ ниже — и сообщение сгенерируется'); return; }
+  renderAI();
+  if (!aiOn()) { toast('Вставьте API-ключ ниже — и сообщение сгенерируется'); return; }
+  if (!DMC.ai) { toast('Ключ взят из Настроек — подтвердите его ниже'); return; }
   const b = $('#dmMsgAi'), tid = $('#dmTpl').value === '__ai__' ? '' : $('#dmTpl').value;
-  b.disabled = true; b.textContent = 'ИИ пишет…';
+  b.disabled = true; b.dataset.busy = '1'; b.textContent = 'ИИ пишет…';
   const r = await api().message_ai(DM.lead.id, tid, $('#dmMsgWish').value);
-  b.disabled = false; b.textContent = '✨ Сгенерировать ещё';
+  b.disabled = false; delete b.dataset.busy; b.textContent = '✨ Сгенерировать ещё';
   if (!r.ok) { toast(r.error); return; }
   $('#dmMsg').value = r.text; $('#dmMsgNote').textContent = DM.lead.demo_url || DEMO_URLS[DM.lead.id] ? '' : 'Ссылки на демо пока нет — опубликуйте выше и сгенерируйте ещё раз.';
 };
@@ -1502,11 +1513,12 @@ $('#dmPublish').onclick = async () => {
 function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }
 
 /* ---------- ИИ ---------- */
+const AI_CONFIRM = ['dmAiBox', 'dmMsgKey'];
 let AI = {connected: false}, AIP = {}, aiEdit = false, aiFound = null, aiFoundHost = null;
 function aiOn() { return !!AI.connected; }
 function renderAIInto(box) {
   const q = sel => box.querySelector(sel); box.innerHTML = '';
-  if (aiOn() && !aiEdit && box.id === 'dmAiBox') {
+  if (aiOn() && !aiEdit && AI_CONFIRM.includes(box.id)) {
     box.innerHTML = '<div><span class="ok">✓</span> <b></b> · модель <b></b>' + (AI.key_hint ? ' · ключ ' + esc(AI.key_hint) : '') + '</div>'
       + (DMC.ai ? '<div class="hint ok" style="margin-top:6px">Подтверждено — можно генерировать</div>' : '<div class="hint">Это ключ из Настроек. Проверьте и подтвердите.</div>')
       + '<div class="btnrow">' + (DMC.ai ? '' : '<button class="btn primary" id="aiOk">Подтвердить</button>') + '<button class="btn" id="aiChange">Сменить ключ или модель</button></div>';
@@ -1561,14 +1573,15 @@ function renderFound(host) {
     const res = await api().ai_save({provider: r.provider, key: q('#aiKey').value, model: sel.value, folder: q('#aiFolder') ? q('#aiFolder').value : '',
       base: q('#aiBase').hidden ? '' : q('#aiBase').value, offer: AI.offer || ''});
     if (!res.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = res.error; return; }
-    AI = res.ai; aiEdit = false; aiFound = null; if (host.id === 'dmAiBox') DMC.ai = true;
+    AI = res.ai; aiEdit = false; aiFound = null; if (AI_CONFIRM.includes(host.id)) DMC.ai = true;
     renderAI(); renderTplSelect(); renderDots(); toast('ИИ подключён: ' + r.title);
   };
 }
 
 function renderAI() {
   ['#aiBox', '#aiLeft', '#dmAiBox'].forEach(id => { const b = $(id); if (b) renderAIInto(b); });
-  const mk = $('#dmMsgKey'); if (mk) { if (aiOn()) { mk.innerHTML = ''; mk.hidden = true; } else { mk.hidden = false; renderAIInto(mk); } }
+  const mk = $('#dmMsgKey'); if (mk) renderAIInto(mk);
+  if ($('#dmMsgAi') && !$('#dmMsgAi').dataset.busy) $('#dmMsgAi').classList.toggle('primary', !!(aiOn() && DMC.ai && !$('#dmMsgAiBox').hidden));
   if ($('#dmAiSub')) $('#dmAiSub').textContent = aiOn() ? 'Свой дизайн за 1–3 мин' : 'Свой дизайн · нужен API-ключ';
   if ($('#dmAI')) $('#dmAI').disabled = !(aiOn() && DMC.ai);
   renderDots();
