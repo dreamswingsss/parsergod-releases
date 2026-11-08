@@ -84,6 +84,8 @@ def _post(url: str, headers: Dict[str, str], body: Dict[str, Any], timeout: floa
         raise AIError('На балансе сервиса ИИ закончились деньги.')
     if r.status_code == 429:
         raise AIError('Сервис ИИ просит подождать (слишком много запросов). Попробуйте через минуту.')
+    if not isinstance(data, dict):  # Google иногда отдаёт ошибку списком
+        data = data[0] if isinstance(data, list) and data and isinstance(data[0], dict) else {}
     if r.status_code >= 400:
         err = data.get('error')
         msg = err.get('message') if isinstance(err, dict) else (err if isinstance(err, str) else data.get('message'))
@@ -95,6 +97,16 @@ def _post(url: str, headers: Dict[str, str], body: Dict[str, Any], timeout: floa
 
 def complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: int = 8000,
              timeout: float = 240) -> str:
+    try:
+        return _complete(cfg, prompt, system, max_tokens, timeout)
+    except AIError:
+        raise
+    except Exception as e:  # noqa: BLE001 — ответ не того вида, сбой сети и т.п.
+        raise AIError('Сервис ИИ ответил непонятно (%s). Попробуйте ещё раз или другую модель.' % e.__class__.__name__)
+
+
+def _complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: int = 8000,
+              timeout: float = 240) -> str:
     """Один запрос к модели. cfg = {'provider', 'key', 'model', 'folder', 'base'}."""
     provider = cfg.get('provider') or ''
     key = (cfg.get('key') or '').strip()
@@ -134,13 +146,25 @@ def complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: int
         return ''.join(parts)
 
     if kind == 'gemini':
-        body2: Dict[str, Any] = {'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
-                                 # 2.5-модели тратят часть лимита на «размышления» — не даём лимиту быть крошечным
-                                 'generationConfig': {'maxOutputTokens': max(max_tokens, 2048), 'temperature': 0.6}}
+        # думающие модели тратят лимит ответа на «размышления»: даём запас и просим думать поменьше
+        gen: Dict[str, Any] = {'maxOutputTokens': max_tokens + 8192, 'temperature': 0.6}
+        bare = model.replace('models/', '')
+        if re.match(r'gemini-[3-9]', bare):
+            gen['thinkingConfig'] = {'thinkingLevel': 'low'}
+        elif bare.startswith('gemini-2.5-flash'):
+            gen['thinkingConfig'] = {'thinkingBudget': 0}
+        body2: Dict[str, Any] = {'contents': [{'role': 'user', 'parts': [{'text': prompt}]}], 'generationConfig': gen}
         if system:
             body2['systemInstruction'] = {'parts': [{'text': system}]}
         mid = model if model.startswith('models/') else 'models/' + model
-        data = _post('%s/%s:generateContent' % (PROVIDERS['gemini']['base'], mid), {'x-goog-api-key': key}, body2, timeout)
+        url = '%s/%s:generateContent' % (PROVIDERS['gemini']['base'], mid)
+        try:
+            data = _post(url, {'x-goog-api-key': key}, body2, timeout)
+        except AIError as e:
+            if 'thinking' not in str(e).lower() or 'thinkingConfig' not in gen:
+                raise
+            gen.pop('thinkingConfig')  # модель не знает этой настройки — без неё
+            data = _post(url, {'x-goog-api-key': key}, body2, timeout)
         try:
             cand = (data.get('candidates') or [])[0]
             text = ''.join(pt.get('text', '') for pt in (cand.get('content') or {}).get('parts') or []
@@ -149,7 +173,11 @@ def complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: int
             text = ''
         if not text:
             fb = (data.get('promptFeedback') or {}).get('blockReason')
-            raise AIError('Gemini отказался отвечать (%s).' % fb if fb else 'Gemini вернул пустой ответ.')
+            fin = ((data.get('candidates') or [{}])[0] or {}).get('finishReason')
+            if fb:
+                raise AIError('Gemini отказался отвечать (%s).' % fb)
+            raise AIError('Gemini не уложился в лимит ответа — выберите модель Flash или попробуйте ещё раз.'
+                          if fin == 'MAX_TOKENS' else 'Gemini вернул пустой ответ (%s).' % (fin or 'без причины'))
         return text
 
     base = (cfg.get('base') or PROVIDERS[provider]['base']).rstrip('/')
@@ -204,6 +232,15 @@ def guess(key: str) -> List[str]:
 
 
 def list_models(provider: str, key: str, base: str = '') -> List[str]:
+    try:
+        return _list_models(provider, key, base)
+    except AIError:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise AIError('%s: непонятный ответ (%s)' % (PROVIDERS[provider]['title'], e.__class__.__name__))
+
+
+def _list_models(provider: str, key: str, base: str = '') -> List[str]:
     """Модели, доступные по ключу (рекомендуемые первыми). Ошибка доступа -> AIError."""
     import requests
     p = PROVIDERS[provider]

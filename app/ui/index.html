@@ -1462,7 +1462,7 @@ $('#dmAI').onclick = async () => {
   if (!aiOn()) { toast('Сначала вставьте API-ключ выше'); return; }
   if (!DMC.ai) { toast('Подтвердите API-ключ выше'); return; }
   const b = $('#dmAI'); b.disabled = true; b.textContent = 'ИИ верстает сайт… 1–3 минуты';
-  const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value);
+  const r = await api().demo_ai(DM.lead.id, readDemo(), $('#dmWish').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
   b.disabled = false; b.textContent = 'Сгенерировать заново';
   if (!r.ok) { toast(r.error); return; }
   DM.content = r.content; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово. Не нравится — поправьте пожелания и сгенерируйте заново');
@@ -1474,7 +1474,7 @@ $('#dmBuild').onclick = async () => {
 $('#dmCopy').onclick = () => { copyText($('#dmPrompt').value, true); toast('Промпт скопирован — вставьте его в claude.ai'); };
 $('#dmOpenClaude').onclick = () => { copyText($('#dmPrompt').value, true); api().open_url('https://claude.ai/new'); toast('Промпт в буфере — в claude.ai нажмите Ctrl+V и Enter'); };
 $('#dmApply').onclick = async () => {
-  const r = await api().demo_apply_site(DM.lead.id, readDemo(), $('#dmAnswer').value);
+  const r = await api().demo_apply_site(DM.lead.id, readDemo(), $('#dmAnswer').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
   if (!r.ok) { toast(r.error); return; }
   DM.content = r.content; $('#dmAnswer').value = ''; fillDemo(); $('#dmFrame').srcdoc = r.html; toast('Готово — проверьте сайт справа. Криво — попросите Claude поправить и вставьте новый код');
 };
@@ -1521,9 +1521,9 @@ $('#dmMsgAi').onclick = async () => {
   if (!DMC.ai) { toast('Ключ взят из Настроек — подтвердите его ниже'); return; }
   const b = $('#dmMsgAi'), tid = $('#dmTpl').value === '__ai__' ? '' : $('#dmTpl').value;
   b.disabled = true; b.dataset.busy = '1'; b.textContent = 'ИИ пишет…';
-  const r = await api().message_ai(DM.lead.id, tid, $('#dmMsgWish').value);
-  b.disabled = false; delete b.dataset.busy; b.innerHTML = icon('i-wand') + 'Сгенерировать ещё';
-  if (!r.ok) { toast(r.error); return; }
+  const r = await api().message_ai(DM.lead.id, tid, $('#dmMsgWish').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
+  b.disabled = false; delete b.dataset.busy; b.innerHTML = icon('i-wand') + (r.ok ? 'Сгенерировать ещё' : 'Сгенерировать ИИ');
+  if (!r.ok) { toast(r.error); $('#dmMsgNote').textContent = r.error; return; }
   $('#dmMsg').value = r.text; $('#dmMsgNote').textContent = DM.lead.demo_url || DEMO_URLS[DM.lead.id] ? '' : 'Ссылки на демо пока нет — опубликуйте выше и сгенерируйте ещё раз.';
 };
 $('#dmMsgCopy').onclick = () => { if (!$('#dmMsg').value.trim()) { toast('Сначала выберите текст'); return; } copyText($('#dmMsg').value, true); toast('Текст скопирован — вставьте его владельцу в любой мессенджер'); };
@@ -1606,7 +1606,7 @@ function renderAIInto(box) {
       if (!q('#aiKey').value.trim()) q('#aiKey').value = bv;
       q('#aiBase').value = ''; q('#aiBase').hidden = true;
     }
-    const r = await api().ai_detect(q('#aiKey').value, q('#aiBase').hidden ? '' : q('#aiBase').value);
+    const r = await api().ai_detect(q('#aiKey').value, q('#aiBase').hidden ? '' : q('#aiBase').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
     if (!r.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = r.error; return; }
     q('#aiErr').textContent = ''; aiFound = Object.assign({}, r, {key: q('#aiKey').value.trim(), base: q('#aiBase').hidden ? '' : q('#aiBase').value.trim()}); aiFoundHost = box; renderFound(box);
   };
@@ -1630,7 +1630,7 @@ function renderFound(host) {
   q('#aiSave').onclick = async () => {
     q('#aiErr').textContent = 'Пробный запрос…';
     const res = await api().ai_save({provider: r.provider, key: r.key, model: sel.value, folder: q('#aiFolder') ? q('#aiFolder').value : '',
-      base: r.base, offer: AI.offer || '', fresh: true});
+      base: r.base, offer: AI.offer || '', fresh: true}).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
     if (!res.ok) { q('#aiErr').innerHTML = '<span class="bad"></span>'; q('#aiErr').firstChild.textContent = res.error; return; }
     AI = res.ai; aiEdit = false; aiFound = null; if (AI_CONFIRM.includes(host.id)) DMC.ai = true;
     renderAI(); renderTplSelect(); renderDots(); toast('ИИ подключён: ' + r.title);

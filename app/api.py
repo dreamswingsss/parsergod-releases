@@ -503,7 +503,7 @@ class Api:
         try:
             out = ai_mod.complete(cfg, ai_mod.message_prompt(lead, cfg.get('offer', ''),
                                                              render_message(t['body'], lead) if t else '', wishes),
-                                  ai_mod.MESSAGE_SYSTEM, max_tokens=700, timeout=90)
+                                  ai_mod.MESSAGE_SYSTEM, max_tokens=700, timeout=150)
         except ai_mod.AIError as e:
             return {'ok': False, 'error': str(e)}
         return {'ok': True, 'text': ai_mod.clean_message(out)}
