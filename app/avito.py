@@ -75,13 +75,14 @@ _PAGE_JS = r"""(function(){
   var hasWidget = !!document.querySelector(
     'iframe[src*="captcha"], iframe[src*="geetest"], [class*="geetest"], [id*="geetest"], ' +
     'form[action*="captcha"], [data-marker*="captcha"], iframe[src*="firewall"]');
-  var ipblock = /проблема с ip|доступ ограничен|слишком много запросов|too many requests|ошибка 429/i.test(head);
-  var captcha = hasWidget || /пройдите проверку|подтвердите, что вы не робот|подтвердите, что запросы|я не робот|captcha/i.test(head);
+  // Кнопка «Пройти проверку» на странице блока — её можно нажать и пройти проверку.
+  var checkbtn = Array.prototype.slice.call(document.querySelectorAll('a,button,[role="button"]'))
+    .some(function(e){ return /пройти проверку/i.test(e.textContent || ''); });
+  var blocked = hasWidget || checkbtn ||
+    /проблема с ip|доступ ограничен|слишком много запросов|too many requests|ошибка 429|пройдите проверку|подтвердите, что вы не робот|я не робот|captcha/i.test(head);
   return JSON.stringify({
     items: out,
-    block: ipblock || captcha,
-    ipblock: ipblock && !hasWidget,   // IP-лимит без решаемого виджета
-    captcha: captcha,                 // есть что проходить человеку
+    block: blocked,
     notfound: /такой страницы не существует|страница не найдена/i.test(head),
     next: !!document.querySelector('[data-marker="pagination-button/nextPage"]:not([aria-disabled="true"]), a[data-marker="pagination-button/next"]')
   });
@@ -101,6 +102,16 @@ _CLICK_NEXT_JS = r"""(function(){
 _FIRST_ID_JS = r"""(function(){
   var e = document.querySelector('[data-marker="item"], div[data-item-id]');
   return e ? (e.getAttribute('data-item-id') || (e.querySelector('a[href]')||{}).href || '') : '';
+})()"""
+
+# Нажать кнопку «Пройти проверку» на странице блока Авито, чтобы открылась сама проверка.
+_CLICK_CHECK_JS = r"""(function(){
+  var els = Array.prototype.slice.call(document.querySelectorAll('a,button,[role="button"]'));
+  var b = els.filter(function(e){ return /пройти проверку/i.test(e.textContent || ''); })[0];
+  if(!b) return false;
+  b.scrollIntoView({block:'center'});
+  b.click();
+  return true;
 })()"""
 
 
@@ -191,56 +202,33 @@ class AvitoSearch:
 
     # --- обработка блокировок --------------------------------------------
 
-    def _wait_captcha(self) -> bool:
-        """Настоящая капча — выносим окно вперёд и ждём, пока человек её пройдёт."""
+    def _handle_block(self, reload_url: str, info: Dict[str, Any]) -> bool:
+        """Блок Авито («проблема с IP» / капча / «Пройти проверку»). Выносим окно вперёд,
+        сами жмём «Пройти проверку», если она есть, и ждём, пока человек пройдёт проверку.
+        Вернуть True, если доступ восстановлен и можно читать дальше."""
         cr = self._ensure()
         cr.bring_to_front()
-        self.on_captcha('Авито просит подтвердить, что вы не робот. Пройдите проверку в окне браузера — сбор продолжится сам.')
-        self.log('warn', 'Авито показал капчу — ждём, пока вы её пройдёте.')
+        try:
+            cr.execute_script(_CLICK_CHECK_JS)  # открыть саму проверку, если это страница с кнопкой
+        except Exception:
+            pass
+        self.on_captcha('Авито просит пройти проверку (много запросов с вашего IP). '
+                        'Пройдите её в открытом окне браузера — сбор продолжится сам.')
+        self.log('warn', 'Авито показал проверку — ждём, пока вы её пройдёте.')
         try:
             t0 = time.time()
-            while time.time() - t0 < 600 and not self.cancelled():
+            while time.time() - t0 < 300 and not self.cancelled():
                 time.sleep(2)
                 info = self._read()
                 if info.get('items') and not info.get('block'):
                     self.log('ok', 'Проверка пройдена, продолжаю.')
                     return True
+            self.log('error', 'Проверку не прошли за 5 минут. Останавливаю Авито — собранное сохранено. '
+                              'На одном IP Авито упирается в лимит примерно на каждых ~50 объявлениях: '
+                              'собирайте в два захода по ~50 или подключите прокси.')
             return False
         finally:
             self.on_captcha(None)
-
-    def _handle_block(self, reload_url: str, info: Dict[str, Any]) -> bool:
-        """Вернуть True, если доступ восстановлен и можно читать дальше."""
-        # Есть решаемый виджет — пусть проходит человек.
-        if info.get('captcha') and not info.get('ipblock'):
-            return self._wait_captcha()
-        # «Мягкий» IP-лимит: проходить нечего. Пережидаем бэкоффом и перепроверяем.
-        cr = self._ensure()
-        for pause in (60, 120):
-            if self.cancelled():
-                return False
-            self.on_captcha('Авито ограничил доступ по IP (слишком много запросов). Пауза %d с — не закрывай окно.' % pause)
-            self.log('warn', 'Авито: ограничение по IP. Пауза %d с и повтор.' % pause)
-            end = time.time() + pause
-            while time.time() < end and not self.cancelled():
-                time.sleep(2)
-            self.on_captcha(None)
-            if self.cancelled():
-                return False
-            try:
-                cr.navigate(reload_url, referer='https://www.avito.ru/', timeout=60)
-            except Exception:
-                pass
-            self._jsleep(3, 6)
-            info = self._read()
-            if info.get('items') and not info.get('block'):
-                self.log('ok', 'Доступ восстановлен, продолжаю.')
-                return True
-            if info.get('captcha') and not info.get('ipblock'):
-                return self._wait_captcha()
-        self.log('error', 'Авито продолжает ограничивать доступ по IP. Останавливаю Авито — собранное сохранено. '
-                          'Попробуйте позже, уменьшите число запросов за раз или смените сеть.')
-        return False
 
     # --- основной обход ---------------------------------------------------
 
