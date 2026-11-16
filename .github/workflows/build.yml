@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
+    branches: ['release']   # пуш в ветку release = сборка + черновик релиза v<APP_VERSION>
 
 jobs:
   windows:
@@ -72,12 +73,28 @@ jobs:
         with: { name: 'mac-${{ matrix.os }}', path: release/*.dmg }
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Mac-сборка не должна блокировать выпуск Windows.
+    if: ${{ !cancelled() && needs.windows.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/release') }}
     needs: [windows, macos]
     runs-on: ubuntu-latest
     permissions: { contents: write }
     steps:
+      - uses: actions/checkout@v4
+      - id: ver
+        run: echo "v=$(python3 -c 'from app import brand; print(brand.APP_VERSION)')" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with: { path: out, merge-multiple: true }
       - uses: softprops/action-gh-release@v2
-        with: { draft: true, files: 'out/*' }
+        with:
+          draft: true
+          files: 'out/*'
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', steps.ver.outputs.v) }}
+          target_commitish: ${{ github.sha }}
+      # Готовые файлы — в служебную ветку builds (одним коммитом), чтобы их можно было забрать через git.
+      - name: Push files to builds branch
+        run: |
+          mkdir -p /tmp/b && cp out/* /tmp/b/ && cd /tmp/b
+          git init -q -b builds && git config user.name ci && git config user.email ci@users.noreply.github.com
+          echo "${{ github.sha }} v${{ steps.ver.outputs.v }}" > BUILD.txt
+          git add -A && git commit -q -m "build v${{ steps.ver.outputs.v }} ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" builds

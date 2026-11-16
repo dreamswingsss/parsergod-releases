@@ -601,6 +601,10 @@ details.howto>*:not(summary){margin-top:8px}
           <div class="drop" id="cityDrop" hidden></div>
         </div>
         <p class="hint" id="cityHint">Небольшие города (Полевской, Ревда, Верхняя Пышма…) тоже ищутся — ParserGod сам найдёт регион 2ГИС</p>
+        <div class="seg" id="sourceSeg" style="margin-top:12px">
+          <button data-v="2gis">2ГИС</button><button data-v="both">2ГИС + Яндекс</button>
+        </div>
+        <p class="hint" id="sourceHint"></p>
       </section>
 
       <section class="block">
@@ -1050,8 +1054,11 @@ function renderSpheres() {
 /* ---------- источник ---------- */
 function renderSource() {
   document.querySelectorAll('#sourceSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (S.source || '2gis'))));
+  $('#sourceHint').textContent = S.source === 'both'
+    ? 'Сначала 2ГИС, потом Яндекс Карты. Одна и та же точка склеивается в одну строку, недостающие контакты добавляются. Колонка «Источник» покажет, где нашлась. Яндекс откроет окно браузера — если попросит «я не робот», пройдите проверку. Дольше, чем только 2ГИС.'
+    : 'Только 2ГИС — быстрее всего.';
 }
-document.querySelectorAll('#sourceSeg button').forEach(b => b.onclick = () => { S.source = b.dataset.v; renderSource(); });
+document.querySelectorAll('#sourceSeg button').forEach(b => b.onclick = () => { S.source = b.dataset.v; renderSource(); if (!running && !shown) renderHeader(); });
 
 /* ---------- лимит ---------- */
 function renderLimit() {
@@ -1083,11 +1090,12 @@ let headerKeys = [];
 const colLetter = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
 function currentKeys(withQuery) {
   const keys = FIELDS.map(f => f.key).filter(k => k === 'name' || S.fields.includes(k));
+  if (S.source === 'both') keys.push('sources');
   return withQuery ? ['_query'].concat(keys) : keys;
 }
 function renderHeader(withQuery) {
   headerKeys = currentKeys(withQuery);
-  const title = k => k === '_query' ? 'Запрос' : FIELDS.find(f => f.key === k).title;
+  const title = k => k === '_query' ? 'Запрос' : k === 'sources' ? 'Источник' : FIELDS.find(f => f.key === k).title;
   const thead = $('#sheet thead');
   thead.innerHTML = '<tr class="letters"><th class="n"></th>' + headerKeys.map((_, i) => '<th>' + colLetter(i) + '</th>').join('') + '</tr>'
     + '<tr class="titles"><th class="n">1</th>' + headerKeys.map(k => '<th></th>').join('') + '</tr>';
@@ -1896,6 +1904,16 @@ function appendRows(rows) {
   if (rows.length && shown <= MAX_ROWS_DOM) { const w = $('#sheetwrap'); w.scrollTop = w.scrollHeight; }
 }
 
+function updateRows(list) {  // строка 2ГИС дополнилась данными Яндекса
+  const trs = $('#sheet tbody').children, cs = $('#cards').children;
+  for (const {i, row} of list) {
+    if (i >= MAX_ROWS_DOM) continue;
+    const tr = trs[i];
+    if (tr) { const n = tr.firstChild; tr.innerHTML = ''; tr.appendChild(n); headerKeys.forEach(k => tr.appendChild(cell(k, row[k]))); }
+    if (cs[i]) cs[i].replaceWith(card(row));
+  }
+}
+
 /* ---------- состояние ---------- */
 const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? one : (a >= 2 && a <= 4 && (b < 10 || b >= 20)) ? few : many; };
 function setCount(n) { $('#mFound').textContent = n.toLocaleString('ru-RU'); setCount0(n); }
@@ -1939,6 +1957,7 @@ async function poll() {
   try { st = await api().status(rowCursor, logCursor); } catch (e) { timer = setTimeout(poll, 1000); return; }
   rowCursor = st.row_cursor; logCursor = st.log_cursor;
   if (st.rows.length) appendRows(st.rows);
+  if (st.updated && st.updated.length) updateRows(st.updated);
   if (st.logs.length) appendLogs(st.logs);
   setCount(st.count);
   if (st.needs_visible && !$('#showBrowser').checked) { $('#showBrowser').checked = true; S.show_browser = true; }

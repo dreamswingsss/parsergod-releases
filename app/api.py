@@ -174,7 +174,8 @@ class Api:
                     'version': brand.APP_VERSION, 'support': brand.SUPPORT_CONTACT},
             'cities': self._cities,
             'localities': self._localities,
-            'fields': [{'key': k, 'title': v['title'], 'group': v['group']} for k, v in FIELDS.items()],
+            'fields': [{'key': k, 'title': v['title'], 'group': v['group']} for k, v in FIELDS.items()
+                       if k != 'sources'],  # «Источник» добавляется сам в режиме 2ГИС + Яндекс
             'browsers': [b[0] for b in find_browsers()],
             'settings': {
                 'cities': [],  # каждый запуск — с чистого листа
@@ -191,7 +192,7 @@ class Api:
                 'delay_ms': s.get('delay_ms', 0),
                 'browser_path': s.get('browser_path', ''),
                 'output_dir': s.get('output_dir') or str(default_output_dir()),
-                'source': '2gis',
+                'source': s.get('source') if s.get('source') in ('2gis', 'both') else '2gis',
             },
             'recent': [],  # история сборов на старте не показывается
             'statuses': STATUSES,
@@ -237,6 +238,9 @@ class Api:
             if not fields:
                 return {'ok': False, 'error': 'Отметьте хотя бы одно поле для таблицы'}
 
+            source = payload.get('source') if payload.get('source') in ('2gis', 'both') else '2gis'
+            if source == 'both' and 'sources' not in fields:
+                fields = fields + ['sources']  # колонка «Источник»: 2ГИС / Яндекс / 2ГИС + Яндекс
             limit = payload.get('limit')
             limit = int(limit) if limit else None
             contact_fields = [f for f in fields if FIELDS[f]['group'] == 'contact']
@@ -255,10 +259,10 @@ class Api:
                 delay_ms=int(payload.get('delay_ms') or 0),
                 browser_path=(payload.get('browser_path') or '').strip() or None,
                 output_dir=output_dir,
-                source='2gis',  # Яндекс Карты временно отключены (код в app/yandex.py)
+                source=source,
             )
             self._settings.update({
-                'cities': [c['key'] for c in cities], 'queries': queries, 'fields': fields,
+                'cities': [c['key'] for c in cities], 'queries': queries, 'fields': [f for f in fields if f != 'sources'],
                 'limit': limit, 'require_any': bool(payload.get('require_any')),
                 'require_phone': params.require_phone, 'one_per_chain': params.one_per_chain,
                 'min_rating': params.min_rating, 'no_site': params.no_site, 'show_browser': params.show_browser,
@@ -778,11 +782,16 @@ class Api:
             save_settings(self._settings)
         rows = j.rows[row_cursor:row_cursor + 200]
         logs = j.logs[log_cursor:]
+        ser = lambda r: dict({k: r.get(k) for k in list(FIELDS) + ['_query', '_photos']}, _lid=lead_id(r))
+        upd = sorted(i for i in list(getattr(j, '_updated', ())) if i < row_cursor)
+        if upd:
+            j._updated.difference_update(upd)
         end = j.finished_at or time.time()
         return {
             'state': j.state,
             'count': len(j.rows),
-            'rows': [dict({k: r.get(k) for k in list(FIELDS) + ['_query', '_photos']}, _lid=lead_id(r)) for r in rows],
+            'rows': [ser(r) for r in rows],
+            'updated': [{'i': i, 'row': ser(j.rows[i])} for i in upd],  # 2ГИС + Яндекс: дополненные строки
             'row_cursor': row_cursor + len(rows),
             'logs': logs,
             'log_cursor': log_cursor + len(logs),

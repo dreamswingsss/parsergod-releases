@@ -391,6 +391,37 @@ class YandexSearch:
                 self.log('info', 'Участков пройдено: %d, осталось: %d, найдено: %d' % (done, len(queue), len(self._seen)))
         return total
 
+    # ---------- карточка организации (приём из GeoLeadScraper, MIT) ----------
+    def enrich(self, rec: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Открывает карточку организации и достаёт полные данные из script.state-view
+        (stack[0].results.items[0]). В выдаче поиска у части организаций нет телефона
+        или сайта — в карточке они есть. Вызывать ПОСЛЕ сбора участка: уводит вкладку
+        со страницы поиска. Возвращает новую запись или None."""
+        url = rec.get('url')
+        if not url or self.cancelled():
+            return None
+        cr = self._ensure()
+        try:
+            self._discard_pending()
+            cr.navigate(url, referer='https://yandex.ru/maps/', timeout=60)
+            time.sleep(1.8)
+            if not self._wait_captcha():
+                return None
+            raw = self._state()
+            data = json.loads(raw) if raw else {}
+        except Exception as e:
+            self.dbg('enrich %s: %s' % (url, e))
+            return None
+        org = None
+        try:
+            org = data['stack'][0]['results']['items'][0]
+        except (KeyError, IndexError, TypeError):
+            org = next(iter_orgs(data), None)
+        if not isinstance(org, dict):
+            return None
+        out = org_to_record(org)
+        return out if out.get('name') else None
+
     def run(self) -> int:
         """Старый режим: один поиск по тексту (без деления на участки)."""
         return self.collect(search_url(self.text))[0]

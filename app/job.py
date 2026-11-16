@@ -22,7 +22,7 @@ from parser_2gis.writer.options import WriterOptions
 
 from .browsers import pick_browser
 from .excel import write_xlsx
-from .records import parse_doc
+from .records import CONTACT_KEYS, format_phone, parse_doc, site_kind
 from .storage import data_dir, safe_filename
 
 # Признаки страницы проверки «вы не робот» у 2ГИС.
@@ -49,6 +49,46 @@ def _rname(city: Dict[str, Any], code: str) -> str:
 
 def _norm(s: str) -> str:
     return (s or '').lower().replace('ё', 'е').strip()
+
+
+# Домены, которые не являются «своим сайтом» организации — по ним не склеиваем.
+_SHARED_HOSTS = ('vk.com', 'vk.ru', 'instagram.com', 't.me', 'wa.me', 'whatsapp', 'taplink', 'yandex.',
+                 '2gis.', 'google.', 'ok.ru', 'avito.ru', 'youtube.com', 'tiktok.com', 'facebook.com',
+                 'profi.ru', 'flamp.ru', 'zoon.ru', 'uslugi.yandex')
+
+
+def _same(kind: str, value: str) -> str:
+    """Ключ сравнения контакта: телефон — по цифрам, ссылка — без схемы, www и хвоста."""
+    if kind == 'phone':
+        d = re.sub(r'\D', '', value)
+        return d[-10:] if len(d) >= 10 else d
+    v = value.lower().split('://', 1)[-1]
+    v = v[4:] if v.startswith('www.') else v
+    if kind == 'website':
+        return v.split('/', 1)[0]
+    return v.rstrip('/')
+
+
+def _cross_keys(rec: Dict[str, Any]) -> List[str]:
+    """Признаки одной и той же организации в 2ГИС и Яндексе: телефон, домен сайта,
+    название + адрес. Совпал любой — это одна точка."""
+    keys: List[str] = []
+    for ph in str(rec.get('phone') or '').split(','):
+        d = re.sub(r'\D', '', ph)
+        if len(d) >= 10:
+            keys.append('p:' + d[-10:])  # +7 / 8 — один номер
+    for w in str(rec.get('website') or '').split(','):
+        w = w.strip()
+        if not w:
+            continue
+        host = urllib.parse.urlsplit(w if '://' in w else 'http://' + w).netloc.lower()
+        host = host[4:] if host.startswith('www.') else host
+        if host and not any(h in host for h in _SHARED_HOSTS):
+            keys.append('w:' + host)
+    name, addr = _norm(rec.get('name') or ''), _norm(rec.get('address') or '')
+    if name and addr:
+        keys.append('na:%s|%s' % (re.sub(r'\W+', '', name), re.sub(r'\W+', '', addr)))
+    return keys
 
 
 @dataclass
@@ -79,7 +119,7 @@ class Params:
     delay_ms: int = 0
     browser_path: Optional[str] = None
     output_dir: str = ''
-    source: str = '2gis'                       # '2gis' | 'yandex'
+    source: str = '2gis'                       # '2gis' | 'both' (2ГИС + Яндекс) | 'yandex'
 
 
 class _LimitReached(Exception):
@@ -182,6 +222,11 @@ class Job:
         self._local_hits = 0
         self._server_errors = 0
         self._last_server_error = None
+        self._phase = '2gis'                   # какой источник сейчас собирается
+        self._xindex: Dict[str, int] = {}      # режим «2ГИС + Яндекс»: признак -> номер строки
+        self._merged = 0                       # сколько точек Яндекса совпало с 2ГИС
+        self._updated: set = set()             # строки, дополненные после показа в окне
+        self._y_pending: List[Dict[str, Any]] = []  # точки Яндекса без телефона — дочитать карточку
         self.attention: Optional[str] = None   # просьба к пользователю (пройти проверку)
         self.needs_visible = False             # 2ГИС требует проверку → дальше сразу видимый браузер
 
@@ -241,7 +286,7 @@ class Job:
             if not dup:
                 self._other_place += 1
             self._miss_streak += 1
-            if p.source != 'yandex':
+            if self._phase != 'yandex':
                 if not self._local_hits and self._miss_streak >= WRONG_REGION_AFTER:
                     raise _WrongRegion()
                 if self._local_hits and self._miss_streak >= LOCALITY_DONE_AFTER:
@@ -251,6 +296,20 @@ class Job:
         self._local_hits += 1
         if dup:
             return
+        both = p.source == 'both'
+        if both and self._phase == 'yandex':
+            rec['yandex'], rec['url'] = rec.get('url'), None   # ссылка на карточку Яндекса — в свою колонку
+            rec['site_kind'] = site_kind(rec)
+            hit = self._match(rec)
+            if hit is not None:                                 # та же точка уже есть из 2ГИС
+                with self._lock:
+                    self._absorb(hit, rec)
+                if rec['_id']:
+                    self._seen_ids.add(rec['_id'])
+                return
+            if not rec.get('phone') and not rec.get('_enriched') and (p.require_phone or 'phone' in p.fields):
+                self._y_pending.append(rec)                    # дочитаем карточку после участка
+                return
         if p.require_phone and not rec.get('phone'):
             self._skipped += 1
             return
@@ -272,17 +331,56 @@ class Job:
             self._seen_ids.add(rec['_id'])
 
         task = p.tasks[self.task_index]
-        if rec['_id'] and p.source != 'yandex':  # ссылка на карточку в «родном» домене: 2gis.ru/ekaterinburg/firm/...
+        if rec['_id'] and self._phase != 'yandex':  # ссылка на карточку в «родном» домене: 2gis.ru/ekaterinburg/firm/...
             rec['url'] = 'https://2gis.%s/%s/firm/%s' % (
                 task.city['domain'], rec.get('_alias') or task.city['code'], rec['_id'])
         rec['_query'] = task.query if len({t.query for t in p.tasks}) > 1 else None
         if len({t.city.get('key', t.city['code']) for t in p.tasks}) > 1:
             rec['_query'] = task.label
+        if both:
+            rec['sources'] = '2ГИС' if self._phase != 'yandex' else 'Яндекс'
+        rec.pop('_enriched', None)
         with self._lock:
             self.rows.append(rec)
+            if both:
+                for k in _cross_keys(rec):
+                    self._xindex.setdefault(k, len(self.rows) - 1)
         self._task_kept += 1
         if p.limit and self._task_kept >= p.limit:
             raise _LimitReached()
+
+    # ---------- склейка 2ГИС + Яндекс ----------
+    def _match(self, rec: Dict[str, Any]) -> Optional[int]:
+        return next((self._xindex[k] for k in _cross_keys(rec) if k in self._xindex), None)
+
+    def _absorb(self, i: int, rec: Dict[str, Any]) -> None:
+        """Дополняет строку из 2ГИС данными Яндекса: недостающие контакты, ссылка на карточку."""
+        base = self.rows[i]
+        for k in CONTACT_KEYS:
+            v = rec.get(k)
+            if not v:
+                continue
+            have = [x.strip() for x in str(base.get(k) or '').split(',') if x.strip()]
+            seen = {_same(k, x) for x in have}
+            add = []
+            for x in (y.strip() for y in str(v).split(',')):
+                if x and _same(k, x) not in seen:
+                    seen.add(_same(k, x))
+                    add.append(format_phone(x) if k == 'phone' else x)
+            if add:
+                base[k] = ', '.join(have + add)
+        if rec.get('yandex') and '/maps/org/' not in str(base.get('yandex') or ''):
+            base['yandex'] = rec['yandex']  # вместо ссылки-поиска — настоящая карточка
+        for k in ('rating', 'reviews', 'schedule', 'category'):
+            if base.get(k) in (None, '') and rec.get(k) not in (None, ''):
+                base[k] = rec[k]
+        base['site_kind'] = site_kind(base)  # сайт мог найтись только в Яндексе
+        self._updated.add(i)
+        if base.get('sources') != 'Яндекс':  # дубль внутри Яндекса источник не меняет
+            base['sources'] = '2ГИС + Яндекс'
+            self._merged += 1
+        for k in _cross_keys(base):
+            self._xindex.setdefault(k, i)
 
     # ---------- основной цикл ----------
     def _run(self) -> None:
@@ -379,8 +477,14 @@ class Job:
                          + ('' if got else ' (ничего нового или нет результатов)'))
 
             p = self.params
+            runs = len(p.tasks)
+            if p.source == 'both' and not self._cancel.is_set():
+                self.log('info', '2ГИС готов, строк: %d. Теперь Яндекс Карты — совпадения склею в одну строку.' % len(self.rows))
+                failed += self._run_yandex(p, chrome)
+                runs *= 2
+                self.log('info', 'Совпало с 2ГИС и склеено: %d. Итого строк: %d.' % (self._merged, len(self.rows)))
             final = 'stopped' if self._cancel.is_set() else 'done'
-            if failed and failed == len(p.tasks) and not self.rows:
+            if failed and failed >= runs and not self.rows:
                 final = 'error'
                 self.error = 'Ни один запрос не обработан. Проверьте интернет и попробуйте включить «Показывать браузер».'
         except ChromePathNotFound:
@@ -411,11 +515,13 @@ class Job:
         """Сбор с Яндекс Карт. Возвращает число неудавшихся запросов."""
         from .yandex import YandexSearch
         chrome.headless = not p.show_browser and os.environ.get('PARSER_YANDEX_HEADLESS') == '1'
+        self._phase = 'yandex'
         failed = 0
         for i, task in enumerate(p.tasks):
             if self._cancel.is_set():
                 break
             self.task_index, self.task_label, self._task_kept = i, task.label, 0
+            self._miss_streak, self._local_hits, self._y_pending = 0, 0, []
             before = len(self.rows)
             place = task.city.get('locality') or task.city['name']
             self.log('info', 'Ищу на Яндекс Картах: %s' % task.label)
@@ -437,7 +543,11 @@ class Job:
                               debug=os.environ.get('PARSER_DEBUG') == '1')
             self._ysearch = ys
             try:
-                ys.run_city(task.query, place)
+                try:
+                    ys.run_city(task.query, place)
+                except _LimitReached:
+                    pass
+                self._finish_pending(ys, task.label)
             except (_LimitReached, _Cancelled):
                 pass
             except Exception as e:
@@ -451,6 +561,32 @@ class Job:
             self.log('ok' if got else 'warn', '%s: добавлено %d' % (task.label, got)
                      + ('' if got else ' (ничего нового или нет результатов)'))
         return failed
+
+    # Сколько карточек Яндекса без телефона дочитываем на один запрос (~3 с на карточку).
+    ENRICH_MAX = 150
+
+    def _finish_pending(self, ys: Any, label: str) -> None:
+        """Точки Яндекса без телефона в выдаче: открываем карточку и берём контакты оттуда."""
+        pending, self._y_pending = self._y_pending, []
+        if not pending:
+            return
+        lim = self.params.limit if self.params else None
+        if lim and self._task_kept >= lim:
+            return
+        todo = pending[:self.ENRICH_MAX]
+        self.log('info', '%s: у %d точек нет телефона в выдаче Яндекса — открываю карточки%s.' % (
+            label, len(pending), '' if len(todo) == len(pending) else ' (первые %d)' % len(todo)))
+        for rec in todo:
+            if self._cancel.is_set():
+                raise _Cancelled()
+            full = ys.enrich({'url': rec.get('yandex')}) or {}
+            for k, v in full.items():
+                if v not in (None, '') and rec.get(k) in (None, '') and k not in ('url', '_id'):
+                    rec[k] = v
+            rec['url'], rec['_enriched'] = rec.get('yandex'), True  # _accept снова переложит ссылку
+            if rec.get('_id'):
+                self._seen_ids.discard(rec['_id'])
+            self._accept(rec)  # может бросить _LimitReached
 
     def _gate(self, chrome: ChromeOptions, url: str, mid_run: bool = False) -> bool:
         """Открывает поиск и проверяет, не просит ли 2ГИС пройти проверку.
@@ -528,9 +664,14 @@ class Job:
             stamp = dt.datetime.now().strftime('%Y-%m-%d %H-%M')
             if p.source == 'yandex':
                 name = 'Яндекс — ' + name
+            elif p.source == 'both':
+                name = '2ГИС+Яндекс — ' + name
             path = os.path.join(p.output_dir, safe_filename('%s — %s' % (name, stamp)) + '.xlsx')
-        multi = any(r.get('_query') for r in self.rows)
-        write_xlsx(path, self.rows, p.fields, add_query_column=multi)
+        rows = self.rows
+        if p.no_site and p.source == 'both':  # сайт мог найтись только в Яндексе
+            rows = [r for r in rows if r.get('site_kind') != 'Есть сайт']
+        multi = any(r.get('_query') for r in rows)
+        write_xlsx(path, rows, p.fields, add_query_column=multi)
         return path
 
     def save_as(self, path: str) -> str:
