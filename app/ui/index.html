@@ -602,7 +602,7 @@ details.howto>*:not(summary){margin-top:8px}
         </div>
         <p class="hint" id="cityHint">Небольшие города (Полевской, Ревда, Верхняя Пышма…) тоже ищутся — ParserGod сам найдёт регион 2ГИС</p>
         <div class="seg" id="sourceSeg" style="margin-top:12px">
-          <button data-v="2gis">2ГИС</button><button data-v="both">2ГИС + Яндекс</button>
+          <button data-v="2gis">2ГИС</button><button data-v="both">2ГИС + Яндекс</button><button data-v="avito">Авито</button>
         </div>
         <p class="hint" id="sourceHint"></p>
       </section>
@@ -1056,6 +1056,8 @@ function renderSource() {
   document.querySelectorAll('#sourceSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (S.source || '2gis'))));
   $('#sourceHint').textContent = S.source === 'both'
     ? 'Сначала 2ГИС, потом Яндекс Карты. Одна и та же точка склеивается в одну строку, недостающие контакты добавляются. Колонка «Источник» покажет, где нашлась. Яндекс откроет окно браузера — если попросит «я не робот», пройдите проверку. Дольше, чем только 2ГИС.'
+    : S.source === 'avito'
+    ? 'Объявления услуг с Авито: название, цена, адрес, описание и ссылка. Телефонов нет — Авито показывает их только после входа, писать через чат объявления. Откроется окно браузера; если Авито попросит проверку — пройдите её.'
     : 'Только 2ГИС — быстрее всего.';
 }
 document.querySelectorAll('#sourceSeg button').forEach(b => b.onclick = () => { S.source = b.dataset.v; renderSource(); if (!running && !shown) renderHeader(); });
@@ -1089,13 +1091,18 @@ $('#onlyPhones').onclick = () => { S.fields = S.fields.filter(k => (FIELDS.find(
 let headerKeys = [];
 const colLetter = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
 function currentKeys(withQuery) {
+  if (S.source === 'avito') {
+    const ak = ['name', 'category', 'price', 'address', 'city', 'snippet', 'url'];
+    return withQuery ? ['_query'].concat(ak) : ak;
+  }
   const keys = FIELDS.map(f => f.key).filter(k => k === 'name' || S.fields.includes(k));
   if (S.source === 'both') keys.push('sources');
   return withQuery ? ['_query'].concat(keys) : keys;
 }
 function renderHeader(withQuery) {
   headerKeys = currentKeys(withQuery);
-  const title = k => k === '_query' ? 'Запрос' : k === 'sources' ? 'Источник' : FIELDS.find(f => f.key === k).title;
+  const EXTRA = {_query: 'Запрос', sources: 'Источник', price: 'Цена', snippet: 'Описание'};
+  const title = k => EXTRA[k] || (FIELDS.find(f => f.key === k) || {title: k}).title;
   const thead = $('#sheet thead');
   thead.innerHTML = '<tr class="letters"><th class="n"></th>' + headerKeys.map((_, i) => '<th>' + colLetter(i) + '</th>').join('') + '</tr>'
     + '<tr class="titles"><th class="n">1</th>' + headerKeys.map(k => '<th></th>').join('') + '</tr>';

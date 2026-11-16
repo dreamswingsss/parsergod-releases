@@ -262,9 +262,10 @@ class Job:
                 gate.stop()
             except Exception:
                 pass
-        ys = getattr(self, '_ysearch', None)
-        if ys is not None:
-            ys.close()
+        for attr in ('_ysearch', '_avsearch'):
+            s = getattr(self, attr, None)
+            if s is not None:
+                s.close()
         parser = self._parser
         if parser is not None:
             try:
@@ -282,6 +283,8 @@ class Job:
         assert p is not None
         dup = bool(rec['_id'] and rec['_id'] in self._seen_ids)  # точка уже нашлась по другому запросу
         locality = p.tasks[self.task_index].city.get('locality')
+        if self._phase == 'avito':
+            locality = None  # Авито ищет сразу в нужном городе
         if locality and _norm(locality) not in {_norm(x) for x in rec.get('_places') or []}:
             if not dup:
                 self._other_place += 1
@@ -310,7 +313,9 @@ class Job:
             if not rec.get('phone') and not rec.get('_enriched') and (p.require_phone or 'phone' in p.fields):
                 self._y_pending.append(rec)                    # дочитаем карточку после участка
                 return
-        if p.require_phone and not rec.get('phone'):
+        if self._phase == 'avito':
+            pass  # у объявлений Авито нет телефонов и сайтов — контактные фильтры не применяем
+        elif p.require_phone and not rec.get('phone'):
             self._skipped += 1
             return
         if p.require_any and not any(rec.get(k) for k in p.require_any):
@@ -331,7 +336,7 @@ class Job:
             self._seen_ids.add(rec['_id'])
 
         task = p.tasks[self.task_index]
-        if rec['_id'] and self._phase != 'yandex':  # ссылка на карточку в «родном» домене: 2gis.ru/ekaterinburg/firm/...
+        if rec['_id'] and self._phase == '2gis':  # ссылка на карточку в «родном» домене: 2gis.ru/ekaterinburg/firm/...
             rec['url'] = 'https://2gis.%s/%s/firm/%s' % (
                 task.city['domain'], rec.get('_alias') or task.city['code'], rec['_id'])
         rec['_query'] = task.query if len({t.query for t in p.tasks}) > 1 else None
@@ -410,6 +415,9 @@ class Job:
             if p.source == 'yandex':
                 failed = self._run_yandex(p, chrome)
                 p = None  # цикл 2ГИС ниже не нужен
+            elif p.source == 'avito':
+                failed = self._run_avito(p, chrome)
+                p = None
             elif not self._gate(chrome, p.tasks[0].url):
                 if not self._cancel.is_set():
                     raise RuntimeError('2ГИС запросил проверку «вы не робот», и она не была пройдена.')
@@ -562,6 +570,50 @@ class Job:
                      + ('' if got else ' (ничего нового или нет результатов)'))
         return failed
 
+    def _run_avito(self, p: Params, chrome: ChromeOptions) -> int:
+        """Сбор объявлений с Авито. Возвращает число неудавшихся запросов."""
+        from .avito import AvitoSearch
+        chrome.headless = False  # Авито не пускает скрытый браузер
+        self._phase = 'avito'
+        failed = 0
+
+        def on_captcha(msg: Optional[str]) -> None:
+            self.attention = msg
+            if msg:
+                self.needs_visible = True
+
+        av = AvitoSearch(chrome, lambda rec: self._avito_rec(rec), self._cancel.is_set, self.log, on_captcha)
+        self._avsearch = av
+        try:
+            for i, task in enumerate(p.tasks):
+                if self._cancel.is_set():
+                    break
+                self.task_index, self.task_label, self._task_kept = i, task.label, 0
+                place = task.city.get('locality') or task.city['name']
+                before = len(self.rows)
+                self.log('info', 'Ищу на Авито: %s' % task.label)
+                try:
+                    av.run(task.query, place)
+                except (_LimitReached, _Cancelled):
+                    pass
+                except Exception as e:
+                    if not self._cancel.is_set():
+                        failed += 1
+                        self.log('error', 'Не удалось обработать «%s»: %s' % (task.label, _human_error(e)))
+                got = len(self.rows) - before
+                self.log('ok' if got else 'warn', '%s: добавлено %d' % (task.label, got)
+                         + ('' if got else ' (ничего нового или нет результатов)'))
+        finally:
+            av.close()
+            self._avsearch = None
+        return failed
+
+    def _avito_rec(self, rec: Dict[str, Any]) -> None:
+        if self._cancel.is_set():
+            raise _Cancelled()
+        self._seen_docs += 1
+        self._accept(rec)
+
     # Сколько карточек Яндекса без телефона дочитываем на один запрос (~3 с на карточку).
     ENRICH_MAX = 150
 
@@ -666,6 +718,8 @@ class Job:
                 name = 'Яндекс — ' + name
             elif p.source == 'both':
                 name = '2ГИС+Яндекс — ' + name
+            elif p.source == 'avito':
+                name = 'Авито — ' + name
             path = os.path.join(p.output_dir, safe_filename('%s — %s' % (name, stamp)) + '.xlsx')
         rows = self.rows
         if p.no_site and p.source == 'both':  # сайт мог найтись только в Яндексе

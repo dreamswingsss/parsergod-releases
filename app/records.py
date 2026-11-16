@@ -41,6 +41,8 @@ FIELDS: Dict[str, Dict[str, str]] = {
     'url':           {'title': 'Ссылка на карточку',     'group': 'info'},
     'yandex':        {'title': 'Яндекс Карты',    'group': 'info'},
     'sources':       {'title': 'Источник',        'group': 'info'},  # режим «2ГИС + Яндекс»
+    'price':         {'title': 'Цена',            'group': 'info'},  # Авито
+    'snippet':       {'title': 'Описание',        'group': 'info'},  # Авито
 }
 
 CONTACT_KEYS = [k for k, v in FIELDS.items() if v['group'] == 'contact']
