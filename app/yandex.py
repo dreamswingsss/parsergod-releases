@@ -46,6 +46,34 @@ _SCROLL_JS = r'''(function(){
   return JSON.stringify({h: el.scrollHeight, n: n, end: end, ok: true});
 })()'''
 
+# Ссылки на карточки в списке результатов + прокрутка списка.
+_LIST_JS = r"""(function(){
+  var links = {};
+  document.querySelectorAll('a[href*="/maps/org/"]').forEach(function(a){
+    var h = a.getAttribute('href') || '';
+    var m = h.match(/\/maps\/org\/(?:[^\/?#]+\/)?(\d{5,})/);
+    if (m) links[m[1]] = h.split('?')[0].split('#')[0];
+  });
+  var el = document.querySelector('.search-list-view .scroll__container') ||
+           document.querySelector('.sidebar-view .scroll__container') ||
+           document.querySelector('.scroll__container');
+  if (el) el.scrollTop = el.scrollHeight;
+  var end = !!document.querySelector('.add-business-view, .search-list-view__add-business');
+  return JSON.stringify({links: links, end: end, ok: !!el});
+})()"""
+
+# Читает карточку организации тем же браузером (куки, проверка пройдена) и отдаёт JSON state-view.
+_FETCH_JS = r"""(function(u){
+  try {
+    var x = new XMLHttpRequest(); x.open('GET', u, false); x.send(null);
+    var t = x.responseText || '';
+    var m = t.match(/<script type="application\/json" class="state-view">([^<]*)<\/script>/);
+    if (!m) return JSON.stringify({err: 'nostate', status: x.status,
+      captcha: /showcaptcha|smartcaptcha|checkcaptcha/.test((x.responseURL || '') + t.slice(0, 4000))});
+    return m[1];
+  } catch (e) { return JSON.stringify({err: String(e)}); }
+})(%s)"""
+
 _SOCIAL = {
     'vkontakte': 'vkontakte', 'vk': 'vkontakte', 'telegram': 'telegram', 'whatsapp': 'whatsapp',
     'instagram': 'instagram', 'youtube': 'youtube', 'ok': 'odnoklassniki',
@@ -357,8 +385,98 @@ class YandexSearch:
         except (TypeError, ValueError):
             return None
 
-    # ---------- весь город ----------
-    def run_city(self, query: str, place: str) -> int:
+    # ---------- весь город: список + карточки (как в GeoLeadScraper) ----------
+    def run_city(self, query: str, place: str, max_links: Optional[int] = None) -> int:
+        """Открывает поиск «запрос город», листает список и собирает ссылки на карточки,
+        затем читает каждую карточку напрямую (state-view) — там телефон, сайт, соцсети.
+        Не зависит от перехвата ответов и определения границ города."""
+        cr = self._ensure()
+        url = search_url('%s %s' % (query, place))
+        cr.navigate(url, referer='https://yandex.ru/maps/', timeout=60)
+        time.sleep(3)
+        if not self._wait_captcha():
+            raise RuntimeError('проверка Яндекса не пройдена')
+        links: Dict[str, str] = {}
+        idle, step = 0, 0
+        while step < 150 and not self.cancelled():
+            step += 1
+            try:
+                info = json.loads(cr.execute_script(_LIST_JS) or '{}')
+            except Exception:
+                info = {}
+            before = len(links)
+            for oid, href in (info.get('links') or {}).items():
+                links.setdefault(oid, href)
+            self.dbg('  list %d: ссылок %d (+%d) ok=%s end=%s' % (step, len(links), len(links) - before,
+                                                                 info.get('ok'), info.get('end')))
+            if max_links and len(links) >= max_links:
+                break
+            if info.get('end') and len(links) == before:
+                break
+            idle = idle + 1 if len(links) == before else 0
+            if idle >= 6:
+                break
+            if not self._wait_captcha():
+                break
+            time.sleep(1.2)
+        if not links:
+            self.log('warn', 'Яндекс: по «%s %s» список пуст. Если в окне браузера видна выдача — пришлите скрин журнала.' % (query, place))
+            return 0
+        self.log('info', 'Яндекс: найдено карточек %d, читаю контакты…' % len(links))
+        host = 'https://yandex.ru'
+        total = 0
+        for i, (oid, href) in enumerate(links.items()):
+            if self.cancelled():
+                break
+            full = href if href.startswith('http') else host + href
+            org = self._fetch_org(full)
+            if not org:
+                continue
+            key = 'y' + oid
+            if key in self._seen:
+                continue
+            self._seen.add(key)
+            rec = org_to_record(org)
+            if not rec.get('name'):
+                continue
+            rec['_id'] = rec.get('_id') or key
+            rec['url'] = rec.get('url') or full
+            rec['_enriched'] = True   # данные уже из карточки
+            total += 1
+            self.on_record(rec)       # может бросить «лимит достигнут» / «остановлено»
+            if (i + 1) % 25 == 0:
+                self.log('info', 'Яндекс: прочитано карточек %d из %d' % (i + 1, len(links)))
+            time.sleep(0.25)
+        return total
+
+    def _fetch_org(self, url: str, retry: bool = True) -> Optional[Dict[str, Any]]:
+        cr = self._ensure()
+        try:
+            raw = cr.execute_script(_FETCH_JS % json.dumps(url))
+        except Exception as e:
+            self.dbg('fetch %s: %s' % (url, e))
+            return None
+        if not raw:
+            return None
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            return None
+        if isinstance(data, dict) and data.get('err'):
+            self.dbg('fetch %s: %s' % (url, data))
+            if data.get('captcha') and retry:
+                cr.navigate(url, referer='https://yandex.ru/maps/', timeout=60)
+                time.sleep(2)
+                if self._wait_captcha():
+                    return self._fetch_org(url, retry=False)
+            return None
+        try:
+            return data['stack'][0]['results']['items'][0]
+        except (KeyError, IndexError, TypeError):
+            return next(iter_orgs(data), None)
+
+    # ---------- старый режим: город по участкам (не используется) ----------
+    def run_city_tiles(self, query: str, place: str) -> int:
         bounds = self.geocode(place)
         if not bounds:
             self.log('warn', 'Не удалось определить границы «%s» — ищу по видимой области.' % place)

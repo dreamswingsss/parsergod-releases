@@ -544,7 +544,7 @@ class Job:
             self._ysearch = ys
             try:
                 try:
-                    ys.run_city(task.query, place)
+                    ys.run_city(task.query, place, max_links=(p.limit * 3 if p.limit else None))
                 except _LimitReached:
                     pass
                 self._finish_pending(ys, task.label)
