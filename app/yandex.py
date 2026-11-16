@@ -475,6 +475,40 @@ class YandexSearch:
         except (KeyError, IndexError, TypeError):
             return next(iter_orgs(data), None)
 
+    # ---------- точечная проверка одной организации ----------
+    def lookup(self, name: str, address: str, city: str) -> List[Dict[str, Any]]:
+        """Ищет организацию на Яндекс Картах по «название адрес город» и возвращает
+        найденные карточки (обычно 1–5). Поиск идёт XHR-запросом из уже открытой вкладки
+        yandex.ru — быстро и без перезагрузки страницы."""
+        cr = self._ensure()
+        if not getattr(self, '_ready', False):
+            cr.navigate('https://yandex.ru/maps/', referer='https://yandex.ru/', timeout=60)
+            time.sleep(2.5)
+            if not self._wait_captcha():
+                raise RuntimeError('проверка Яндекса не пройдена')
+            self._ready = True
+        text = ' '.join(x for x in (name, address, city) if x)
+        url = 'https://yandex.ru/maps/?mode=search&text=%s' % urllib.parse.quote(text, safe='')
+        try:
+            raw = cr.execute_script(_FETCH_JS % json.dumps(url))
+            data = json.loads(raw) if raw else {}
+        except Exception as e:
+            self.dbg('lookup %s: %s' % (text, e))
+            return []
+        if isinstance(data, dict) and data.get('err'):
+            if data.get('captcha'):
+                cr.navigate(url, referer='https://yandex.ru/maps/', timeout=60)
+                time.sleep(2)
+                if self._wait_captcha():
+                    try:
+                        raw = cr.execute_script(_FETCH_JS % json.dumps(url))
+                        data = json.loads(raw) if raw else {}
+                    except Exception:
+                        return []
+            if not isinstance(data, dict) or data.get('err'):
+                return []
+        return [o for _, o in zip(range(8), iter_orgs(data))]
+
     # ---------- старый режим: город по участкам (не используется) ----------
     def run_city_tiles(self, query: str, place: str) -> int:
         bounds = self.geocode(place)

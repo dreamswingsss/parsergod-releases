@@ -57,6 +57,20 @@ _SHARED_HOSTS = ('vk.com', 'vk.ru', 'instagram.com', 't.me', 'wa.me', 'whatsapp'
                  'profi.ru', 'flamp.ru', 'zoon.ru', 'uslugi.yandex')
 
 
+def _same_org(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+    """Та же ли это организация: общий телефон/домен сайта, либо совпадает название
+    (одно содержится в другом) и номер дома в адресе."""
+    if set(_cross_keys(a)) & set(_cross_keys(b)):
+        return True
+    na = re.sub(r'\W+', '', _norm(a.get('name') or ''))
+    nb = re.sub(r'\W+', '', _norm(b.get('name') or ''))
+    if len(na) < 3 or len(nb) < 3 or not (na in nb or nb in na):
+        return False
+    ha = re.findall(r'\d+', a.get('address') or '')
+    hb = re.findall(r'\d+', b.get('address') or '')
+    return not ha or not hb or bool(set(ha) & set(hb))
+
+
 def _same(kind: str, value: str) -> str:
     """Ключ сравнения контакта: телефон — по цифрам, ссылка — без схемы, www и хвоста."""
     if kind == 'phone':
@@ -487,10 +501,7 @@ class Job:
             p = self.params
             runs = len(p.tasks)
             if p.source == 'both' and not self._cancel.is_set():
-                self.log('info', '2ГИС готов, строк: %d. Теперь Яндекс Карты — совпадения склею в одну строку.' % len(self.rows))
-                failed += self._run_yandex(p, chrome)
-                runs *= 2
-                self.log('info', 'Совпало с 2ГИС и склеено: %d. Итого строк: %d.' % (self._merged, len(self.rows)))
+                self._check_yandex(p, chrome)
             final = 'stopped' if self._cancel.is_set() else 'done'
             if failed and failed >= runs and not self.rows:
                 final = 'error'
@@ -518,6 +529,67 @@ class Job:
                 self.log('info', 'Пропущено организаций из других населённых пунктов: %d' % self._other_place)
             self.finished_at = time.time()
             self.state = final  # последним шагом — окно увидит уже сохранённый файл
+
+    def _check_yandex(self, p: Params, chrome: ChromeOptions) -> None:
+        """Режим «2ГИС + Яндекс»: каждую найденную в 2ГИС точку без нормального сайта
+        ищем на Яндекс Картах по названию и адресу. Нашлась та же организация —
+        дописываем сайт, соцсети, телефоны и пересчитываем «Тип сайта». Новых строк не добавляем."""
+        from .yandex import YandexSearch, org_to_record
+        todo = [i for i, r in enumerate(self.rows) if r.get('site_kind') != 'Есть сайт']
+        if not todo:
+            return
+        before_site = sum(1 for r in self.rows if r.get('site_kind') == 'Есть сайт')
+        self.log('info', '2ГИС готов: %d строк, сайт есть у %d. Проверяю в Яндексе остальные %d…'
+                 % (len(self.rows), before_site, len(todo)))
+        chrome.headless = not p.show_browser and os.environ.get('PARSER_YANDEX_HEADLESS') == '1'
+        self._phase = 'yandex'
+
+        def on_captcha(msg: Optional[str]) -> None:
+            self.attention = msg
+            if msg:
+                self.needs_visible = True
+
+        ys = YandexSearch(chrome, 'проверка', lambda r: None, self._cancel.is_set, self.log, on_captcha,
+                          debug=os.environ.get('PARSER_DEBUG') == '1')
+        self._ysearch = ys
+        found = changed = 0
+        self.task_count = len(todo)
+        try:
+            for n, i in enumerate(todo):
+                if self._cancel.is_set():
+                    break
+                row = self.rows[i]
+                self.task_index, self.task_label = n, 'Проверка в Яндексе: %s' % (row.get('name') or '')
+                city = row.get('city') or (p.tasks[0].city.get('locality') or p.tasks[0].city['name'])
+                try:
+                    orgs = ys.lookup(row.get('name') or '', row.get('address') or '', city)
+                except Exception as e:
+                    self.log('error', 'Яндекс: %s' % _human_error(e))
+                    break
+                hit = None
+                for o in orgs:
+                    rec = org_to_record(o)
+                    if _same_org(row, rec):
+                        hit = rec
+                        break
+                if not hit:
+                    continue
+                found += 1
+                was = row.get('site_kind')
+                hit['yandex'] = hit.get('url')
+                with self._lock:
+                    self._absorb(i, hit)
+                if row.get('site_kind') != was:
+                    changed += 1
+                time.sleep(0.4)
+                if (n + 1) % 20 == 0:
+                    self.log('info', 'Яндекс: проверено %d из %d, нашлось %d, сайт появился у %d' % (n + 1, len(todo), found, changed))
+        finally:
+            ys.close()
+            self._ysearch = None
+        after_site = sum(1 for r in self.rows if r.get('site_kind') == 'Есть сайт')
+        self.log('ok', 'Яндекс: нашёл %d из %d. Сайт по 2ГИС был у %d, с учётом Яндекса — у %d.'
+                 % (found, len(todo), before_site, after_site))
 
     def _run_yandex(self, p: Params, chrome: ChromeOptions) -> int:
         """Сбор с Яндекс Карт. Возвращает число неудавшихся запросов."""
