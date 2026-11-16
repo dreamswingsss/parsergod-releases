@@ -206,6 +206,9 @@ tbody.ghost td{height:31px}
 .card{background:var(--sheet);border:1px solid var(--grid);border-radius:var(--radius-m);padding:12px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .card:hover{border-color:#3C3C43}
 .card.fresh{animation:marker 1.6s ease-out}
+.card.nosite{border-color:rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.maplinks{display:flex;gap:6px;margin-top:6px}
+.maplinks .ch-2g{margin-left:0}
 .card-top{display:flex;align-items:center;gap:8px}
 .card-top .sp{flex:1}
 .card .rate{font-weight:500;font-size:13px;white-space:nowrap}
@@ -1159,6 +1162,8 @@ function card(r, inBase) {
     c.appendChild(ph);
   }
   const links = document.createElement('div'); links.className = 'links';
+  const maps = document.createElement('div'); maps.className = 'maplinks';  // 2ГИС / Яндекс — отдельной строкой
+  if (!isAvito(r) && r.site_kind === 'Без сайта') c.classList.add('nosite');
   // Авито: соцсетей и сайтов нет — только ссылка на объявление.
   (isAvito(r) ? [['url', 'Открыть на Авито', 'ch-2g', null, false]] : LINKS).forEach(([k, title, cls, ico, always]) => {
     const url = (r[k] || '').split(', ')[0];
@@ -1174,9 +1179,10 @@ function card(r, inBase) {
     const waPhone = k === 'whatsapp' && !ok && mobileOf(r.phone);
     if (waPhone) { b.title = 'WhatsApp по мобильному номеру ' + waPhone; b.setAttribute('aria-label', b.title); }
     if (ok || waPhone) b.onclick = () => chat ? openChat(r, k, c) : api().open_url(url); else b.disabled = true;
-    links.appendChild(b);
+    (k === 'url' || k === 'yandex' ? maps : links).appendChild(b);
   });
-  c.appendChild(links);
+  if (links.children.length) c.appendChild(links); else maps.className = 'links';  // Авито: одна строка со ссылкой
+  if (maps.children.length) c.appendChild(maps);
   const lidOf = r.id || r._lid;
   if (DEMO_URLS[lidOf]) {
     const dl = document.createElement('div'); dl.className = 'demolink'; dl.title = 'Скопировать ссылку на демо';
