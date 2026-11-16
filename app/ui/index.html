@@ -529,6 +529,7 @@ body{background:radial-gradient(1100px 600px at 85% -10%,#1C1C21 0%,transparent 
 .sub .ic,.tobase .ic,.demobtn .ic{width:12px;height:12px;margin-right:4px;vertical-align:-1px}
 /* 2ГИС — такая же тихая кнопка, как сайт */
 .ch-2g{color:var(--ink-2);border-color:var(--grid);background:var(--gutter);font-weight:500}
+.ch-2g.ch-ya{margin-left:6px}
 /* статус лида — только обводка, без цветного свечения */
 .card.cs-contacted,.card.cs-replied,.card.cs-deal,.card.cs-refused{box-shadow:none;background:linear-gradient(180deg,#1C1C20 0%,#161619 100%)}
 .card.cs-contacted{border-color:rgba(111,177,255,.7)}
@@ -1134,7 +1135,8 @@ function cell(k, v) {
 const LINKS = [['instagram', 'Instagram', 'ch-ig', 'i-ig', true], ['telegram', 'Telegram', 'ch-tg', 'i-tg', true],
                ['viber', 'Viber', 'ch-vb', 'i-vb', true], ['whatsapp', 'WhatsApp', 'ch-wa', 'i-wa', true],
                ['vkontakte', 'ВКонтакте', 'ch-vk', 'i-vk', true], ['website', 'Сайт', 'ch-web', 'i-web', false],
-               ['url', '2ГИС', 'ch-2g', null, false]];
+               ['url', '2ГИС', 'ch-2g', null, false], ['yandex', 'Яндекс', 'ch-2g ch-ya', null, false]];
+const isAvito = r => /avito\.ru/.test(r.url || '') || r.site_kind === 'Только Авито';
 const SVGNS = 'http://www.w3.org/2000/svg';
 function card(r, inBase) {
   const c = document.createElement('div'); c.className = 'card fresh'; if (!inBase) c._rec = r;
@@ -1147,7 +1149,8 @@ function card(r, inBase) {
   const h = document.createElement('h3'); h.textContent = r.name || '—'; h.title = r.name || ''; c.appendChild(h);
   const cat = (r.category || '').split(',')[0];
   const meta = document.createElement('div'); meta.className = 'meta';
-  meta.textContent = [cat, r.address].filter(Boolean).join(' · ') || '—'; meta.title = meta.textContent; c.appendChild(meta);
+  meta.textContent = [isAvito(r) ? r.price : cat, r.address].filter(Boolean).join(' · ') || '—'; meta.title = meta.textContent; c.appendChild(meta);
+  if (isAvito(r) && r.snippet) { const sn = document.createElement('div'); sn.className = 'meta'; sn.textContent = r.snippet; sn.title = r.snippet; c.appendChild(sn); }
   if (r.phone) {
     const phones = r.phone.split(', ');
     const ph = document.createElement('div'); ph.className = 'ph'; ph.title = 'Скопировать номер'; ph.textContent = phones[0];
@@ -1156,8 +1159,10 @@ function card(r, inBase) {
     c.appendChild(ph);
   }
   const links = document.createElement('div'); links.className = 'links';
-  LINKS.forEach(([k, title, cls, ico, always]) => {
+  // Авито: соцсетей и сайтов нет — только ссылка на объявление.
+  (isAvito(r) ? [['url', 'Открыть на Авито', 'ch-2g', null, false]] : LINKS).forEach(([k, title, cls, ico, always]) => {
     const url = (r[k] || '').split(', ')[0];
+    if (k === 'yandex' && !/\/maps\/org\//.test(url)) return;  // только настоящая карточка, не поиск
     const ok = /^https?:\/\//.test(url);
     if (!ok && !always) return;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'ch ' + cls;
