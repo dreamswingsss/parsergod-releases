@@ -208,6 +208,10 @@ tbody.ghost td{height:31px}
 .card.fresh{animation:marker 1.6s ease-out}
 .card.nosite{border-color:rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 .maplinks{display:flex;gap:6px;margin-top:6px}
+/* одинаковая сетка карточек: заголовок в 2 строки, строки-заглушки, ссылки и кнопки прижаты к низу */
+.card h3{min-height:calc(2 * 1.3em)}
+.card .links{margin-top:auto}
+.card .meta.empty{visibility:hidden}
 .maplinks .ch-2g{margin-left:0}
 .card-top{display:flex;align-items:center;gap:8px}
 .card-top .sp{flex:1}
@@ -1153,7 +1157,10 @@ function card(r, inBase) {
   const cat = (r.category || '').split(',')[0];
   const meta = document.createElement('div'); meta.className = 'meta';
   meta.textContent = [isAvito(r) ? r.price : cat, r.address].filter(Boolean).join(' · ') || '—'; meta.title = meta.textContent; c.appendChild(meta);
-  if (isAvito(r) && r.snippet) { const sn = document.createElement('div'); sn.className = 'meta'; sn.textContent = r.snippet; sn.title = r.snippet; c.appendChild(sn); }
+  if (isAvito(r)) {  // у всех карточек Авито одинаковые строки: цена · адрес, описание
+    const sn = document.createElement('div'); sn.className = 'meta' + (r.snippet ? '' : ' empty');
+    sn.textContent = r.snippet || '—'; sn.title = r.snippet || ''; c.appendChild(sn);
+  }
   if (r.phone) {
     const phones = r.phone.split(', ');
     const ph = document.createElement('div'); ph.className = 'ph'; ph.title = 'Скопировать номер'; ph.textContent = phones[0];

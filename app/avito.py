@@ -48,9 +48,12 @@ _PAGE_JS = r"""(function(){
     var t = el.querySelector('[itemprop="name"]') || a;
     var pm = el.querySelector('meta[itemprop="price"]');
     var pt = el.querySelector('[data-marker="item-price"]');
-    var geo = el.querySelector('[data-marker="item-address"]') || el.querySelector('[class*="geo-root"]');
-    var d = el.querySelector('meta[itemprop="description"]') || el.querySelector('[class*="descriptionStep"]') ||
-            el.querySelector('[class*="item-description"]');
+    var geo = el.querySelector('[data-marker="item-address"]') || el.querySelector('[data-marker="item-location"]') ||
+              el.querySelector('[class*="geo-address"]') || el.querySelector('[class*="geo-georeferences"]') ||
+              el.querySelector('[class*="geo-root"]') || el.querySelector('[class*="geo-"]');
+    var d = el.querySelector('meta[itemprop="description"]') || el.querySelector('[data-marker="item-description"]') ||
+            el.querySelector('[class*="descriptionStep"]') || el.querySelector('[class*="item-description"]') ||
+            el.querySelector('[class*="iva-item-text"]');
     out.push({
       id: el.getAttribute('data-item-id') || '',
       title: t ? (t.getAttribute('title') || t.textContent || '').trim() : '',
