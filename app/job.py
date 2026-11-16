@@ -535,12 +535,12 @@ class Job:
         ищем на Яндекс Картах по названию и адресу. Нашлась та же организация —
         дописываем сайт, соцсети, телефоны и пересчитываем «Тип сайта». Новых строк не добавляем."""
         from .yandex import YandexSearch, org_to_record
-        todo = [i for i, r in enumerate(self.rows) if r.get('site_kind') != 'Есть сайт']
+        todo = list(range(len(self.rows)))  # перепроверяем все: у каждой карточки — ссылки на 2ГИС и Яндекс
         if not todo:
             return
         before_site = sum(1 for r in self.rows if r.get('site_kind') == 'Есть сайт')
-        self.log('info', '2ГИС готов: %d строк, сайт есть у %d. Проверяю в Яндексе остальные %d…'
-                 % (len(self.rows), before_site, len(todo)))
+        self.log('info', '2ГИС готов: %d строк, сайт есть у %d. Перепроверяю каждую в Яндексе…'
+                 % (len(self.rows), before_site))
         chrome.headless = not p.show_browser and os.environ.get('PARSER_YANDEX_HEADLESS') == '1'
         self._phase = 'yandex'
 
