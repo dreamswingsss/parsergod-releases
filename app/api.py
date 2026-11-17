@@ -84,13 +84,14 @@ def _tg_error(e: Exception) -> str:
     name = e.__class__.__name__
     known = {
         'PhoneNumberInvalidError': 'Неверный номер телефона — пишите в формате +79001234567',
-        'PhoneCodeInvalidError': 'Неверный код из Telegram',
+        'PhoneCodeInvalidError': 'Неверный код. Нужны 5 цифр из сообщения «Код для входа в Telegram» — '
+                                 'не код с сайта my.telegram.org. Если пересылали код кому-то, Telegram его аннулирует — запросите новый',
         'PhoneCodeExpiredError': 'Код устарел — запросите новый',
         'PasswordHashInvalidError': 'Неверный пароль двухэтапной проверки',
         'ApiIdInvalidError': 'Неверные api_id / api_hash — скопируйте их заново с my.telegram.org',
         'FloodWaitError': 'Telegram просит подождать перед новой попыткой входа',
-        'TimeoutError': 'Telegram не ответил — проверьте интернет',
-        'ConnectionError': 'Нет связи с Telegram',
+        'TimeoutError': 'Telegram не ответил. Из России программе нужен VPN — включите его и запросите код снова',
+        'ConnectionError': 'Нет связи с Telegram. Из России программе нужен VPN — включите его и запросите код снова',
     }
     return known.get(name) or '%s: %s' % (name, str(e)[:200])
 
@@ -707,6 +708,9 @@ class Api:
         return {'ok': True}
 
     def tg_sign_in(self, code: str = '', password: str = '') -> Dict[str, Any]:
+        if code and not password and re.search(r'[A-Za-zА-Яа-я]', code):
+            return {'ok': False, 'error': 'Это код от сайта my.telegram.org — он не подходит. Нужен код входа: '
+                                          '5 цифр в сообщении «Код для входа в Telegram» (Login code)'}
         try:
             self._tg_restored = True
             return self._tg_sender().sign_in(code, password)

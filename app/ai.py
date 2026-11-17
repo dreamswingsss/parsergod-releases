@@ -168,6 +168,10 @@ def _complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: in
         try:
             data = _post(url, {'x-goog-api-key': key}, body2, timeout)
         except AIError as e:
+            sug = re.search(r'no longer available.*?use (?:models/)?(gemini-[\w.\-]+)', str(e), re.I | re.S)
+            if sug and sug.group(1).rstrip('.') != bare:  # Google сам называет замену — берём её
+                cfg2 = dict(cfg, model=sug.group(1).rstrip('.'))
+                return _complete(cfg2, prompt, system, max_tokens, timeout)
             if 'thinking' not in str(e).lower() or 'thinkingConfig' not in gen:
                 raise
             gen.pop('thinkingConfig')  # модель не знает этой настройки — без неё
@@ -301,6 +305,11 @@ def _list_models(provider: str, key: str, base: str = '') -> List[str]:
         if k.status_code in (401, 403):
             raise AIError('OpenRouter не принял ключ')
     pref = []
+    if p['kind'] == 'gemini':  # старые модели Google закрывает для новых ключей — новейшая Flash первой
+        def ver(i: str) -> tuple:
+            m = re.match(r'gemini-(\d+)(?:\.(\d+))?-flash$', i)
+            return (int(m.group(1)), int(m.group(2) or 0)) if m else (-1, -1)
+        pref = sorted((i for i in ids if ver(i) >= (0, 0)), key=ver, reverse=True)
     for want in p['prefer']:
         pref += [i for i in ids if i.startswith(want) and i not in pref]
     rest = sorted(i for i in ids if i not in pref and not re.search(r'(embed|whisper|tts|dall-e|image|audio|moderation|vision-preview)', i))
@@ -325,6 +334,8 @@ def detect(key: str, base: str = '') -> Dict[str, Any]:
             continue
         p = PROVIDERS[prov]
         default = p['model'] if p['model'] in models else (models[0] if models else p['model'])
+        if p['kind'] == 'gemini' and models:
+            default = models[0]
         return {'provider': prov, 'title': p['title'], 'models': models, 'model': default,
                 'needs_folder': p['kind'] == 'yandex', 'not_in_russia': prov in NOT_IN_RUSSIA}
     if len(cands) > 1 and not base:  # угадывали по общему «sk-» — ни один не подошёл
