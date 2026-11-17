@@ -83,7 +83,14 @@ def _post(url: str, headers: Dict[str, str], body: Dict[str, Any], timeout: floa
     if r.status_code == 402:
         raise AIError('На балансе сервиса ИИ закончились деньги.')
     if r.status_code == 429:
-        raise AIError('Сервис ИИ просит подождать (слишком много запросов). Попробуйте через минуту.')
+        etype = str(err0.get('type') or err0.get('code') or '') if isinstance(err0, dict) else ''
+        if 'quota' in etype or 'quota' in emsg or 'billing' in emsg or 'credit' in emsg:
+            raise AIError('На API-балансе сервиса ИИ нет денег. Подписка ChatGPT Plus к API не относится — '
+                          'пополните баланс на platform.openai.com → Billing или возьмите другой сервис.')
+        if not emsg and '<html' in r.text[:500].lower():
+            raise AIError('Сервис ИИ отклонил запрос с вашего IP (429). Похоже, сервер VPN перегружен — '
+                          'смените сервер или страну VPN и попробуйте снова.')
+        raise AIError('Сервис ИИ просит подождать (429): %s' % (emsg[:300] or 'слишком много запросов'))
     if not isinstance(data, dict):  # Google иногда отдаёт ошибку списком
         data = data[0] if isinstance(data, list) and data and isinstance(data[0], dict) else {}
     if r.status_code >= 400:
@@ -187,10 +194,30 @@ def _complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: in
     headers = {'Authorization': 'Bearer ' + key}
     if provider == 'openrouter':
         headers.update({'HTTP-Referer': 'https://parsergod.app', 'X-Title': 'ParserGod'})
-    body3: Dict[str, Any] = {'model': model, 'messages': msgs2, 'max_tokens': max_tokens}
-    if not model.startswith('kimi-'):
-        body3['temperature'] = 0.6
-    data = _post(base + '/chat/completions', headers, body3, timeout)
+    bare3 = model.split('/')[-1]
+    reasoning = bool(re.match(r'(gpt-5|o[1-9])', bare3)) and provider in ('openai', 'openrouter', 'aitunnel', 'custom')
+    body3: Dict[str, Any] = {'model': model, 'messages': msgs2}
+    if reasoning:  # у думающих моделей OpenAI другой параметр лимита и нет temperature
+        body3['max_completion_tokens'] = max_tokens + 4000  # запас на «размышления»
+        body3['reasoning_effort'] = 'minimal' if bare3.startswith('gpt-5') and 'pro' not in bare3 else 'low'
+    else:
+        body3['max_tokens'] = max_tokens
+        if not model.startswith('kimi-'):
+            body3['temperature'] = 0.6
+    try:
+        data = _post(base + '/chat/completions', headers, body3, timeout)
+    except AIError as e:  # модель не знает какого-то параметра — убираем и пробуем ещё раз
+        m = str(e).lower()
+        fixed = False
+        if 'max_tokens' in m and 'max_tokens' in body3:
+            body3['max_completion_tokens'] = body3.pop('max_tokens'); fixed = True
+        if 'temperature' in m and 'temperature' in body3:
+            body3.pop('temperature'); fixed = True
+        if 'reasoning' in m and 'reasoning_effort' in body3:
+            body3.pop('reasoning_effort'); fixed = True
+        if not fixed:
+            raise
+        data = _post(base + '/chat/completions', headers, body3, timeout)
     try:
         return data['choices'][0]['message']['content'] or ''
     except (KeyError, IndexError, TypeError):
