@@ -264,7 +264,7 @@ tbody.ghost td{height:31px}
 .basescroll{flex:1;overflow:auto;min-height:0;position:relative}
 .basescroll .cards{display:grid;padding:0 0 12px}
 .basescroll .empty{position:static;background:transparent;padding:60px 24px}
-.batchwrap{flex:1;display:flex;flex-direction:column;margin:0 28px;min-height:0;--sys-blue:#0A84FF;--cell:#1C1C1E;--sep:#38383A;--sec:rgba(235,235,245,.6);--ter:rgba(235,235,245,.3)}
+.batchwrap{flex:1;display:flex;flex-direction:column;margin:0 28px;min-height:0;--cell:#1C1C1E;--sep:#38383A;--sec:rgba(235,235,245,.6);--ter:rgba(235,235,245,.3)}
 .batchwrap[hidden],#batchList[hidden],#batchDetail[hidden]{display:none}
 #batchList,#batchDetail{display:flex;flex-direction:column;min-height:0;flex:1}
 .lt{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
@@ -275,17 +275,17 @@ tbody.ghost td{height:31px}
 .grow:hover{background:#242427}.grow:active{background:#2C2C2E}
 .grow .gt{flex:1;min-width:0}
 .grow .gt b{display:block;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grow .gt b em,.dhead .lt em{font-style:normal;color:var(--sec);font-weight:400;margin-left:8px}
 .grow .gt small{display:block;color:var(--sec);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grow .gn{color:var(--sec);font-size:15px}
 .grow .chev{color:var(--ter);font-size:20px;line-height:1;margin-left:2px}
-.live{color:#30D158}
+.live{color:var(--ink)}
 .navbar{display:flex;align-items:center;gap:4px;margin:-4px 0 8px}
 .navbar .sp{flex:1}
-.textbtn{border:0;background:transparent;color:var(--sys-blue);font-size:15px;cursor:pointer;padding:6px 4px;display:inline-flex;align-items:center;gap:2px}
-.textbtn:hover{opacity:.75}
+.textbtn{border:0;background:transparent;color:var(--ink-2);font-size:15px;cursor:pointer;padding:6px 4px;display:inline-flex;align-items:center;gap:2px}
+.textbtn:hover{color:var(--ink)}
 .textbtn svg{width:20px;height:20px}
-.textbtn.red{color:#FF453A}
-.textbtn.arm{background:rgba(255,69,58,.15);border-radius:8px}
+.textbtn.arm{background:rgba(118,118,128,.24);border-radius:8px;color:var(--ink)}
 .dhead{display:flex;align-items:flex-end;gap:16px;margin-bottom:14px}
 .dhead .dt{flex:1;min-width:0}
 .dhead .lt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -297,13 +297,13 @@ tbody.ghost td{height:31px}
 .segctl button[aria-pressed=true] small{color:rgba(255,255,255,.75)}
 .bactions{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .bactions span{flex:1;color:var(--sec);font-size:13px}
-.takebtn{border:0;border-radius:10px;padding:9px 18px;font-weight:600;font-size:15px;cursor:pointer;color:#fff;background:var(--sys-blue);white-space:nowrap}
-.takebtn:hover{filter:brightness(1.1)}
+.takebtn{border:0;border-radius:9px;padding:8px 16px;font-weight:500;font-size:14px;cursor:pointer;color:var(--ink);background:rgba(118,118,128,.24);white-space:nowrap}
+.takebtn:hover{background:rgba(118,118,128,.36)}
 .takebtn:disabled{background:rgba(118,118,128,.24);color:var(--ter);cursor:default;filter:none}
 .st.s-demo{color:#B794FF;border-color:rgba(183,148,255,.4)}
 .viewseg[hidden]{display:none}
 #modeSeg button{white-space:nowrap}
-.tobase.wrote{color:#6FB1FF;border-color:rgba(111,177,255,.5)}
+.tobase.wrote{color:var(--ink-2);border-style:solid}
 .demobtn{border:1px solid var(--grid);background:transparent;border-radius:var(--radius-s);padding:4px 12px;font-size:12px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .demobtn:hover{border-color:var(--ink);color:var(--ink)}
 .demobtn.has{color:var(--ink);border-color:#4A4A52}
@@ -1972,6 +1972,12 @@ function setMode(m) {
 let BATCH = null, BATCH_F = '', BATCH_ROWS = [], BATCH_INFO = {}, BATCHES = [];
 const SRC_CLS = {'2ГИС': 's-2gis', '2ГИС + Яндекс': 's-both', 'Авито': 's-avito'};
 const nf = n => Number(n || 0).toLocaleString('ru-RU');
+function titleInto(node, title) {  // «запрос · город» -> запрос, город серым, без точки
+  const k = title.lastIndexOf(' · ');
+  node.textContent = k < 0 ? title : title.slice(0, k);
+  if (k >= 0) { const e = document.createElement('em'); e.textContent = title.slice(k + 3); node.appendChild(e); }
+  node.title = title.replace(' · ', ', ');
+}
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 async function loadBatches() {
   BATCH = null; $('#batchList').hidden = false; $('#batchDetail').hidden = true;
@@ -1982,7 +1988,7 @@ async function loadBatches() {
   $('#batchEmpty').hidden = !!res.items.length;
   res.items.forEach(it => {
     const c = el('div', 'grow');
-    const t = el('div', 'gt'); const b = el('b', '', it.title); b.title = it.title;
+    const t = el('div', 'gt'); const b = el('b'); titleInto(b, it.title);
     const sm = el('small');
     if (it.id === res.running) sm.append(el('span', 'live', 'Идёт сбор · '));
     sm.append([it.source, it.when + (it.state === 'stopped' ? ' (остановлен)' : ''),
@@ -1999,7 +2005,7 @@ async function openBatch(bid) {
   applyMarks(res.marks);
   BATCH_ROWS = res.items;
   BATCH_INFO = BATCHES.find(b => b.id === bid) || {};
-  $('#bTitle').textContent = res.title; $('#bTitle').title = res.title;
+  titleInto($('#bTitle'), res.title);
   $('#bMeta').textContent = [BATCH_INFO.source, BATCH_INFO.when].filter(Boolean).join(' · ');
   renderBatch();
 }
