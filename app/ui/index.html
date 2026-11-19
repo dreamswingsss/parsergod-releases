@@ -1758,7 +1758,7 @@ function renderTgInto(box) {
   }
   if (tgStep === 'code' || tgStep === 'password') {
     box.innerHTML = tgStep === 'code'
-      ? '<div style="font-size:13px">Код пришёл в Telegram (в чат «Telegram» на телефоне)</div><input id="tgCode" placeholder="Код" autocomplete="one-time-code">'
+      ? '<div style="font-size:13px">Введите 5 цифр из сообщения «Код для входа в Telegram» (чат «Telegram» на телефоне). Код с сайта my.telegram.org сюда не подходит</div><input id="tgCode" placeholder="12345" autocomplete="one-time-code">'
       : '<div style="font-size:13px">У аккаунта включена двухэтапная проверка</div><input type="text" class="secret" id="tgPass" autocomplete="off" spellcheck="false" placeholder="Облачный пароль Telegram">';
     box.innerHTML += '<div class="btnrow"><button class="btn primary" id="tgGo">Войти</button><button class="btn" id="tgBack">Назад</button></div><div class="hint" id="tgErr"></div>';
     q('#tgBack').onclick = () => { tgStep = 'creds'; renderTg(); };

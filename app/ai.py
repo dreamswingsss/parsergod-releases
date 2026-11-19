@@ -83,7 +83,14 @@ def _post(url: str, headers: Dict[str, str], body: Dict[str, Any], timeout: floa
     if r.status_code == 402:
         raise AIError('На балансе сервиса ИИ закончились деньги.')
     if r.status_code == 429:
-        raise AIError('Сервис ИИ просит подождать (слишком много запросов). Попробуйте через минуту.')
+        etype = str(err0.get('type') or err0.get('code') or '') if isinstance(err0, dict) else ''
+        if 'quota' in etype or 'quota' in emsg or 'billing' in emsg or 'credit' in emsg:
+            raise AIError('На API-балансе сервиса ИИ нет денег. Подписка ChatGPT Plus к API не относится — '
+                          'пополните баланс на platform.openai.com → Billing или возьмите другой сервис.')
+        if not emsg and '<html' in r.text[:500].lower():
+            raise AIError('Сервис ИИ отклонил запрос с вашего IP (429). Похоже, сервер VPN перегружен — '
+                          'смените сервер или страну VPN и попробуйте снова.')
+        raise AIError('Сервис ИИ просит подождать (429): %s' % (emsg[:300] or 'слишком много запросов'))
     if not isinstance(data, dict):  # Google иногда отдаёт ошибку списком
         data = data[0] if isinstance(data, list) and data and isinstance(data[0], dict) else {}
     if r.status_code >= 400:
@@ -161,6 +168,10 @@ def _complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: in
         try:
             data = _post(url, {'x-goog-api-key': key}, body2, timeout)
         except AIError as e:
+            sug = re.search(r'no longer available.*?use (?:models/)?(gemini-[\w.\-]+)', str(e), re.I | re.S)
+            if sug and sug.group(1).rstrip('.') != bare:  # Google сам называет замену — берём её
+                cfg2 = dict(cfg, model=sug.group(1).rstrip('.'))
+                return _complete(cfg2, prompt, system, max_tokens, timeout)
             if 'thinking' not in str(e).lower() or 'thinkingConfig' not in gen:
                 raise
             gen.pop('thinkingConfig')  # модель не знает этой настройки — без неё
@@ -187,10 +198,30 @@ def _complete(cfg: Dict[str, Any], prompt: str, system: str = '', max_tokens: in
     headers = {'Authorization': 'Bearer ' + key}
     if provider == 'openrouter':
         headers.update({'HTTP-Referer': 'https://parsergod.app', 'X-Title': 'ParserGod'})
-    body3: Dict[str, Any] = {'model': model, 'messages': msgs2, 'max_tokens': max_tokens}
-    if not model.startswith('kimi-'):
-        body3['temperature'] = 0.6
-    data = _post(base + '/chat/completions', headers, body3, timeout)
+    bare3 = model.split('/')[-1]
+    reasoning = bool(re.match(r'(gpt-5|o[1-9])', bare3)) and provider in ('openai', 'openrouter', 'aitunnel', 'custom')
+    body3: Dict[str, Any] = {'model': model, 'messages': msgs2}
+    if reasoning:  # у думающих моделей OpenAI другой параметр лимита и нет temperature
+        body3['max_completion_tokens'] = max_tokens + 4000  # запас на «размышления»
+        body3['reasoning_effort'] = 'minimal' if bare3.startswith('gpt-5') and 'pro' not in bare3 else 'low'
+    else:
+        body3['max_tokens'] = max_tokens
+        if not model.startswith('kimi-'):
+            body3['temperature'] = 0.6
+    try:
+        data = _post(base + '/chat/completions', headers, body3, timeout)
+    except AIError as e:  # модель не знает какого-то параметра — убираем и пробуем ещё раз
+        m = str(e).lower()
+        fixed = False
+        if 'max_tokens' in m and 'max_tokens' in body3:
+            body3['max_completion_tokens'] = body3.pop('max_tokens'); fixed = True
+        if 'temperature' in m and 'temperature' in body3:
+            body3.pop('temperature'); fixed = True
+        if 'reasoning' in m and 'reasoning_effort' in body3:
+            body3.pop('reasoning_effort'); fixed = True
+        if not fixed:
+            raise
+        data = _post(base + '/chat/completions', headers, body3, timeout)
     try:
         return data['choices'][0]['message']['content'] or ''
     except (KeyError, IndexError, TypeError):
@@ -274,6 +305,11 @@ def _list_models(provider: str, key: str, base: str = '') -> List[str]:
         if k.status_code in (401, 403):
             raise AIError('OpenRouter не принял ключ')
     pref = []
+    if p['kind'] == 'gemini':  # старые модели Google закрывает для новых ключей — новейшая Flash первой
+        def ver(i: str) -> tuple:
+            m = re.match(r'gemini-(\d+)(?:\.(\d+))?-flash$', i)
+            return (int(m.group(1)), int(m.group(2) or 0)) if m else (-1, -1)
+        pref = sorted((i for i in ids if ver(i) >= (0, 0)), key=ver, reverse=True)
     for want in p['prefer']:
         pref += [i for i in ids if i.startswith(want) and i not in pref]
     rest = sorted(i for i in ids if i not in pref and not re.search(r'(embed|whisper|tts|dall-e|image|audio|moderation|vision-preview)', i))
@@ -298,6 +334,8 @@ def detect(key: str, base: str = '') -> Dict[str, Any]:
             continue
         p = PROVIDERS[prov]
         default = p['model'] if p['model'] in models else (models[0] if models else p['model'])
+        if p['kind'] == 'gemini' and models:
+            default = models[0]
         return {'provider': prov, 'title': p['title'], 'models': models, 'model': default,
                 'needs_folder': p['kind'] == 'yandex', 'not_in_russia': prov in NOT_IN_RUSSIA}
     if len(cands) > 1 and not base:  # угадывали по общему «sk-» — ни один не подошёл
