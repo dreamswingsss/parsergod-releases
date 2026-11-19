@@ -262,6 +262,21 @@ tbody.ghost td{height:31px}
 .basescroll{flex:1;overflow:auto;min-height:0;position:relative}
 .basescroll .cards{display:grid;padding:0 0 12px}
 .basescroll .empty{position:static;background:transparent;padding:60px 24px}
+.batchwrap{flex:1;display:flex;flex-direction:column;margin:0 28px;min-height:0}
+.batchwrap[hidden],#batchList[hidden],#batchDetail[hidden]{display:none}
+.bitem{display:flex;align-items:center;gap:16px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:12px 16px;margin-bottom:8px;cursor:pointer}
+.bitem:hover{border-color:var(--ink-3)}
+.bitem .bt{flex:1;min-width:0}
+.bitem .bt b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bitem .bt small{color:var(--ink-3)}
+.bnums{display:flex;gap:14px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.bnums b{color:var(--ink);font-weight:600;margin-right:3px}
+.btitle{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn.danger{color:#FF7A7F}
+.viewseg[hidden]{display:none}
+#modeSeg button{white-space:nowrap}
+.st.s-demo{color:#B794FF;border-color:rgba(183,148,255,.4)}
+.tobase.wrote{color:#6FB1FF;border-color:rgba(111,177,255,.5)}
 .demobtn{border:1px solid var(--grid);background:transparent;border-radius:var(--radius-s);padding:4px 12px;font-size:12px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .demobtn:hover{border-color:var(--ink);color:var(--ink)}
 .demobtn.has{color:var(--ink);border-color:#4A4A52}
@@ -667,7 +682,7 @@ details.howto>*:not(summary){margin-top:8px}
     <div class="head">
       <div class="count"><b id="count">0</b><span id="countLabel">организаций</span></div>
       <div class="head-mid">
-      <div class="viewseg" id="modeSeg" role="group" aria-label="Раздел"><button data-m="found">Найдено<small id="mFound">0</small></button><button data-m="base">База<small id="mBase">0</small></button></div>
+      <div class="viewseg" id="modeSeg" role="group" aria-label="Раздел"><button data-m="found">Найдено<small id="mFound">0</small></button><button data-m="batches">Сборы<small id="mBatches">0</small></button><button data-m="base">В работе<small id="mBase">0</small></button></div>
       <div class="viewseg" id="viewSeg" role="group" aria-label="Вид"><button data-v="cards">Карточки</button><button data-v="table">Таблица</button></div>
       </div>
       <div class="status" id="status"><strong>Готов к сбору</strong>Таблица появится справа по мере поиска</div>
@@ -695,10 +710,29 @@ details.howto>*:not(summary){margin-top:8px}
         <div class="empty" id="baseEmpty" hidden></div>
       </div>
     </div>
+    <div class="batchwrap" id="batchwrap" hidden>
+      <div id="batchList">
+        <div class="basebar"><div class="btitle">Все сборы — сохраняются сами, по ходу сбора</div></div>
+        <div class="basescroll"><div id="batchItems"></div><div class="empty" id="batchEmpty" hidden><p>Сборов пока нет</p><p>Запустите сбор слева — он сохранится здесь целиком, даже если закрыть программу посреди сбора.</p></div></div>
+      </div>
+      <div id="batchDetail" hidden>
+        <div class="basebar">
+          <button class="btn" id="bBack">← Все сборы</button>
+          <div class="btitle" id="bTitle"></div>
+          <div class="stfil" id="bFil" style="flex:none"><button type="button" data-f="" aria-pressed="true">Все<small id="bfAll">0</small></button><button type="button" data-f="nosite" aria-pressed="false">Без сайта<small id="bfNo">0</small></button></div>
+          <button class="btn primary" id="bTake">Взять в работу</button>
+          <button class="btn" id="bXls">Excel</button>
+          <button class="btn danger" id="bDel">Удалить</button>
+        </div>
+        <div class="basescroll"><div class="cards" id="batchCards"></div></div>
+      </div>
+    </div>
     <div class="log" id="log"></div>
     <div class="foot">
       <div class="tplpick"><span>Текст:</span><select id="activeTpl" title="Какой шаблон подставлять при нажатии на мессенджер"></select><button id="tplBtn" title="Шаблоны сообщений">Шаблоны</button></div>
       <div class="msg" id="footMsg"></div>
+      <button class="btn" id="takeNoSite" hidden title="Взять в работу только организации без сайта">Без сайта → в работу</button>
+      <button class="btn" id="takeAll" hidden title="Взять в работу всех найденных разом">Всех в работу</button>
       <button class="btn" id="logBtn">Журнал</button>
       <button class="btn" id="revealBtn" hidden>Показать в папке</button>
       <button class="btn" id="saveAsBtn" hidden>Сохранить как…</button>
@@ -1208,10 +1242,10 @@ function card(r, inBase) {
     c._lid = r.id; c.classList.add('cs-' + r.status);
     const st = document.createElement('select'); st.className = 'st s-' + r.status; st.title = 'Статус';
     Object.entries(STATUSES).forEach(([k, v]) => { const o = document.createElement('option'); o.value = k; o.textContent = v; o.selected = k === r.status; st.appendChild(o); });
-    st.onchange = async () => { st.className = 'st s-' + st.value; c.classList.remove('cs-' + r.status); c.classList.add('cs-' + st.value); const res = await api().base_status(r.id, st.value); r.status = st.value; setCounts(res.counts); if (baseStatus) loadBase(); };
+    st.onchange = async () => { st.className = 'st s-' + st.value; c.classList.remove('cs-' + r.status); c.classList.add('cs-' + st.value); const res = await api().base_status(r.id, st.value); r.status = st.value; BASE_MARKS[r.id] = st.value; setCounts(res.counts); if (baseStatus) loadBase(); };
     const un = document.createElement('button'); un.type = 'button'; un.className = 'unbase'; un.textContent = 'Убрать';
     un.onclick = async () => {
-      if (un.dataset.arm) { const res = await api().base_remove(r.id); BASE_IDS.delete(r.id); setCounts(res.counts); markFound(r.id); c.remove(); if (!$('#baseCards').children.length) loadBase(); return; }
+      if (un.dataset.arm) { const res = await api().base_remove(r.id); BASE_IDS.delete(r.id); delete BASE_MARKS[r.id]; setCounts(res.counts); markFound(r.id); c.remove(); if (!$('#baseCards').children.length) loadBase(); return; }
       un.dataset.arm = '1'; un.textContent = 'Точно убрать?'; setTimeout(() => { delete un.dataset.arm; un.textContent = 'Убрать'; }, 3000);
     };
     foot.append(un, st);
@@ -1225,7 +1259,7 @@ function card(r, inBase) {
     b.onclick = async () => {
       if (BASE_IDS.has(r._lid)) { setMode('base'); return; }
       const res = await api().base_add(r); if (!res.ok) return;
-      BASE_IDS.add(r._lid); setCounts(res.counts); markFound(r._lid);
+      BASE_IDS.add(r._lid); BASE_MARKS[r._lid] = 'new'; setCounts(res.counts); markFound(r._lid);
     };
     foot.appendChild(b);
     c.appendChild(foot);
@@ -1617,7 +1651,7 @@ $('#dmPublish').onclick = async () => {
   if ($('#dmTpl').value && $('#dmTpl').value !== '__ai__') loadDemoMsg();
   refreshDemoMarks();
 };
-function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }
+function refreshDemoMarks() { if (MODE === 'base') loadBase(); else document.querySelectorAll('#cards .card, #batchCards .card').forEach(c => { if (c._rec) c.replaceWith(card(c._rec)); }); }
 
 /* ---------- ИИ ---------- */
 const AI_CONFIRM = ['dmAiBox', 'dmMsgKey'];
@@ -1860,8 +1894,16 @@ function renderVercel() {
 
 /* ---------- база лидов ---------- */
 let STATUSES = {}, BASE_IDS = new Set(), MODE = 'found', baseStatus = '', baseCounts = {};
-function paintToBase(b) { const inb = BASE_IDS.has(b.dataset.lid); b.classList.toggle('in', inb); b.innerHTML = icon(inb ? 'i-check' : 'i-plus') + (inb ? 'В базе' : 'В базу'); b.title = inb ? 'Уже в базе — открыть базу' : 'Добавить в базу лидов'; }
-function markFound(lid) { document.querySelectorAll('#cards .tobase').forEach(b => { if (b.dataset.lid === lid) paintToBase(b); }); }
+let BASE_MARKS = {};
+function paintToBase(b) {
+  const inb = BASE_IDS.has(b.dataset.lid), st = BASE_MARKS[b.dataset.lid];
+  const wrote = inb && st && st !== 'new' && st !== 'demo';
+  b.classList.toggle('in', inb); b.classList.toggle('wrote', !!wrote);
+  b.innerHTML = icon(inb ? 'i-check' : 'i-plus') + (wrote ? (STATUSES[st] || 'Написал') : inb ? 'В работе' : 'В работу');
+  b.title = wrote ? 'Вы с ними уже работали: ' + (STATUSES[st] || st) + ' — открыть «В работе»' : inb ? 'Уже в работе — открыть' : 'Взять в работу';
+}
+function markFound(lid) { document.querySelectorAll('#cards .tobase, #batchCards .tobase').forEach(b => { if (!lid || b.dataset.lid === lid) paintToBase(b); }); }
+function applyMarks(m) { if (!m) return; BASE_MARKS = m; BASE_IDS = new Set(Object.keys(m)); markFound(); }
 function setCounts(c) {
   baseCounts = c || baseCounts;
   $('#mBase').textContent = baseCounts.all || 0;
@@ -1882,14 +1924,82 @@ async function loadBase() {
   box.appendChild(frag);
   const e = $('#baseEmpty'); e.hidden = !!res.items.length;
   e.innerHTML = baseCounts.all ? '<p>Под этот фильтр никого нет</p><p>Выберите другой статус или очистите поиск</p>'
-    : '<p>В базе пока пусто</p><p>На карточке во вкладке «Найдено» нажмите «+ В базу». Лид останется здесь насовсем: со статусом, заметкой, после перезапуска и новых сборов.</p>';
+    : '<p>В работе пока никого</p><p>Нажмите «Всех в работу» внизу или «+ В работу» на карточке — во вкладке «Найдено» или в любом сборе. Лид останется здесь насовсем: со статусом и заметкой.</p>';
 }
 function setMode(m) {
-  MODE = m === 'base' ? 'base' : 'found';
+  MODE = ['base', 'batches'].includes(m) ? m : 'found';
   document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === MODE)));
-  $('#sheetwrap').hidden = MODE === 'base'; $('#basewrap').hidden = MODE !== 'base'; $('#viewSeg').hidden = MODE === 'base';
+  $('#sheetwrap').hidden = MODE !== 'found'; $('#basewrap').hidden = MODE !== 'base'; $('#batchwrap').hidden = MODE !== 'batches';
+  $('#viewSeg').hidden = MODE !== 'found';
+  $('#takeAll').hidden = $('#takeNoSite').hidden = !FOUND_N || MODE !== 'found';
   if (MODE === 'base') loadBase();
+  if (MODE === 'batches') { if (BATCH) openBatch(BATCH); else loadBatches(); }
 }
+/* ---------- сборы ---------- */
+let BATCH = null, BATCH_F = '';
+async function loadBatches() {
+  BATCH = null; $('#batchList').hidden = false; $('#batchDetail').hidden = true;
+  const res = await api().batches();
+  $('#mBatches').textContent = res.items.length;
+  const box = $('#batchItems'); box.innerHTML = '';
+  $('#batchEmpty').hidden = !!res.items.length;
+  res.items.forEach(it => {
+    const row = document.createElement('div'); row.className = 'bitem';
+    const t = document.createElement('div'); t.className = 'bt';
+    const b = document.createElement('b'); b.textContent = it.title; b.title = it.title;
+    const sm = document.createElement('small');
+    sm.textContent = it.when + ' · ' + it.source + (it.id === res.running ? ' · идёт сбор…' : it.state === 'stopped' ? ' · остановлен' : '');
+    t.append(b, sm);
+    const n = document.createElement('div'); n.className = 'bnums';
+    [[it.total, 'всего'], [it.nosite, 'без сайта'], [it.taken, 'в работе'], [it.contacted, 'написал']].forEach(([v, l]) => {
+      const sp = document.createElement('span'); const bb = document.createElement('b'); bb.textContent = v; sp.append(bb, l); n.appendChild(sp);
+    });
+    row.append(t, n); row.onclick = () => { BATCH_F = ''; openBatch(it.id); };
+    box.appendChild(row);
+  });
+}
+async function openBatch(bid) {
+  BATCH = bid; $('#batchList').hidden = true; $('#batchDetail').hidden = false;
+  const res = await api().batch_open(bid, BATCH_F === 'nosite');
+  applyMarks(res.marks);
+  $('#bTitle').textContent = res.title; $('#bTitle').title = res.title;
+  if (!BATCH_F) { $('#bfAll').textContent = res.items.length; $('#bfNo').textContent = res.items.filter(r => r.site_kind === 'Без сайта').length; }
+  document.querySelectorAll('#bFil button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === BATCH_F)));
+  $('#bTake').textContent = (BATCH_F ? 'Без сайта' : 'Всех') + ' в работу (' + res.items.length + ')';
+  const box = $('#batchCards'); box.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  res.items.forEach(r => { const c = card(r, false); c.classList.remove('fresh'); frag.appendChild(c); });
+  box.appendChild(frag);
+}
+document.querySelectorAll('#bFil button').forEach(b => b.onclick = () => { BATCH_F = b.dataset.f; openBatch(BATCH); });
+$('#bBack').onclick = () => loadBatches();
+$('#bTake').onclick = async () => {
+  const res = await api().batch_take(BATCH, BATCH_F === 'nosite');
+  applyMarks(res.marks); setCounts(res.counts);
+  toast(res.added ? 'Взято в работу: ' + res.added : 'Все они уже в работе', [['Открыть', () => setMode('base')]]);
+};
+$('#bXls').onclick = async () => {
+  const r = await api().batch_export(BATCH, S.fields);
+  if (!r.ok) { toast(r.error); return; }
+  api().open_file(r.path);
+};
+$('#bDel').onclick = async () => {
+  const b = $('#bDel');
+  if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = 'Точно удалить сбор?'; setTimeout(() => { delete b.dataset.arm; b.textContent = 'Удалить'; }, 3000); return; }
+  delete b.dataset.arm; b.textContent = 'Удалить';
+  const r = await api().batch_delete(BATCH);
+  if (!r.ok) { toast(r.error); return; }
+  toast('Сбор удалён. Те, кого вы взяли в работу, остались во вкладке «В работе»'); loadBatches();
+};
+async function takeFound(onlyNoSite) {
+  const res = await api().found_take(onlyNoSite);
+  if (!res.ok) { toast(res.error); return; }
+  applyMarks(res.marks); setCounts(res.counts);
+  const was = res.total - res.added;
+  toast('Взято в работу: ' + res.added + (was ? ' · ещё ' + was + ' уже были' : ''), [['Открыть', () => setMode('base')]]);
+}
+$('#takeAll').onclick = () => takeFound(false);
+$('#takeNoSite').onclick = () => takeFound(true);
 document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => setMode(b.dataset.m));
 let bSearchT = null;
 $('#bSearch').addEventListener('input', () => { clearTimeout(bSearchT); bSearchT = setTimeout(loadBase, 200); });
@@ -1941,7 +2051,8 @@ function updateRows(list) {  // строка 2ГИС дополнилась да
 
 /* ---------- состояние ---------- */
 const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? one : (a >= 2 && a <= 4 && (b < 10 || b >= 20)) ? few : many; };
-function setCount(n) { $('#mFound').textContent = n.toLocaleString('ru-RU'); setCount0(n); }
+let FOUND_N = 0;
+function setCount(n) { $('#mFound').textContent = n.toLocaleString('ru-RU'); setCount0(n); FOUND_N = n; $('#takeAll').hidden = $('#takeNoSite').hidden = !n || MODE !== 'found'; if (n) $('#takeAll').textContent = 'Всех в работу (' + n.toLocaleString('ru-RU') + ')'; }
 function setCount0(n) { $('#count').textContent = n.toLocaleString('ru-RU'); $('#countLabel').textContent = plural(n, 'организация', 'организации', 'организаций'); }
 const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 function setStatus(html) { $('#status').innerHTML = html; }
@@ -1949,6 +2060,7 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': 
 
 function setRunning(on) {
   running = on;
+  api().batches().then(r => { $('#mBatches').textContent = r.items.length; if (MODE === 'batches' && !BATCH) loadBatches(); });
   const b = $('#goBtn');
   b.textContent = on ? 'Остановить' : 'Собрать контакты';
   b.classList.toggle('stop', on);
@@ -2072,13 +2184,14 @@ async function boot() {
   CITIES = d.cities; LOCS = d.localities || []; FIELDS = d.fields; BROWSERS = d.browsers;
   Object.assign(S, d.settings);
   setView(d.settings.view || 'cards');
-  STATUSES = d.statuses || {}; BASE_IDS = new Set(d.base_ids || []);
+  STATUSES = d.statuses || {}; BASE_IDS = new Set(d.base_ids || []); BASE_MARKS = d.base_marks || {};
   TEMPLATES = d.templates || []; TVARS = d.template_vars || []; ACTIVE_TPL = d.active_template || ''; DEMO_URLS = d.demo_urls || {};
   VERCEL = d.vercel || VERCEL; THEMES = d.themes || {}; DOPTS = d.demo_opts || DOPTS;
   AI = d.ai || AI; AIP = d.ai_providers || {};
   renderAI(); renderTplSelect(); renderVars(); renderVercel(); renderDots();
   TG = Object.assign({}, d.tg); renderTg(); if (d.tg && d.tg.configured) loadTg(); pollTg();
   api().base_list('', '').then(r => setCounts(r.counts));
+  api().batches().then(r => { $('#mBatches').textContent = r.items.length; });
   setMode('found');
   $('#appName').textContent = d.app.name; $('#appVer').textContent = 'версия ' + d.app.version;
   document.title = d.app.title;

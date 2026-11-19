@@ -18,6 +18,7 @@ from .records import FIELDS
 
 STATUSES = {
     'new': 'Новый',
+    'demo': 'Демо готово',
     'contacted': 'Написал',
     'replied': 'Ответил',
     'deal': 'Сделка',
@@ -42,6 +43,23 @@ CREATE TABLE IF NOT EXISTS templates (
 );
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS sends (lead_id TEXT, channel TEXT, ok INTEGER, info TEXT, at REAL);
+CREATE TABLE IF NOT EXISTS batches (
+  id         TEXT PRIMARY KEY,
+  title      TEXT NOT NULL,
+  source     TEXT NOT NULL DEFAULT '',
+  meta       TEXT NOT NULL DEFAULT '{}',
+  state      TEXT NOT NULL DEFAULT 'running',
+  created_at REAL NOT NULL,
+  updated_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS batch_items (
+  batch_id  TEXT NOT NULL,
+  lead_id   TEXT NOT NULL,
+  pos       INTEGER NOT NULL,
+  site_kind TEXT NOT NULL DEFAULT '',
+  data      TEXT NOT NULL,
+  PRIMARY KEY (batch_id, lead_id)
+);
 """
 
 # Колонки, добавленные после первой версии базы: старые leads.db дополняются при запуске.
@@ -133,6 +151,120 @@ class LeadBase:
                 (lid, json.dumps(data, ensure_ascii=False), data.get('name'), now, now))
         return self.get(lid) or {}
 
+    def add_many(self, recs: List[Dict[str, Any]]) -> int:
+        """Пачкой в работу; уже взятые не трогаем. Возвращает, сколько добавлено новых."""
+        now = time.time()
+        added = 0
+        with self._lock:
+            self._db.execute('BEGIN')
+            try:
+                for i, rec in enumerate(recs):
+                    if not rec or not rec.get('name'):
+                        continue
+                    data = {k: rec.get(k) for k in list(FIELDS) + ['_query', '_photos']}
+                    cur = self._db.execute(
+                        'INSERT OR IGNORE INTO leads(id, data, name, added_at, updated_at) VALUES (?,?,?,?,?)',
+                        (rec.get('_lid') or lead_id(rec), json.dumps(data, ensure_ascii=False), data.get('name'), now, now - i * 1e-3))
+                    added += cur.rowcount
+                self._db.execute('COMMIT')
+            except Exception:
+                self._db.execute('ROLLBACK')
+                raise
+        return added
+
+    def marks(self) -> Dict[str, str]:
+        """id -> статус для всех, кто в работе: по ним новые сборы помечают дубли."""
+        with self._lock:
+            return {r[0]: r[1] for r in self._db.execute('SELECT id, status FROM leads')}
+
+    # ----- сборы: всё, что напарсили, сохраняется само -----
+    def batch_create(self, title: str, source: str, meta: Dict[str, Any]) -> str:
+        bid = 'b%d' % int(time.time() * 1000)
+        now = time.time()
+        with self._lock:
+            self._db.execute('INSERT INTO batches(id,title,source,meta,state,created_at,updated_at) VALUES (?,?,?,?,?,?,?)',
+                             (bid, title[:200], source, json.dumps(meta, ensure_ascii=False), 'running', now, now))
+        return bid
+
+    def batch_sync(self, bid: str, rows: List[Dict[str, Any]], state: Optional[str] = None) -> None:
+        """Записывает текущие строки сбора (строки могут дополняться — перезаписываем целиком)."""
+        items, seen = [], set()
+        for r in rows:
+            lid = lead_id(r)
+            if lid in seen:
+                continue
+            seen.add(lid)
+            data = {k: r.get(k) for k in list(FIELDS) + ['_query', '_photos']}
+            items.append((bid, lid, len(items), data.get('site_kind') or '', json.dumps(data, ensure_ascii=False)))
+        with self._lock:
+            self._db.execute('BEGIN')
+            try:
+                self._db.execute('DELETE FROM batch_items WHERE batch_id=?', (bid,))
+                self._db.executemany('INSERT INTO batch_items(batch_id,lead_id,pos,site_kind,data) VALUES (?,?,?,?,?)', items)
+                self._db.execute('UPDATE batches SET updated_at=?, state=COALESCE(?, state) WHERE id=?',
+                                 (time.time(), state, bid))
+                self._db.execute('COMMIT')
+            except Exception:
+                self._db.execute('ROLLBACK')
+                raise
+
+    def batch_finish(self, bid: str, state: str) -> None:
+        with self._lock:
+            n = self._db.execute('SELECT COUNT(*) FROM batch_items WHERE batch_id=?', (bid,)).fetchone()[0]
+            if not n:  # пустой сбор не храним
+                self._db.execute('DELETE FROM batches WHERE id=?', (bid,))
+            else:
+                self._db.execute('UPDATE batches SET state=?, updated_at=? WHERE id=?', (state, time.time(), bid))
+
+    def batches(self) -> List[Dict[str, Any]]:
+        sql = """SELECT b.*, COUNT(i.lead_id) AS total,
+                        SUM(i.site_kind='Без сайта') AS nosite,
+                        SUM(l.id IS NOT NULL) AS taken,
+                        SUM(l.status IS NOT NULL AND l.status NOT IN ('new','demo')) AS contacted
+                 FROM batches b LEFT JOIN batch_items i ON i.batch_id=b.id
+                 LEFT JOIN leads l ON l.id=i.lead_id
+                 GROUP BY b.id ORDER BY b.created_at DESC"""
+        with self._lock:
+            rows = self._db.execute(sql).fetchall()
+        out = []
+        for r in rows:
+            try:
+                meta = json.loads(r['meta'])
+            except ValueError:
+                meta = {}
+            out.append({'id': r['id'], 'title': r['title'], 'source': r['source'], 'meta': meta, 'state': r['state'],
+                        'when': time.strftime('%d.%m.%Y %H:%M', time.localtime(r['created_at'])),
+                        'total': r['total'] or 0, 'nosite': r['nosite'] or 0,
+                        'taken': r['taken'] or 0, 'contacted': r['contacted'] or 0})
+        return out
+
+    def batch_items(self, bid: str, only_nosite: bool = False) -> List[Dict[str, Any]]:
+        sql = ('SELECT i.lead_id, i.data FROM batch_items i WHERE i.batch_id=?'
+               + (" AND i.site_kind='Без сайта'" if only_nosite else '') + ' ORDER BY i.pos')
+        with self._lock:
+            rows = self._db.execute(sql, (bid,)).fetchall()
+        out = []
+        for r in rows:
+            d = json.loads(r['data'])
+            d['_lid'] = r['lead_id']
+            out.append(d)
+        return out
+
+    def batch_title(self, bid: str) -> str:
+        with self._lock:
+            r = self._db.execute('SELECT title FROM batches WHERE id=?', (bid,)).fetchone()
+        return r[0] if r else ''
+
+    def batch_delete(self, bid: str) -> None:
+        with self._lock:
+            self._db.execute('DELETE FROM batch_items WHERE batch_id=?', (bid,))
+            self._db.execute('DELETE FROM batches WHERE id=?', (bid,))
+
+    def close_running_batches(self) -> None:
+        """После вылета программы: незавершённые сборы помечаем остановленными."""
+        with self._lock:
+            self._db.execute("UPDATE batches SET state='stopped' WHERE state='running'")
+
     def remove(self, lid: str) -> None:
         with self._lock:
             self._db.execute('DELETE FROM leads WHERE id=?', (lid,))
@@ -198,6 +330,7 @@ class LeadBase:
         with self._lock:
             self._db.execute('UPDATE leads SET demo=?, updated_at=? WHERE id=?',
                              (json.dumps(content, ensure_ascii=False), time.time(), lid))
+            self._db.execute("UPDATE leads SET status='demo' WHERE id=? AND status='new'", (lid,))
             if url is not None:
                 self._db.execute('UPDATE leads SET demo_url=? WHERE id=?', (url, lid))
 
@@ -228,7 +361,7 @@ class LeadBase:
             self._db.execute('INSERT INTO sends(lead_id, channel, ok, info, at) VALUES (?,?,?,?,?)',
                              (lid, channel, 1 if ok else 0, info, time.time()))
             if ok:
-                self._db.execute("UPDATE leads SET status='contacted', updated_at=? WHERE id=? AND status='new'",
+                self._db.execute("UPDATE leads SET status='contacted', updated_at=? WHERE id=? AND status IN ('new','demo')",
                                  (time.time(), lid))
             elif info:
                 self._db.execute("UPDATE leads SET note=CASE WHEN note='' THEN ? ELSE note || char(10) || ? END "

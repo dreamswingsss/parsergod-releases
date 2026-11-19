@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import re
+import threading
 import time
 import urllib.parse
 from typing import Any, Dict, List, Optional
@@ -127,6 +128,8 @@ class Api:
             self._loc_by_name.setdefault(_norm(x['n']), []).append(x)
         self._settings = load_settings()
         self._base = LeadBase(data_dir() / 'leads.db')
+        self._base.close_running_batches()
+        self._batch_id: Optional[str] = None  # сбор, который сейчас пишется в базу
         self._tg = None          # TelegramSender, создаётся при первом обращении
         self._tg_tid: Dict[str, str] = {}
 
@@ -198,6 +201,7 @@ class Api:
             'recent': [],  # история сборов на старте не показывается
             'statuses': STATUSES,
             'base_ids': self._base.ids(),
+            'base_marks': self._base.marks(),
             'demo_urls': self._base.demo_urls(),
             'templates': self._base.templates(),
             'template_vars': TEMPLATE_VARS,
@@ -274,11 +278,89 @@ class Api:
             })
             save_settings(self._settings)
             self._job.start(params)
+            self._start_batch(params, cities, queries)
             return {'ok': True, 'tasks': len(params.tasks)}
         except Exception as e:
             return {'ok': False, 'error': str(e)}
 
-    # ---------- база лидов ----------
+    # ---------- сборы (сохраняются сами, по ходу сбора) ----------
+    def _start_batch(self, params: Params, cities: List[Dict[str, Any]], queries: List[str]) -> None:
+        src = {'2gis': '2ГИС', 'both': '2ГИС + Яндекс', 'avito': 'Авито'}.get(params.source, params.source)
+        if self._batch_id:  # прошлый сбор ещё не дописан фоновым потоком — дописываем сейчас
+            self._batch_save(self._batch_id, final=True)
+        title = '%s · %s' % (', '.join(queries)[:80], ', '.join(c.get('name', '') for c in cities)[:80])
+        try:
+            bid = self._base.batch_create(title, src, {'queries': queries, 'cities': [c.get('name') for c in cities]})
+        except Exception:
+            return
+        self._batch_id = bid
+        threading.Thread(target=self._batch_loop, args=(bid,), daemon=True).start()
+
+    def _batch_loop(self, bid: str) -> None:
+        j = self._job
+        last = -1
+        while j.running and self._batch_id == bid:
+            time.sleep(3)
+            n = len(j.rows)
+            if n != last or j._updated:
+                self._batch_save(bid)
+                last = n
+        if self._batch_id == bid:
+            self._batch_save(bid, final=True)
+
+    def _batch_save(self, bid: str, final: bool = False) -> None:
+        try:
+            rows = list(self._job.rows)
+            self._base.batch_sync(bid, rows)
+            if final:
+                self._base.batch_finish(bid, 'stopped' if self._job.state == 'stopped' else 'done')
+                self._batch_id = None
+        except Exception:
+            pass
+
+    def batches(self) -> Dict[str, Any]:
+        return {'items': self._base.batches(), 'running': self._batch_id}
+
+    def batch_open(self, bid: str, only_nosite: bool = False) -> Dict[str, Any]:
+        return {'items': self._base.batch_items(bid, only_nosite), 'title': self._base.batch_title(bid),
+                'marks': self._base.marks()}
+
+    def batch_take(self, bid: str, only_nosite: bool = False) -> Dict[str, Any]:
+        n = self._base.add_many(self._base.batch_items(bid, only_nosite))
+        return {'ok': True, 'added': n, 'counts': self._base.counts(), 'marks': self._base.marks()}
+
+    def found_take(self, only_nosite: bool = False) -> Dict[str, Any]:
+        rows = [r for r in list(self._job.rows) if not only_nosite or r.get('site_kind') == 'Без сайта']
+        if not rows:
+            return {'ok': False, 'error': 'Нечего добавлять'}
+        n = self._base.add_many(rows)
+        return {'ok': True, 'added': n, 'total': len(rows), 'counts': self._base.counts(), 'marks': self._base.marks()}
+
+    def batch_delete(self, bid: str) -> Dict[str, Any]:
+        if bid == self._batch_id:
+            return {'ok': False, 'error': 'Этот сбор ещё идёт'}
+        self._base.batch_delete(bid)
+        return {'ok': True}
+
+    def batch_export(self, bid: str, fields: Optional[List[str]] = None) -> Dict[str, Any]:
+        rows = self._base.batch_items(bid)
+        if not rows:
+            return {'ok': False, 'error': 'Сбор пустой'}
+        marks = self._base.marks()
+        for r in rows:
+            r['_status'] = STATUSES.get(marks.get(r['_lid'], ''), '')
+        cols = [f for f in (fields or self._settings.get('fields') or DEFAULT_FIELDS) if f in FIELDS]
+        out_dir = self._settings.get('output_dir') or str(default_output_dir())
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, safe_filename('Сбор — %s — %s' % (self._base.batch_title(bid),
+                                                                        time.strftime('%Y-%m-%d %H-%M'))) + '.xlsx')
+        try:
+            write_xlsx(path, rows, cols, extra=[('_status', 'В работе')])
+        except Exception as e:
+            return {'ok': False, 'error': str(e)}
+        return {'ok': True, 'path': path, 'n': len(rows)}
+
+    # ---------- база лидов (в работе) ----------
     def base_add(self, rec: Dict[str, Any]) -> Dict[str, Any]:
         if not rec or not rec.get('name'):
             return {'ok': False, 'error': 'Пустая карточка'}
@@ -875,6 +957,8 @@ class Api:
         if self._job.running:
             self._job.stop()
             self._job.wait(8)
+        if self._batch_id:
+            self._batch_save(self._batch_id, final=True)
         try:
             if self._tg:
                 self._tg.stop()
