@@ -117,7 +117,8 @@ details[open] summary::before{transform:rotate(45deg)}
 
 /* ---------- правая часть: лист ---------- */
 .result{display:flex;flex-direction:column;min-width:0;min-height:0}
-.head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:20px 28px 16px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px 24px;padding:20px 28px 16px}
+.head .status{margin-left:auto;min-width:200px}
 .count{display:flex;align-items:baseline;gap:12px}
 .count b{font:500 54px/1 Unbounded,Golos,sans-serif;letter-spacing:-.03em;background:linear-gradient(transparent 62%,var(--mark) 62% 92%,transparent 92%);padding:0 4px;margin-left:-4px}
 .count span{color:var(--ink-2);font-size:15px}
@@ -155,7 +156,8 @@ tbody.ghost td{height:31px}
 
 .attn{margin:0 28px 12px;padding:12px 16px;border-radius:var(--radius-m);background:var(--sheet);border:2px solid var(--ink);font-weight:500}
 .attn[hidden]{display:none}
-.foot{display:flex;align-items:center;gap:12px;padding:12px 28px 16px;min-height:66px}
+.foot{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 10px;padding:12px 28px 16px;min-height:66px;min-width:0}
+.foot .btn{padding:8px 14px}
 .foot .msg{flex:1;font-size:13px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .foot .msg.ok{color:var(--ok)}
 .foot .msg.bad{color:var(--ink);font-weight:500;white-space:normal}
@@ -264,18 +266,47 @@ tbody.ghost td{height:31px}
 .basescroll .empty{position:static;background:transparent;padding:60px 24px}
 .batchwrap{flex:1;display:flex;flex-direction:column;margin:0 28px;min-height:0}
 .batchwrap[hidden],#batchList[hidden],#batchDetail[hidden]{display:none}
-.bitem{display:flex;align-items:center;gap:16px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:12px 16px;margin-bottom:8px;cursor:pointer}
-.bitem:hover{border-color:var(--ink-3)}
-.bitem .bt{flex:1;min-width:0}
-.bitem .bt b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bitem .bt small{color:var(--ink-3)}
-.bnums{display:flex;gap:14px;font-size:13px;color:var(--ink-2);white-space:nowrap}
-.bnums b{color:var(--ink);font-weight:600;margin-right:3px}
-.btitle{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.btn.danger{color:#FF7A7F}
+#batchList,#batchDetail{display:flex;flex-direction:column;min-height:0;flex:1}
+.bhead{margin-bottom:14px}.bhead b{display:block;font-size:18px}.bhead small{color:var(--ink-3)}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding-bottom:12px}
+.bcard{position:relative;border:1px solid var(--grid);border-radius:16px;padding:16px 16px 14px;cursor:pointer;overflow:hidden;
+  background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.05) 0%,transparent 55%),linear-gradient(180deg,#19191D 0%,#141417 100%);
+  transition:transform .15s,border-color .15s,box-shadow .15s}
+.bcard:hover{transform:translateY(-2px);border-color:#3A3A42;box-shadow:0 14px 30px -18px rgba(0,0,0,.9)}
+.bcard .btop{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);min-width:0}
+.bcard .btop>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.src{white-space:nowrap;font-size:11px;font-weight:600;letter-spacing:.02em;padding:2px 8px;border-radius:999px;border:1px solid #34343B;color:var(--ink-2)}
+.src.s-2gis{color:#3DDC84;border-color:rgba(61,220,132,.35)} .src.s-both{color:#F5C84B;border-color:rgba(245,200,75,.35)} .src.s-avito{color:#6FB1FF;border-color:rgba(111,177,255,.35)}
+.live{display:inline-flex;align-items:center;gap:6px;color:#3DDC84}
+.live:before{content:"";width:7px;height:7px;border-radius:50%;background:#3DDC84;animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,.6)}100%{box-shadow:0 0 0 8px rgba(61,220,132,0)}}
+.bcard h4{margin:10px 0 2px;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bbig{display:flex;align-items:baseline;gap:6px;margin:6px 0 12px}.bbig b{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1}.bbig span{color:var(--ink-3);font-size:13px}
+.bprog{display:flex;height:6px;border-radius:999px;background:#25252B;overflow:hidden;gap:2px}
+.bprog i{display:block;height:100%}.bprog .w{background:#6FB1FF}.bprog .t{background:var(--ink)}
+.blegend{display:flex;gap:6px 12px;margin-top:10px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.blegend span{display:inline-flex;align-items:center;gap:6px}.blegend span:before{content:"";width:8px;height:8px;border-radius:2px;background:var(--c)}
+.bdhead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.bdtitle{flex:1;min-width:0}.bdtitle b{display:block;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bdtitle small{color:var(--ink-3)}
+.iconbtn{width:38px;height:38px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:1px solid #2E2E35;background:#1A1A1E;border-radius:10px;color:var(--ink-2);cursor:pointer}
+.iconbtn svg{width:18px;height:18px}.iconbtn:hover{color:var(--ink);border-color:#45454D}
+.iconbtn.del:hover,.iconbtn.del.arm{color:#FF7A7F;border-color:rgba(255,122,127,.6);background:rgba(255,122,127,.08)}
+.btiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tile{border:1px solid var(--grid);background:#161619;border-radius:14px;padding:12px 14px;text-align:left;color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}
+.tile b{display:block;font-size:24px;font-weight:700;line-height:1.1}.tile small{color:var(--ink-3);font-size:12px}
+.tile:hover{border-color:#3A3A42}
+.tile[aria-pressed=true]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}.tile[aria-pressed=true] small{color:#4A4A50}
+.tile.stat{cursor:default}.tile.stat:hover{border-color:var(--grid)}
+.tile.stat b{color:#6FB1FF}
+.bactions{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.bactions span{flex:1;color:var(--ink-3);font-size:13px}
+.takebtn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:11px 18px;font-weight:600;font-size:14px;cursor:pointer;color:#0B0B0C;
+  background:linear-gradient(135deg,#FFFFFF 0%,#D9D9DE 100%);box-shadow:0 8px 24px -10px rgba(255,255,255,.35)}
+.takebtn svg{width:16px;height:16px}.takebtn:hover{filter:brightness(1.05)}
+.takebtn:disabled{opacity:.45;cursor:default;box-shadow:none}
+.st.s-demo{color:#B794FF;border-color:rgba(183,148,255,.4)}
 .viewseg[hidden]{display:none}
 #modeSeg button{white-space:nowrap}
-.st.s-demo{color:#B794FF;border-color:rgba(183,148,255,.4)}
 .tobase.wrote{color:#6FB1FF;border-color:rgba(111,177,255,.5)}
 .demobtn{border:1px solid var(--grid);background:transparent;border-radius:var(--radius-s);padding:4px 12px;font-size:12px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .demobtn:hover{border-color:var(--ink);color:var(--ink)}
@@ -283,8 +314,8 @@ tbody.ghost td{height:31px}
 .demolink{font-size:12px;color:var(--ink-2);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .demolink:hover{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
 .tplpick{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3)}
-.tplpick select{height:32px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:0 8px;max-width:180px;outline:0;cursor:pointer}
-.tplpick button{height:32px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:0 12px;cursor:pointer;color:var(--ink-2);font-size:13px}
+.tplpick select{height:36px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:0 8px;flex:1;min-width:0;outline:0;cursor:pointer}
+.tplpick button{height:36px;border:1px solid var(--grid);background:var(--sheet);border-radius:var(--radius-s);padding:0 12px;cursor:pointer;color:var(--ink-2);font-size:13px}
 .tplpick button:hover{border-color:var(--ink);color:var(--ink)}
 /* окна */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:40;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -605,6 +636,9 @@ details.howto>*:not(summary){margin-top:8px}
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z" fill="currentColor"/></symbol>
   <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 9h6v6H9zM9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-tri" viewBox="0 0 24 24"><path d="M12 4.5 20.5 19h-17Z" fill="currentColor"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
 </svg>
 <div class="app">
@@ -712,27 +746,24 @@ details.howto>*:not(summary){margin-top:8px}
     </div>
     <div class="batchwrap" id="batchwrap" hidden>
       <div id="batchList">
-        <div class="basebar"><div class="btitle">Все сборы — сохраняются сами, по ходу сбора</div></div>
-        <div class="basescroll"><div id="batchItems"></div><div class="empty" id="batchEmpty" hidden><p>Сборов пока нет</p><p>Запустите сбор слева — он сохранится здесь целиком, даже если закрыть программу посреди сбора.</p></div></div>
+        <div class="bhead"><div><b>Сборы</b><small>Каждый сбор сохраняется сам — даже если закрыть программу посреди поиска</small></div></div>
+        <div class="basescroll"><div class="bgrid" id="batchItems"></div><div class="empty" id="batchEmpty" hidden><p>Сборов пока нет</p><p>Запустите сбор слева — он появится здесь целиком и останется насовсем.</p></div></div>
       </div>
       <div id="batchDetail" hidden>
-        <div class="basebar">
-          <button class="btn" id="bBack">← Все сборы</button>
-          <div class="btitle" id="bTitle"></div>
-          <div class="stfil" id="bFil" style="flex:none"><button type="button" data-f="" aria-pressed="true">Все<small id="bfAll">0</small></button><button type="button" data-f="nosite" aria-pressed="false">Без сайта<small id="bfNo">0</small></button></div>
-          <button class="btn primary" id="bTake">Взять в работу</button>
-          <button class="btn" id="bXls">Excel</button>
-          <button class="btn danger" id="bDel">Удалить</button>
+        <div class="bdhead">
+          <button class="iconbtn" id="bBack" title="Все сборы"><svg><use href="#i-back"/></svg></button>
+          <div class="bdtitle"><b id="bTitle"></b><small id="bMeta"></small></div>
+          <button class="iconbtn" id="bXls" title="Выгрузить в Excel"><svg><use href="#i-down"/></svg></button>
+          <button class="iconbtn del" id="bDel" title="Удалить сбор"><svg><use href="#i-trash"/></svg></button>
         </div>
-        <div class="basescroll"><div class="cards" id="batchCards"></div></div>
+        <div class="btiles" id="bTiles"></div>
+        <div class="bactions"><span id="bHint"></span><button class="takebtn" id="bTake"></button></div>
+        <div class="basescroll"><div class="cards" id="batchCards"></div><div class="empty" id="bEmpty" hidden><p>Здесь никого</p><p>Все из этого фильтра уже в работе</p></div></div>
       </div>
     </div>
     <div class="log" id="log"></div>
     <div class="foot">
-      <div class="tplpick"><span>Текст:</span><select id="activeTpl" title="Какой шаблон подставлять при нажатии на мессенджер"></select><button id="tplBtn" title="Шаблоны сообщений">Шаблоны</button></div>
       <div class="msg" id="footMsg"></div>
-      <button class="btn" id="takeNoSite" hidden title="Взять в работу только организации без сайта">Без сайта → в работу</button>
-      <button class="btn" id="takeAll" hidden title="Взять в работу всех найденных разом">Всех в работу</button>
       <button class="btn" id="logBtn">Журнал</button>
       <button class="btn" id="revealBtn" hidden>Показать в папке</button>
       <button class="btn" id="saveAsBtn" hidden>Сохранить как…</button>
@@ -749,6 +780,7 @@ details.howto>*:not(summary){margin-top:8px}
         <button data-t="conn" aria-current="true"><b>Подключения</b><small>ИИ, Vercel, Telegram</small></button>
         <button data-t="excel"><b>Excel</b><small>Колонки и папка</small></button>
         <button data-t="collect"><b>Сбор</b><small>Браузер и скорость</small></button>
+        <button data-t="msg"><b>Сообщения</b><small>Шаблоны текста</small></button>
       </nav>
       <div class="setpane" id="tab-conn">
         <div class="conn"><div class="conn-h"><span class="ico ai"><svg><use href="#i-cpu"/></svg></span><div><b>ИИ — свой API-ключ</b><small>Генерирует демо-сайты и личные сообщения по кнопке</small></div><span class="pill" id="aiPill"></span></div><div class="conn-b" id="aiBox"></div></div>
@@ -761,6 +793,10 @@ details.howto>*:not(summary){margin-top:8px}
           <p class="hint"><button class="linkbtn" id="allContacts">Все контакты</button> &nbsp; <button class="linkbtn" id="onlyPhones">Только телефоны</button></p></div></div>
         <div class="conn"><div class="conn-h"><div><b>Папка для таблиц и демо</b></div></div>
           <div class="conn-b"><div class="path" id="outDir"></div><p class="hint"><button class="linkbtn" id="pickDir">Изменить</button> &nbsp; <button class="linkbtn" id="openDir">Открыть папку</button></p></div></div>
+      </div>
+      <div class="setpane" id="tab-msg" hidden>
+        <div class="conn"><div class="conn-h"><div><b>Текст по умолчанию</b><small>Подставляется, когда нажимаете на мессенджер в карточке</small></div></div>
+          <div class="conn-b"><div class="tplpick"><select id="activeTpl" title="Какой шаблон подставлять при нажатии на мессенджер"></select><button id="tplBtn" title="Шаблоны сообщений">Редактировать шаблоны</button></div></div></div>
       </div>
       <div class="setpane" id="tab-collect" hidden>
         <div class="conn"><div class="conn-h"><div><b>Браузер</b><small>Через него ParserGod открывает 2ГИС</small></div></div>
@@ -1345,7 +1381,7 @@ function openSettings(tab) {
 }
 function setTab(t) {
   document.querySelectorAll('#setTabs button').forEach(b => b.setAttribute('aria-current', String(b.dataset.t === t)));
-  ['conn', 'excel', 'collect'].forEach(k => $('#tab-' + k).hidden = k !== t);
+  ['conn', 'excel', 'collect', 'msg'].forEach(k => $('#tab-' + k).hidden = k !== t);
 }
 document.querySelectorAll('#setTabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 $('#setBtn').onclick = () => openSettings('conn');
@@ -1931,52 +1967,79 @@ function setMode(m) {
   document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === MODE)));
   $('#sheetwrap').hidden = MODE !== 'found'; $('#basewrap').hidden = MODE !== 'base'; $('#batchwrap').hidden = MODE !== 'batches';
   $('#viewSeg').hidden = MODE !== 'found';
-  $('#takeAll').hidden = $('#takeNoSite').hidden = !FOUND_N || MODE !== 'found';
   if (MODE === 'base') loadBase();
   if (MODE === 'batches') { if (BATCH) openBatch(BATCH); else loadBatches(); }
 }
 /* ---------- сборы ---------- */
-let BATCH = null, BATCH_F = '';
+let BATCH = null, BATCH_F = '', BATCH_ROWS = [], BATCH_INFO = {}, BATCHES = [];
+const SRC_CLS = {'2ГИС': 's-2gis', '2ГИС + Яндекс': 's-both', 'Авито': 's-avito'};
+const nf = n => Number(n || 0).toLocaleString('ru-RU');
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 async function loadBatches() {
   BATCH = null; $('#batchList').hidden = false; $('#batchDetail').hidden = true;
   const res = await api().batches();
+  BATCHES = res.items;
   $('#mBatches').textContent = res.items.length;
   const box = $('#batchItems'); box.innerHTML = '';
   $('#batchEmpty').hidden = !!res.items.length;
   res.items.forEach(it => {
-    const row = document.createElement('div'); row.className = 'bitem';
-    const t = document.createElement('div'); t.className = 'bt';
-    const b = document.createElement('b'); b.textContent = it.title; b.title = it.title;
-    const sm = document.createElement('small');
-    sm.textContent = it.when + ' · ' + it.source + (it.id === res.running ? ' · идёт сбор…' : it.state === 'stopped' ? ' · остановлен' : '');
-    t.append(b, sm);
-    const n = document.createElement('div'); n.className = 'bnums';
-    [[it.total, 'всего'], [it.nosite, 'без сайта'], [it.taken, 'в работе'], [it.contacted, 'написал']].forEach(([v, l]) => {
-      const sp = document.createElement('span'); const bb = document.createElement('b'); bb.textContent = v; sp.append(bb, l); n.appendChild(sp);
+    const c = el('div', 'bcard');
+    const top = el('div', 'btop');
+    top.append(el('span', 'src ' + (SRC_CLS[it.source] || ''), it.source));
+    if (it.id === res.running) top.append(el('span', 'live', 'идёт сбор'));
+    else top.append(el('span', '', it.when + (it.state === 'stopped' ? ' · остановлен' : '')));
+    const h = el('h4', '', it.title); h.title = it.title;
+    const big = el('div', 'bbig'); big.append(el('b', '', nf(it.total)), el('span', '', plural(it.total, 'организация', 'организации', 'организаций')));
+    const bar = el('div', 'bprog'); const pc = v => it.total ? Math.max(v ? 2 : 0, v / it.total * 100) + '%' : '0';
+    const w = el('i', 'w'); w.style.width = pc(it.contacted); const t = el('i', 't'); t.style.width = pc(it.taken - it.contacted);
+    bar.append(w, t);
+    const lg = el('div', 'blegend');
+    [['#6FB1FF', it.contacted, 'написал'], ['#F2F2F3', it.taken, 'в работе'], ['#3DDC84', it.nosite, 'без сайта']].forEach(([col, v, l]) => {
+      const sp = el('span', '', nf(v) + ' ' + l); sp.style.setProperty('--c', col); lg.appendChild(sp);
     });
-    row.append(t, n); row.onclick = () => { BATCH_F = ''; openBatch(it.id); };
-    box.appendChild(row);
+    c.append(top, h, big, bar, lg);
+    c.onclick = () => { BATCH_F = ''; openBatch(it.id); };
+    box.appendChild(c);
   });
 }
 async function openBatch(bid) {
   BATCH = bid; $('#batchList').hidden = true; $('#batchDetail').hidden = false;
-  const res = await api().batch_open(bid, BATCH_F === 'nosite');
+  const res = await api().batch_open(bid, false);
   applyMarks(res.marks);
+  BATCH_ROWS = res.items;
+  BATCH_INFO = BATCHES.find(b => b.id === bid) || {};
   $('#bTitle').textContent = res.title; $('#bTitle').title = res.title;
-  if (!BATCH_F) { $('#bfAll').textContent = res.items.length; $('#bfNo').textContent = res.items.filter(r => r.site_kind === 'Без сайта').length; }
-  document.querySelectorAll('#bFil button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === BATCH_F)));
-  $('#bTake').textContent = (BATCH_F ? 'Без сайта' : 'Всех') + ' в работу (' + res.items.length + ')';
+  $('#bMeta').textContent = [BATCH_INFO.when, BATCH_INFO.source].filter(Boolean).join(' · ');
+  renderBatch();
+}
+function renderBatch() {
+  const rows = BATCH_ROWS, inWork = r => BASE_IDS.has(r._lid);
+  const st = r => BASE_MARKS[r._lid];
+  const wrote = rows.filter(r => inWork(r) && !['new', 'demo'].includes(st(r))).length;
+  const n = {'': rows.length, nosite: rows.filter(r => r.site_kind === 'Без сайта').length, fresh: rows.filter(r => !inWork(r)).length};
+  const tiles = $('#bTiles'); tiles.innerHTML = '';
+  [['', 'всего'], ['nosite', 'без сайта'], ['fresh', 'ещё не в работе']].forEach(([k, l]) => {
+    const b = el('button', 'tile'); b.type = 'button'; b.setAttribute('aria-pressed', String(BATCH_F === k));
+    b.append(el('b', '', nf(n[k])), el('small', '', l)); b.onclick = () => { BATCH_F = k; renderBatch(); };
+    tiles.appendChild(b);
+  });
+  const sw = el('div', 'tile stat'); sw.append(el('b', '', nf(wrote)), el('small', '', 'уже написал')); tiles.appendChild(sw);
+  const shown = rows.filter(r => BATCH_F === 'nosite' ? r.site_kind === 'Без сайта' : BATCH_F === 'fresh' ? !inWork(r) : true);
+  const todo = shown.filter(r => !inWork(r)).length;
+  const tb = $('#bTake'); tb.disabled = !todo;
+  tb.innerHTML = icon('i-plus') + (todo ? 'Взять в работу ' + nf(todo) : 'Все уже в работе');
+  $('#bHint').textContent = todo && todo < shown.length ? 'Ещё ' + nf(shown.length - todo) + ' из этого списка уже в работе — их не трогаем' : '';
   const box = $('#batchCards'); box.innerHTML = '';
   const frag = document.createDocumentFragment();
-  res.items.forEach(r => { const c = card(r, false); c.classList.remove('fresh'); frag.appendChild(c); });
+  shown.forEach(r => { const c = card(r, false); c.classList.remove('fresh'); frag.appendChild(c); });
   box.appendChild(frag);
+  $('#bEmpty').hidden = !!shown.length;
 }
-document.querySelectorAll('#bFil button').forEach(b => b.onclick = () => { BATCH_F = b.dataset.f; openBatch(BATCH); });
 $('#bBack').onclick = () => loadBatches();
 $('#bTake').onclick = async () => {
   const res = await api().batch_take(BATCH, BATCH_F === 'nosite');
-  applyMarks(res.marks); setCounts(res.counts);
-  toast(res.added ? 'Взято в работу: ' + res.added : 'Все они уже в работе', [['Открыть', () => setMode('base')]]);
+  applyMarks(res.marks); setCounts(res.counts); renderBatch();
+  toast(res.added ? 'Взято в работу: ' + nf(res.added) : 'Все они уже в работе', [['Открыть', () => setMode('base')]]);
 };
 $('#bXls').onclick = async () => {
   const r = await api().batch_export(BATCH, S.fields);
@@ -1985,21 +2048,13 @@ $('#bXls').onclick = async () => {
 };
 $('#bDel').onclick = async () => {
   const b = $('#bDel');
-  if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = 'Точно удалить сбор?'; setTimeout(() => { delete b.dataset.arm; b.textContent = 'Удалить'; }, 3000); return; }
-  delete b.dataset.arm; b.textContent = 'Удалить';
+  if (!b.classList.contains('arm')) { b.classList.add('arm'); b.title = 'Нажмите ещё раз, чтобы удалить'; toast('Нажмите на корзину ещё раз, чтобы удалить сбор'); setTimeout(() => { b.classList.remove('arm'); b.title = 'Удалить сбор'; }, 3000); return; }
+  b.classList.remove('arm');
   const r = await api().batch_delete(BATCH);
   if (!r.ok) { toast(r.error); return; }
   toast('Сбор удалён. Те, кого вы взяли в работу, остались во вкладке «В работе»'); loadBatches();
 };
-async function takeFound(onlyNoSite) {
-  const res = await api().found_take(onlyNoSite);
-  if (!res.ok) { toast(res.error); return; }
-  applyMarks(res.marks); setCounts(res.counts);
-  const was = res.total - res.added;
-  toast('Взято в работу: ' + res.added + (was ? ' · ещё ' + was + ' уже были' : ''), [['Открыть', () => setMode('base')]]);
-}
-$('#takeAll').onclick = () => takeFound(false);
-$('#takeNoSite').onclick = () => takeFound(true);
+
 document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => setMode(b.dataset.m));
 let bSearchT = null;
 $('#bSearch').addEventListener('input', () => { clearTimeout(bSearchT); bSearchT = setTimeout(loadBase, 200); });
@@ -2051,8 +2106,7 @@ function updateRows(list) {  // строка 2ГИС дополнилась да
 
 /* ---------- состояние ---------- */
 const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? one : (a >= 2 && a <= 4 && (b < 10 || b >= 20)) ? few : many; };
-let FOUND_N = 0;
-function setCount(n) { $('#mFound').textContent = n.toLocaleString('ru-RU'); setCount0(n); FOUND_N = n; $('#takeAll').hidden = $('#takeNoSite').hidden = !n || MODE !== 'found'; if (n) $('#takeAll').textContent = 'Всех в работу (' + n.toLocaleString('ru-RU') + ')'; }
+function setCount(n) { $('#mFound').textContent = n.toLocaleString('ru-RU'); setCount0(n); }
 function setCount0(n) { $('#count').textContent = n.toLocaleString('ru-RU'); $('#countLabel').textContent = plural(n, 'организация', 'организации', 'организаций'); }
 const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 function setStatus(html) { $('#status').innerHTML = html; }
