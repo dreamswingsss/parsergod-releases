@@ -264,46 +264,42 @@ tbody.ghost td{height:31px}
 .basescroll{flex:1;overflow:auto;min-height:0;position:relative}
 .basescroll .cards{display:grid;padding:0 0 12px}
 .basescroll .empty{position:static;background:transparent;padding:60px 24px}
-.batchwrap{flex:1;display:flex;flex-direction:column;margin:0 28px;min-height:0}
+.batchwrap{flex:1;display:flex;flex-direction:column;margin:0 28px;min-height:0;--sys-blue:#0A84FF;--cell:#1C1C1E;--sep:#38383A;--sec:rgba(235,235,245,.6);--ter:rgba(235,235,245,.3)}
 .batchwrap[hidden],#batchList[hidden],#batchDetail[hidden]{display:none}
 #batchList,#batchDetail{display:flex;flex-direction:column;min-height:0;flex:1}
-.bhead{margin-bottom:14px}.bhead b{display:block;font-size:18px}.bhead small{color:var(--ink-3)}
-.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding-bottom:12px}
-.bcard{position:relative;border:1px solid var(--grid);border-radius:16px;padding:16px 16px 14px;cursor:pointer;overflow:hidden;
-  background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.05) 0%,transparent 55%),linear-gradient(180deg,#19191D 0%,#141417 100%);
-  transition:transform .15s,border-color .15s,box-shadow .15s}
-.bcard:hover{transform:translateY(-2px);border-color:#3A3A42;box-shadow:0 14px 30px -18px rgba(0,0,0,.9)}
-.bcard .btop{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);min-width:0}
-.bcard .btop>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.src{white-space:nowrap;font-size:11px;font-weight:600;letter-spacing:.02em;padding:2px 8px;border-radius:999px;border:1px solid #34343B;color:var(--ink-2)}
-.src.s-2gis{color:#3DDC84;border-color:rgba(61,220,132,.35)} .src.s-both{color:#F5C84B;border-color:rgba(245,200,75,.35)} .src.s-avito{color:#6FB1FF;border-color:rgba(111,177,255,.35)}
-.live{display:inline-flex;align-items:center;gap:6px;color:#3DDC84}
-.live:before{content:"";width:7px;height:7px;border-radius:50%;background:#3DDC84;animation:pulse 1.4s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,.6)}100%{box-shadow:0 0 0 8px rgba(61,220,132,0)}}
-.bcard h4{margin:10px 0 2px;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bbig{display:flex;align-items:baseline;gap:6px;margin:6px 0 12px}.bbig b{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1}.bbig span{color:var(--ink-3);font-size:13px}
-.bprog{display:flex;height:6px;border-radius:999px;background:#25252B;overflow:hidden;gap:2px}
-.bprog i{display:block;height:100%}.bprog .w{background:#6FB1FF}.bprog .t{background:var(--ink)}
-.blegend{display:flex;gap:6px 12px;margin-top:10px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
-.blegend span{display:inline-flex;align-items:center;gap:6px}.blegend span:before{content:"";width:8px;height:8px;border-radius:2px;background:var(--c)}
-.bdhead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.bdtitle{flex:1;min-width:0}.bdtitle b{display:block;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bdtitle small{color:var(--ink-3)}
-.iconbtn{width:38px;height:38px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:1px solid #2E2E35;background:#1A1A1E;border-radius:10px;color:var(--ink-2);cursor:pointer}
-.iconbtn svg{width:18px;height:18px}.iconbtn:hover{color:var(--ink);border-color:#45454D}
-.iconbtn.del:hover,.iconbtn.del.arm{color:#FF7A7F;border-color:rgba(255,122,127,.6);background:rgba(255,122,127,.08)}
-.btiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
-.tile{border:1px solid var(--grid);background:#161619;border-radius:14px;padding:12px 14px;text-align:left;color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}
-.tile b{display:block;font-size:24px;font-weight:700;line-height:1.1}.tile small{color:var(--ink-3);font-size:12px}
-.tile:hover{border-color:#3A3A42}
-.tile[aria-pressed=true]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}.tile[aria-pressed=true] small{color:#4A4A50}
-.tile.stat{cursor:default}.tile.stat:hover{border-color:var(--grid)}
-.tile.stat b{color:#6FB1FF}
-.bactions{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.bactions span{flex:1;color:var(--ink-3);font-size:13px}
-.takebtn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:11px 18px;font-weight:600;font-size:14px;cursor:pointer;color:#0B0B0C;
-  background:linear-gradient(135deg,#FFFFFF 0%,#D9D9DE 100%);box-shadow:0 8px 24px -10px rgba(255,255,255,.35)}
-.takebtn svg{width:16px;height:16px}.takebtn:hover{filter:brightness(1.05)}
-.takebtn:disabled{opacity:.45;cursor:default;box-shadow:none}
+.lt{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.lsub{color:var(--sec);font-size:13px;margin:2px 0 16px}
+.group{background:var(--cell);border-radius:12px;overflow:hidden}
+.grow{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;position:relative}
+.grow+.grow:before{content:"";position:absolute;top:0;left:16px;right:0;height:1px;background:var(--sep);transform:scaleY(.5)}
+.grow:hover{background:#242427}.grow:active{background:#2C2C2E}
+.grow .gt{flex:1;min-width:0}
+.grow .gt b{display:block;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grow .gt small{display:block;color:var(--sec);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grow .gn{color:var(--sec);font-size:15px}
+.grow .chev{color:var(--ter);font-size:20px;line-height:1;margin-left:2px}
+.live{color:#30D158}
+.navbar{display:flex;align-items:center;gap:4px;margin:-4px 0 8px}
+.navbar .sp{flex:1}
+.textbtn{border:0;background:transparent;color:var(--sys-blue);font-size:15px;cursor:pointer;padding:6px 4px;display:inline-flex;align-items:center;gap:2px}
+.textbtn:hover{opacity:.75}
+.textbtn svg{width:20px;height:20px}
+.textbtn.red{color:#FF453A}
+.textbtn.arm{background:rgba(255,69,58,.15);border-radius:8px}
+.dhead{display:flex;align-items:flex-end;gap:16px;margin-bottom:14px}
+.dhead .dt{flex:1;min-width:0}
+.dhead .lt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dhead .lsub{margin-bottom:0}
+.segctl{display:inline-flex;background:rgba(118,118,128,.24);border-radius:9px;padding:2px;gap:2px}
+.segctl button{border:0;background:transparent;color:var(--ink);font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.segctl button small{color:var(--sec);margin-left:4px;font-weight:400}
+.segctl button[aria-pressed=true]{background:#636366;box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04)}
+.segctl button[aria-pressed=true] small{color:rgba(255,255,255,.75)}
+.bactions{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.bactions span{flex:1;color:var(--sec);font-size:13px}
+.takebtn{border:0;border-radius:10px;padding:9px 18px;font-weight:600;font-size:15px;cursor:pointer;color:#fff;background:var(--sys-blue);white-space:nowrap}
+.takebtn:hover{filter:brightness(1.1)}
+.takebtn:disabled{background:rgba(118,118,128,.24);color:var(--ter);cursor:default;filter:none}
 .st.s-demo{color:#B794FF;border-color:rgba(183,148,255,.4)}
 .viewseg[hidden]{display:none}
 #modeSeg button{white-space:nowrap}
@@ -321,6 +317,7 @@ tbody.ghost td{height:31px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:40;display:flex;align-items:center;justify-content:center;padding:24px}
 .modal[hidden]{display:none}
 #setModal{z-index:45}  /* настройки открываются поверх окна «Демо» */
+#tplModal{z-index:46}  /* редактор шаблонов — поверх настроек */
 .dialog{background:var(--paper);border:1px solid var(--grid);border-radius:16px;width:min(1240px,100%);height:min(860px,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .dialog.small{width:min(900px,100%);height:min(640px,100%)}
 .dlg-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--grid)}
@@ -746,18 +743,19 @@ details.howto>*:not(summary){margin-top:8px}
     </div>
     <div class="batchwrap" id="batchwrap" hidden>
       <div id="batchList">
-        <div class="bhead"><div><b>Сборы</b><small>Каждый сбор сохраняется сам — даже если закрыть программу посреди поиска</small></div></div>
-        <div class="basescroll"><div class="bgrid" id="batchItems"></div><div class="empty" id="batchEmpty" hidden><p>Сборов пока нет</p><p>Запустите сбор слева — он появится здесь целиком и останется насовсем.</p></div></div>
+        <div class="lt">Сборы</div>
+        <div class="lsub">Каждый сбор сохраняется сам — даже если закрыть программу посреди поиска</div>
+        <div class="basescroll"><div class="group" id="batchItems"></div><div class="empty" id="batchEmpty" hidden><p>Сборов пока нет</p><p>Запустите сбор слева — он появится здесь целиком и останется насовсем.</p></div></div>
       </div>
       <div id="batchDetail" hidden>
-        <div class="bdhead">
-          <button class="iconbtn" id="bBack" title="Все сборы"><svg><use href="#i-back"/></svg></button>
-          <div class="bdtitle"><b id="bTitle"></b><small id="bMeta"></small></div>
-          <button class="iconbtn" id="bXls" title="Выгрузить в Excel"><svg><use href="#i-down"/></svg></button>
-          <button class="iconbtn del" id="bDel" title="Удалить сбор"><svg><use href="#i-trash"/></svg></button>
+        <div class="navbar">
+          <button class="textbtn" id="bBack"><svg><use href="#i-back"/></svg>Сборы</button>
+          <span class="sp"></span>
+          <button class="textbtn" id="bXls" title="Выгрузить в Excel"><svg><use href="#i-down"/></svg></button>
+          <button class="textbtn red" id="bDel" title="Удалить сбор"><svg><use href="#i-trash"/></svg></button>
         </div>
-        <div class="btiles" id="bTiles"></div>
-        <div class="bactions"><span id="bHint"></span><button class="takebtn" id="bTake"></button></div>
+        <div class="dhead"><div class="dt"><div class="lt" id="bTitle"></div><div class="lsub" id="bMeta"></div></div></div>
+        <div class="bactions"><div class="segctl" id="bTiles"></div><span id="bHint"></span><button class="takebtn" id="bTake"></button></div>
         <div class="basescroll"><div class="cards" id="batchCards"></div><div class="empty" id="bEmpty" hidden><p>Здесь никого</p><p>Все из этого фильтра уже в работе</p></div></div>
       </div>
     </div>
@@ -1983,21 +1981,14 @@ async function loadBatches() {
   const box = $('#batchItems'); box.innerHTML = '';
   $('#batchEmpty').hidden = !!res.items.length;
   res.items.forEach(it => {
-    const c = el('div', 'bcard');
-    const top = el('div', 'btop');
-    top.append(el('span', 'src ' + (SRC_CLS[it.source] || ''), it.source));
-    if (it.id === res.running) top.append(el('span', 'live', 'идёт сбор'));
-    else top.append(el('span', '', it.when + (it.state === 'stopped' ? ' · остановлен' : '')));
-    const h = el('h4', '', it.title); h.title = it.title;
-    const big = el('div', 'bbig'); big.append(el('b', '', nf(it.total)), el('span', '', plural(it.total, 'организация', 'организации', 'организаций')));
-    const bar = el('div', 'bprog'); const pc = v => it.total ? Math.max(v ? 2 : 0, v / it.total * 100) + '%' : '0';
-    const w = el('i', 'w'); w.style.width = pc(it.contacted); const t = el('i', 't'); t.style.width = pc(it.taken - it.contacted);
-    bar.append(w, t);
-    const lg = el('div', 'blegend');
-    [['#6FB1FF', it.contacted, 'написал'], ['#F2F2F3', it.taken, 'в работе'], ['#3DDC84', it.nosite, 'без сайта']].forEach(([col, v, l]) => {
-      const sp = el('span', '', nf(v) + ' ' + l); sp.style.setProperty('--c', col); lg.appendChild(sp);
-    });
-    c.append(top, h, big, bar, lg);
+    const c = el('div', 'grow');
+    const t = el('div', 'gt'); const b = el('b', '', it.title); b.title = it.title;
+    const sm = el('small');
+    if (it.id === res.running) sm.append(el('span', 'live', 'Идёт сбор · '));
+    sm.append([it.source, it.when + (it.state === 'stopped' ? ' (остановлен)' : ''),
+               nf(it.nosite) + ' без сайта', nf(it.taken) + ' в работе', nf(it.contacted) + ' написал'].join(' · '));
+    t.append(b, sm);
+    c.append(t, el('span', 'gn', nf(it.total)), el('span', 'chev', '›'));
     c.onclick = () => { BATCH_F = ''; openBatch(it.id); };
     box.appendChild(c);
   });
@@ -2009,7 +2000,7 @@ async function openBatch(bid) {
   BATCH_ROWS = res.items;
   BATCH_INFO = BATCHES.find(b => b.id === bid) || {};
   $('#bTitle').textContent = res.title; $('#bTitle').title = res.title;
-  $('#bMeta').textContent = [BATCH_INFO.when, BATCH_INFO.source].filter(Boolean).join(' · ');
+  $('#bMeta').textContent = [BATCH_INFO.source, BATCH_INFO.when].filter(Boolean).join(' · ');
   renderBatch();
 }
 function renderBatch() {
@@ -2018,17 +2009,17 @@ function renderBatch() {
   const wrote = rows.filter(r => inWork(r) && !['new', 'demo'].includes(st(r))).length;
   const n = {'': rows.length, nosite: rows.filter(r => r.site_kind === 'Без сайта').length, fresh: rows.filter(r => !inWork(r)).length};
   const tiles = $('#bTiles'); tiles.innerHTML = '';
-  [['', 'всего'], ['nosite', 'без сайта'], ['fresh', 'ещё не в работе']].forEach(([k, l]) => {
-    const b = el('button', 'tile'); b.type = 'button'; b.setAttribute('aria-pressed', String(BATCH_F === k));
-    b.append(el('b', '', nf(n[k])), el('small', '', l)); b.onclick = () => { BATCH_F = k; renderBatch(); };
+  [['', 'Все'], ['nosite', 'Без сайта'], ['fresh', 'Не в работе']].forEach(([k, l]) => {
+    const b = el('button', '', l); b.type = 'button'; b.setAttribute('aria-pressed', String(BATCH_F === k));
+    b.append(el('small', '', nf(n[k]))); b.onclick = () => { BATCH_F = k; renderBatch(); };
     tiles.appendChild(b);
   });
-  const sw = el('div', 'tile stat'); sw.append(el('b', '', nf(wrote)), el('small', '', 'уже написал')); tiles.appendChild(sw);
+  $('#bMeta').textContent = [BATCH_INFO.source, BATCH_INFO.when, wrote ? 'уже написал ' + nf(wrote) : ''].filter(Boolean).join(' · ');
   const shown = rows.filter(r => BATCH_F === 'nosite' ? r.site_kind === 'Без сайта' : BATCH_F === 'fresh' ? !inWork(r) : true);
   const todo = shown.filter(r => !inWork(r)).length;
   const tb = $('#bTake'); tb.disabled = !todo;
-  tb.innerHTML = icon('i-plus') + (todo ? 'Взять в работу ' + nf(todo) : 'Все уже в работе');
-  $('#bHint').textContent = todo && todo < shown.length ? 'Ещё ' + nf(shown.length - todo) + ' из этого списка уже в работе — их не трогаем' : '';
+  tb.textContent = todo ? 'Взять в работу (' + nf(todo) + ')' : 'Все уже в работе';
+  $('#bHint').textContent = todo && todo < shown.length ? nf(shown.length - todo) + ' уже в работе — их не трогаем' : '';
   const box = $('#batchCards'); box.innerHTML = '';
   const frag = document.createDocumentFragment();
   shown.forEach(r => { const c = card(r, false); c.classList.remove('fresh'); frag.appendChild(c); });
@@ -2048,7 +2039,7 @@ $('#bXls').onclick = async () => {
 };
 $('#bDel').onclick = async () => {
   const b = $('#bDel');
-  if (!b.classList.contains('arm')) { b.classList.add('arm'); b.title = 'Нажмите ещё раз, чтобы удалить'; toast('Нажмите на корзину ещё раз, чтобы удалить сбор'); setTimeout(() => { b.classList.remove('arm'); b.title = 'Удалить сбор'; }, 3000); return; }
+  if (!b.classList.contains('arm')) { b.classList.add('arm'); b.title = 'Нажмите ещё раз, чтобы удалить'; toast('Нажмите ещё раз, чтобы удалить сбор'); setTimeout(() => { b.classList.remove('arm'); b.title = 'Удалить сбор'; }, 3000); return; }
   b.classList.remove('arm');
   const r = await api().batch_delete(BATCH);
   if (!r.ok) { toast(r.error); return; }
