@@ -66,10 +66,8 @@ CREATE TABLE IF NOT EXISTS batch_items (
 _MIGRATIONS = [
     ('demo_url', "ALTER TABLE leads ADD COLUMN demo_url TEXT NOT NULL DEFAULT ''"),
     ('demo', "ALTER TABLE leads ADD COLUMN demo TEXT NOT NULL DEFAULT ''"),
-    ('site_audit', "ALTER TABLE leads ADD COLUMN site_audit TEXT NOT NULL DEFAULT ''"),
     ('review_audit', "ALTER TABLE leads ADD COLUMN review_audit TEXT NOT NULL DEFAULT ''"),
-    ('registry_audit', "ALTER TABLE leads ADD COLUMN registry_audit TEXT NOT NULL DEFAULT ''"),
-    ('proposal', "ALTER TABLE leads ADD COLUMN proposal TEXT NOT NULL DEFAULT ''"),
+    ('review_collection', "ALTER TABLE leads ADD COLUMN review_collection TEXT NOT NULL DEFAULT ''"),
 ]
 
 DEFAULT_TEMPLATES = [
@@ -341,24 +339,24 @@ class LeadBase:
     def get_audit(self, lid: str) -> Dict[str, Any]:
         with self._lock:
             row = self._db.execute(
-                'SELECT site_audit, review_audit, registry_audit, proposal FROM leads WHERE id=?', (lid,)
+                'SELECT review_audit, review_collection FROM leads WHERE id=?', (lid,)
             ).fetchone()
         if row is None:
             return {}
-        return {'site': json.loads(row['site_audit'] or '{}'),
-                'report': json.loads(row['review_audit'] or '{}'),
-                'registry': json.loads(row['registry_audit'] or '{}'),
-                'proposal': json.loads(row['proposal'] or '{}')}
+        return {'report': json.loads(row['review_audit'] or '{}'),
+                'collection': json.loads(row['review_collection'] or '{}')}
 
-    def save_audit(self, lid: str, part: str, content: Dict[str, Any]) -> bool:
-        sql = {
-            'site': 'UPDATE leads SET site_audit=? WHERE id=?',
-            'report': 'UPDATE leads SET review_audit=? WHERE id=?',
-            'registry': 'UPDATE leads SET registry_audit=? WHERE id=?',
-            'proposal': 'UPDATE leads SET proposal=? WHERE id=?',
-        }[part]
+    def save_review_collection(self, lid: str, sample: Dict[str, Any]) -> bool:
         with self._lock:
-            return self._db.execute(sql, (json.dumps(content, ensure_ascii=False), lid)).rowcount == 1
+            return self._db.execute('UPDATE leads SET review_collection=? WHERE id=?',
+                                    (json.dumps(sample, ensure_ascii=False), lid)).rowcount == 1
+
+    def save_review_report(self, lid: str, sample: Dict[str, Any], report: Dict[str, Any]) -> bool:
+        with self._lock:
+            return self._db.execute(
+                'UPDATE leads SET review_audit=? WHERE id=? AND review_collection=?',
+                (json.dumps(report, ensure_ascii=False), lid, json.dumps(sample, ensure_ascii=False)),
+            ).rowcount == 1
 
     # ----- шаблоны сообщений -----
     def templates(self) -> List[Dict[str, Any]]:

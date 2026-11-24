@@ -17,8 +17,7 @@ from parser_2gis.paths import data_path
 from . import brand
 from . import ai as ai_mod
 from . import audit
-from . import proposal
-from . import registry
+from . import reviews
 from . import demo as demo_site
 from .base import STATUSES, TEMPLATE_VARS, LeadBase, lead_id, render_message
 from .browsers import find_browsers
@@ -130,6 +129,8 @@ class Api:
             x['c'] = [c for c in x['c'] if c in self._by_code]
             self._loc_by_name.setdefault(_norm(x['n']), []).append(x)
         self._settings = load_settings()
+        self._review_guard = threading.Lock()
+        self._reviews_fetching: set[str] = set()
         self._base = LeadBase(data_dir() / 'leads.db')
         self._base.close_running_batches()
         self._batch_id: Optional[str] = None  # сбор, который сейчас пишется в базу
@@ -216,7 +217,6 @@ class Api:
             'demo_opts': {'fonts': {k: v['title'] for k, v in demo_site.FONTS.items()}, 'layouts': demo_site.LAYOUTS,
                           'accents': demo_site.ACCENTS, 'sections': demo_site.SECTION_TITLES},
             'ai': ai_mod.public_cfg(s.get('ai')),
-            'dadata': {'connected': bool(s.get('dadata_key'))},
             'ai_providers': {k: {'title': v['title'], 'help': v['help']} for k, v in ai_mod.PROVIDERS.items()},
             'tg': {'configured': bool((s.get('tg') or {}).get('api_id')),
                    'daily_limit': (s.get('tg') or {}).get('daily_limit', 15)},
@@ -391,138 +391,66 @@ class Api:
         return {'ok': True}
 
     def audit_open(self, lid: str) -> Dict[str, Any]:
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден.'}
         saved = self._base.get_audit(lid)
-        return {'ok': True, **saved} if saved else {'ok': False, 'error': 'Лид не найден'}
+        return {'ok': True, **saved, 'sources': reviews.sources_for(lead)}
 
-    def audit_check_site(self, lid: str) -> Dict[str, Any]:
+    def audit_collect_reviews(self, lid: str) -> Dict[str, Any]:
+        from .browsers import pick_browser
+
         lead = self._base.get(lid)
         if not lead:
-            return {'ok': False, 'error': 'Лид не найден'}
-        result = audit.check_site(lead)
-        if not self._base.save_audit(lid, 'site', result):
-            return {'ok': False, 'error': 'Лид больше не в базе'}
-        return {'ok': True, 'site': result}
-
-    def audit_reviews(self, lid: str, text: str, mode: str, answer: str = '', source: str = '') -> Dict[str, Any]:
-        lead = self._base.get(lid)
-        if not lead:
-            return {'ok': False, 'error': 'Лид не найден'}
+            return {'ok': False, 'error': 'Лид не найден.'}
+        with self._review_guard:
+            if lid in self._reviews_fetching:
+                return {'ok': False, 'error': 'Отзывы уже загружаются.'}
+            self._reviews_fetching.add(lid)
         try:
-            reviews = audit.split_reviews(text)
-            prompt = audit.review_prompt(lead, self._base.get_audit(lid).get('site', {}), reviews)
+            browser = pick_browser(self._settings.get('browser_path') or '')
+            sample = reviews.collect(lead, browser[1] if browser else '')
+            if not sample['items']:
+                existing = self._base.get_audit(lid).get('collection') or {}
+                return {
+                    'ok': True, 'collection': existing or sample, 'sources': sample['sources'],
+                    'error': ('Новые отзывы не загрузились. Показаны сохранённые.' if existing
+                              else 'Тексты отзывов недоступны.' if sample['sources']
+                              else 'Для этого лида нет ссылки на карточку 2ГИС или Яндекс Карт.'),
+                }
+            if not self._base.save_review_collection(lid, sample):
+                return {'ok': False, 'error': 'Лид больше не в базе.'}
+            return {'ok': True, 'collection': sample, 'sources': sample['sources']}
+        finally:
+            with self._review_guard:
+                self._reviews_fetching.discard(lid)
+
+    def audit_reviews(self, lid: str, mode: str, answer: str = '', sample_id: str = '') -> Dict[str, Any]:
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден.'}
+        sample = self._base.get_audit(lid).get('collection') or {}
+        if not sample.get('items'):
+            return {'ok': False, 'error': 'Сначала загрузите отзывы.'}
+        if sample_id and sample_id != sample.get('id'):
+            return {'ok': False, 'error': 'Выборка обновилась. Запустите разбор заново.'}
+        try:
+            prompt = audit.review_prompt(lead, sample)
             if mode == 'prompt':
                 return {'ok': True, 'prompt': prompt}
             if mode == 'ai':
                 cfg = self._ai_cfg()
                 if not cfg.get('key'):
-                    return {'ok': False, 'error': 'ИИ не подключён. Воспользуйтесь промптом.'}
-                answer = ai_mod.complete(cfg, prompt, audit.REVIEW_SYSTEM, max_tokens=2200, timeout=90)
+                    return {'ok': False, 'error': 'Подключите свой ИИ в настройках или разберите отзывы во внешнем чате.'}
+                answer = ai_mod.complete(cfg, prompt, audit.REVIEW_SYSTEM, max_tokens=2400, timeout=100)
             elif mode != 'import':
-                return {'ok': False, 'error': 'Неизвестный режим анализа'}
-            report = audit.parse_review_report(answer, reviews)
-            report['source'] = (source or '').strip()[:300]
+                return {'ok': False, 'error': 'Неизвестный режим анализа.'}
+            report = audit.parse_review_report(answer, sample)
         except (ValueError, ai_mod.AIError) as exc:
             return {'ok': False, 'error': str(exc)}
-        if not self._base.save_audit(lid, 'report', report):
-            return {'ok': False, 'error': 'Лид больше не в базе'}
+        if not self._base.save_review_report(lid, sample, report):
+            return {'ok': False, 'error': 'Карточка или выборка изменилась. Запустите разбор заново.'}
         return {'ok': True, 'report': report}
-
-    def audit_review_suggestions(self, lid: str) -> Dict[str, Any]:
-        from .enrich import fetch_2gis
-
-        lead = self._base.get(lid) or {}
-        source = lead.get('url') or ''
-        parsed = urllib.parse.urlsplit(source)
-        host = parsed.hostname or ''
-        if (parsed.scheme != 'https' or parsed.username or parsed.password
-                or not (host == '2gis.ru' or host.endswith('.2gis.ru'))
-                or '/firm/' not in parsed.path):
-            return {'ok': False, 'error': 'У этого лида нет карточки 2ГИС.'}
-        suggestions = fetch_2gis(source, structured_reviews=True).get('reviews', [])
-        if not suggestions:
-            return {'ok': False, 'error': 'Тексты не доступны в карточке. Откройте карту и вставьте отзывы вручную.'}
-        return {'ok': True, 'reviews': suggestions, 'source': source}
-
-    def audit_dadata_key(self, key: str) -> Dict[str, Any]:
-        key = key.strip()
-        if key and not re.fullmatch(r'[A-Za-z0-9_-]{12,160}', key):
-            return {'ok': False, 'error': 'Проверьте формат API-ключа DaData.'}
-        if key:
-            self._settings['dadata_key'] = key
-        else:
-            self._settings.pop('dadata_key', None)
-        save_settings(self._settings)
-        return {'ok': True, 'connected': bool(key)}
-
-    def audit_registry_search(self, lid: str, query: str) -> Dict[str, Any]:
-        lead = self._base.get(lid)
-        if not lead:
-            return {'ok': False, 'error': 'Лид не найден.'}
-        key = self._settings.get('dadata_key')
-        if not key:
-            return {'ok': False, 'error': 'Подключите свой ключ DaData или проверьте запись через ФНС.'}
-        try:
-            candidates = registry.lookup(key, query, lead.get('city') or '')
-        except registry.RegistryError as exc:
-            return {'ok': False, 'error': str(exc)}
-        return {'ok': True, 'candidates': candidates}
-
-    def audit_registry_save(self, lid: str, fields: Dict[str, Any]) -> Dict[str, Any]:
-        if not self._base.get(lid):
-            return {'ok': False, 'error': 'Лид не найден.'}
-        try:
-            if fields.get('provider') == 'dadata':
-                key = self._settings.get('dadata_key')
-                if not key:
-                    raise registry.RegistryError('Ключ DaData отключён. Внесите реквизиты вручную.')
-                kind, value = registry.registration_number(str(fields.get('number') or ''))
-                kpp = fields.get('kpp') or ''
-                candidates = registry.lookup(key, value, exact=True, kpp=kpp)
-                record = next((c for c in candidates if c.get(kind) == value and c['kpp'] == kpp), None)
-                if not record:
-                    raise registry.RegistryError('Запись изменилась. Повторите поиск или внесите её через ФНС.')
-            else:
-                record = registry.manual_record(fields)
-        except registry.RegistryError as exc:
-            return {'ok': False, 'error': str(exc)}
-        if not self._base.save_audit(lid, 'registry', record):
-            return {'ok': False, 'error': 'Лид больше не в базе.'}
-        return {'ok': True, 'registry': record}
-
-    def audit_proposal(self, lid: str, fields: Dict[str, Any], action: str = 'save') -> Dict[str, Any]:
-        lead = self._base.get(lid)
-        if not lead:
-            return {'ok': False, 'error': 'Лид не найден.'}
-        saved = self._base.get_audit(lid)
-        if action == 'starter':
-            return {'ok': True, 'draft': proposal.starter(lead, saved.get('report', {}))}
-        if action not in ('save', 'preview', 'export', 'publish'):
-            return {'ok': False, 'error': 'Неизвестное действие.'}
-        draft = proposal.normalize(fields)
-        previous = saved.get('proposal', {})
-        if (previous.get('url')
-                and all(draft[field] == previous.get(field, '') for field in ('preset', 'headline', 'intro'))):
-            draft['url'] = previous['url']
-        if action != 'preview' and not self._base.save_audit(lid, 'proposal', draft):
-            return {'ok': False, 'error': 'Лид больше не в базе.'}
-        page = proposal.render(lead, draft)
-        result = {'ok': True, 'draft': draft}
-        if action == 'preview':
-            result['html'] = page
-        elif action in ('export', 'publish'):
-            try:
-                result['path'] = self._demo_file(lead, page, prefix='Мини-демо', suffix=lid[-6:])
-                if action == 'publish':
-                    token = self._settings.get('vercel_token')
-                    if not token:
-                        return {**result, 'ok': False, 'error': 'Для ссылки подключите свой Vercel. HTML уже сохранён.'}
-                    project = 'proposal-%s-%s' % (demo_site.slugify(lead.get('name') or '', 32), lid[-6:].lower())
-                    draft['url'] = demo_site.vercel_publish(token, project, page)
-                    if not self._base.save_audit(lid, 'proposal', draft):
-                        return {**result, 'ok': False, 'error': 'Лид больше не в базе.'}
-            except (OSError, demo_site.VercelError) as exc:
-                return {**result, 'ok': False, 'error': str(exc)}
-        return result
 
     def base_export(self, status: str = '', search: str = '', fields: Optional[List[str]] = None) -> Dict[str, Any]:
         rows = self._base.list(status, search)
@@ -631,12 +559,10 @@ class Api:
         self._base.save_demo(lid, content)
         return {'ok': True, 'content': content, 'html': demo_site.render(self._base.get(lid) or {}, content)}
 
-    def _demo_file(self, lead: Dict[str, Any], page: str, prefix: str = 'Демо', suffix: str = '') -> str:
+    def _demo_file(self, lead: Dict[str, Any], page: str) -> str:
         out_dir = os.path.join(self._settings.get('output_dir') or str(default_output_dir()), 'Демо')
         os.makedirs(out_dir, exist_ok=True)
-        filename = f'{prefix} — {lead.get("name")}'
-        if suffix:
-            filename += f' — {suffix}'
+        filename = 'Демо — %s' % lead.get('name')
         path = os.path.join(out_dir, safe_filename(filename) + '.html')
         with open(path, 'w', encoding='utf-8') as f:
             f.write(page)

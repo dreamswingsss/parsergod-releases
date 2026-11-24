@@ -321,25 +321,20 @@ tbody.ghost td{height:31px}
 .dialog{background:var(--paper);border:1px solid var(--grid);border-radius:16px;width:min(1240px,100%);height:min(860px,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .dialog.small{width:min(900px,100%);height:min(640px,100%)}
 #auditModal .ed{flex:1;border:0}
-#auditModal .dialog{width:min(1080px,100%);height:min(800px,100%)}
+#auditModal .dialog{width:min(1040px,100%);height:min(790px,100%)}
 #auditModal .dlg-h>#auditTitle{flex:1!important;max-width:none}
-.audit-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-.audit-grid>div{min-width:0}
-#auditProposal{border-top:2px solid var(--ink-2);margin-top:6px}
-#auditReviewInputs>summary{font-weight:600;cursor:pointer}
-#auditReviewInputs[open]>summary{margin-bottom:10px}
-#auditProposal select{width:100%;border:1px solid var(--grid);background:var(--paper);border-radius:8px;padding:8px 12px;font:inherit;color:var(--ink)}
-.audit-match{display:grid;gap:4px;padding:11px 0;border-top:1px solid var(--grid);overflow-wrap:anywhere}
-.audit-match>.btn{justify-self:start;margin-top:4px}
-.audit-match p{margin:0}
-.audit-preview{display:block;width:100%;height:440px;margin-top:12px;border:1px solid var(--grid);border-radius:10px;background:#17191b}
-.audit-preview[hidden]{display:none}
-@media(max-width:800px){.audit-grid{grid-template-columns:1fr}.audit-preview{height:510px}}
-#auditModal .pcard{margin-bottom:12px}
-.audit-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-.audit-lines p{margin:5px 0;white-space:pre-wrap;overflow-wrap:anywhere}
-.audit-topic{margin:8px 0}
-.audit-topic summary{cursor:pointer}
+.review-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.review-total{display:block;font-size:22px;font-weight:700}
+.review-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.review-source{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:7px 0;border-top:1px solid var(--grid)}
+.review-items,.review-findings{display:grid;gap:8px;margin-top:8px}
+.review-item{border-top:1px solid var(--grid);padding-top:10px;overflow-wrap:anywhere}
+.review-item p,.review-findings p{white-space:pre-wrap;line-height:1.45;margin:5px 0}
+.review-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.review-evidence{margin:8px 0 0;padding-left:12px;border-left:2px solid var(--grid)}
+.review-kind{font-size:12px;color:var(--ink-2)}
+.review-import summary{cursor:pointer}
+@media(max-width:770px){.review-columns{grid-template-columns:1fr}}
 .dlg-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--grid)}
 .dlg-h b{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dlg-h .x{border:0;background:none;color:var(--ink-2);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
@@ -802,15 +797,6 @@ details.howto>*:not(summary){margin-top:8px}
       </nav>
       <div class="setpane" id="tab-conn">
         <div class="conn"><div class="conn-h"><span class="ico ai"><svg><use href="#i-cpu"/></svg></span><div><b>ИИ — свой API-ключ</b><small>Генерирует демо-сайты и личные сообщения по кнопке</small></div><span class="pill" id="aiPill"></span></div><div class="conn-b" id="aiBox"></div></div>
-        <div class="conn">
-          <div class="conn-h"><div><b>DaData</b><small>Поиск ООО и ИП по реквизитам или названию</small></div><span class="pill" id="dadataState"></span></div>
-          <div class="conn-b">
-            <label for="dadataKey">Ваш API-ключ DaData</label>
-            <input id="dadataKey" class="secret" type="text" autocomplete="off" spellcheck="false">
-            <div class="btnrow"><button class="btn" id="dadataSave">Сохранить ключ</button><button class="btn" id="dadataOff">Отключить</button></div>
-            <p class="hint" id="dadataFeedback" role="status"></p>
-          </div>
-        </div>
         <div class="conn"><div class="conn-h"><span class="ico vc"><svg><use href="#i-tri"/></svg></span><div><b>Vercel — публикация демо</b><small>Демо открываются по ссылке вида имя.vercel.app</small></div><span class="pill" id="vcPill"></span></div><div class="conn-b" id="vercelBox"></div></div>
         <div class="conn"><div class="conn-h"><span class="ico tg"><svg><use href="#i-tg"/></svg></span><div><b>Telegram — автоотправка</b><small>Программа сама пишет лидам с вашего аккаунта</small></div><span class="pill" id="tgPill"></span></div><div class="conn-b" id="tgBox"></div></div>
       </div>
@@ -837,111 +823,43 @@ details.howto>*:not(summary){margin-top:8px}
 
 <div class="modal" id="auditModal" role="dialog" aria-modal="true" aria-labelledby="auditTitle" hidden>
   <div class="dialog small">
-    <div class="dlg-h"><b id="auditTitle">Проверить компанию</b><button class="btn" id="auditToProposal">К предложению</button><button class="x" id="auditClose" aria-label="Закрыть">×</button></div>
+    <div class="dlg-h"><b id="auditTitle">Отзывы компании</b><button class="x" id="auditClose" aria-label="Закрыть">×</button></div>
     <div class="ed">
-      <div class="audit-grid">
-      <div>
       <div class="pcard">
-        <div class="pcard-h"><b>Сайт и контакты</b><small>Без ИИ</small></div>
-        <div class="audit-lines" id="auditFacts"></div>
-        <div class="audit-actions">
-          <button class="btn" id="auditCheck">Сверить данные с сайтом</button>
-          <button class="btn" id="auditSiteLink" hidden>Открыть источник</button>
-          <button class="btn" id="auditCopyInn" hidden>Копировать ИНН</button>
-          <button class="btn" id="auditFns" hidden>Сверить ИНН на сайте ФНС</button>
+        <div class="review-toolbar">
+          <div><span class="review-total" id="reviewCount">Отзывы</span><span class="hint" id="reviewDate"></span></div>
+          <button type="button" class="btn" id="reviewRefresh">Обновить отзывы</button>
         </div>
-        <div class="hint" id="auditSiteStatus" role="status"></div>
+        <div id="reviewSources"></div>
+        <p class="hint" id="reviewLoadStatus" role="status" aria-live="polite"></p>
       </div>
-      <div class="pcard">
-        <div class="pcard-h"><b>Реквизиты ООО или ИП</b></div>
-        <div class="audit-lines" id="auditRegistry"></div>
-        <label for="auditRegistryQuery">ИНН, ОГРН или юридическое название</label>
-        <input type="text" id="auditRegistryQuery" maxlength="240">
-        <div class="audit-actions">
-          <button class="btn" id="auditRegistrySearch">Найти в DaData</button>
-          <button class="btn" id="auditRegistrySettings">Подключить DaData</button>
-          <button class="btn" id="auditRegistryFns">Найти в ФНС</button>
-        </div>
-        <div id="auditCandidates"></div>
-        <details>
-          <summary>Внести найденную запись ФНС</summary>
-          <label for="auditRegistryNumber">ИНН или ОГРН</label><input type="text" id="auditRegistryNumber" maxlength="20">
-          <label for="auditRegistryOther">Второй номер, если есть</label><input type="text" id="auditRegistryOther" maxlength="20">
-          <label for="auditRegistryName">Название из записи</label><input type="text" id="auditRegistryName" maxlength="300">
-          <label for="auditRegistryAddress">Адрес</label><input type="text" id="auditRegistryAddress" maxlength="300">
-          <label for="auditRegistryManager">Руководитель по данным реестра</label><input type="text" id="auditRegistryManager" maxlength="180">
-          <div class="audit-actions"><button class="btn" id="auditRegistryManual">Сохранить запись</button></div>
-        </details>
-        <p class="hint" id="auditRegistryFeedback" role="status"></p>
-      </div>
-      </div>
-      <div>
-      <details class="pcard" id="auditReviewInputs" open>
-        <summary>Отзывы для разбора</summary>
-        <div class="audit-actions" id="auditMapLinks"></div>
-        <div class="audit-actions"><button class="btn" id="auditSuggestReviews" hidden>Подобрать отзывы из 2ГИС</button></div>
-        <div id="auditReviewChoices"></div>
-        <label for="auditSource">Источник отзывов</label>
-        <input type="text" id="auditSource" maxlength="300" placeholder="Например, 2ГИС или ссылка на карточку">
-        <label for="auditInput">Вставьте от 3 до 30 отзывов, разделяя их пустыми строками</label>
-        <textarea id="auditInput" rows="4" maxlength="24000" placeholder="Достаточно текстов без имён и контактов авторов"></textarea>
-        <p class="hint" id="auditMode"></p>
-        <div class="audit-actions">
-          <button class="btn primary" id="auditAnalyze">Разобрать через ИИ</button>
-          <button class="btn" id="auditPrompt">Скопировать промпт</button>
-        </div>
-        <div id="auditImportBox" hidden>
-          <label for="auditAnswer">Вставьте сюда JSON, который вернул чат с ИИ</label>
-          <textarea id="auditAnswer" rows="3" maxlength="16000" placeholder="Ответ из ChatGPT, Claude или другого чата"></textarea>
-          <button class="btn" id="auditImport">Импортировать разбор</button>
-        </div>
-        <div class="hint" id="auditStatus" role="status"></div>
-      </details>
-      <div class="pcard" id="auditResult" hidden>
-        <div class="pcard-h"><b>Сохранённый разбор</b></div>
-        <div class="audit-lines" id="auditReport"></div>
-        <div class="audit-actions">
-          <button class="btn primary" id="auditUseReport" hidden>Использовать в предложении</button>
-          <button class="btn" id="auditCopyMessage" hidden>Скопировать сообщение</button>
-        </div>
-      </div>
-      </div>
-      </div>
-      <div class="pcard" id="auditProposal">
-        <div class="pcard-h"><b>Предложение для компании</b><small>Черновик и мини-демо</small></div>
-        <label for="proposalTopic">Какую проблему решаем</label>
-        <input type="text" id="proposalTopic" maxlength="160" placeholder="Например, долго согласовывают запись">
-        <label for="proposalOffer">Что предлагаем</label>
-        <textarea id="proposalOffer" rows="2" maxlength="1200" placeholder="Опишите одну конкретную доработку"></textarea>
-        <label for="proposalPreset">Что показать в мини-демо</label>
-        <select id="proposalPreset">
-          <option value="request">Форма заявки</option>
-          <option value="quote">Запрос расчёта стоимости</option>
-          <option value="booking">Онлайн-запись</option>
-        </select>
-        <details>
-          <summary>Изменить текст на первом экране</summary>
-          <label for="proposalHeadline">Заголовок</label><input type="text" id="proposalHeadline" maxlength="90" placeholder="Например, рассчитать стоимость оклейки">
-          <label for="proposalIntro">Подзаголовок</label><textarea id="proposalIntro" maxlength="220" rows="2"></textarea>
-        </details>
-        <label for="proposalMessage">Первое сообщение</label>
-        <textarea id="proposalMessage" rows="3" maxlength="1600"></textarea>
-        <div class="audit-actions">
-          <button class="btn primary" id="proposalPreview">Открыть мини-демо</button>
-          <button class="btn" id="proposalSave">Сохранить черновик</button>
-          <button class="btn" id="proposalExport">Сохранить HTML</button>
-          <button class="btn" id="proposalPublish" hidden>Опубликовать в Vercel</button>
-          <button class="btn" id="proposalLink" hidden>Добавить ссылку в сообщение</button>
-          <button class="btn" id="proposalCopy">Скопировать сообщение</button>
-          <button class="btn" id="proposalTelegram" hidden>Открыть черновик в Telegram</button>
-        </div>
-        <p class="hint" id="proposalFeedback" role="status"></p>
-        <iframe class="audit-preview" id="proposalFrame" title="Мини-демо" sandbox="allow-scripts" hidden></iframe>
+      <div class="review-columns">
+        <section class="pcard" aria-labelledby="reviewItemsTitle">
+          <div class="pcard-h"><b id="reviewItemsTitle">Тексты отзывов</b></div>
+          <div id="reviewItems" class="review-items"></div>
+          <div class="review-actions"><button type="button" class="btn" id="reviewShowMore" hidden></button></div>
+        </section>
+        <section class="pcard" aria-labelledby="reviewAnalysisTitle">
+          <div class="pcard-h"><b id="reviewAnalysisTitle">Разбор отзывов</b></div>
+          <div class="review-actions">
+            <button type="button" class="btn primary" id="reviewAnalyze">Разобрать через ИИ</button>
+            <button type="button" class="btn" id="reviewAiSettings" hidden>Подключить ИИ</button>
+          </div>
+          <div class="hint" id="reviewAiMode"></div>
+          <details id="reviewImport" class="review-import">
+            <summary>Разобрать во внешнем чате</summary>
+            <div class="review-actions"><button type="button" class="btn" id="reviewPrompt">Скопировать промпт с отзывами</button></div>
+            <label for="reviewAnswer">Ответ из чата в формате JSON</label>
+            <textarea id="reviewAnswer" rows="3" maxlength="16000"></textarea>
+            <div class="review-actions"><button type="button" class="btn" id="reviewApply">Сохранить разбор</button></div>
+          </details>
+          <p id="reviewAnalysisStatus" class="hint" role="status" aria-live="polite"></p>
+          <div id="reviewReport" class="review-findings"></div>
+        </section>
       </div>
     </div>
   </div>
 </div>
-
 <div class="modal" id="demoModal" hidden>
   <div class="dialog">
     <div class="dlg-h">
@@ -1075,7 +993,7 @@ details.howto>*:not(summary){margin-top:8px}
   </div>
 </div>
 
-<script src="lead-workflow.js"></script>
+<script src="reviews.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const api = () => window.pywebview.api;
@@ -1269,7 +1187,7 @@ function renderSource() {
   document.querySelectorAll('#sourceSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.source)));
   $('#sourceHint').textContent = S.source === 'avito'
     ? 'Объявления услуг с Авито: название, цена, адрес, описание и ссылка. Телефонов нет — Авито показывает их только после входа, писать через чат объявления. Откроется окно браузера; если Авито попросит проверку — пройдите её.'
-    : '2ГИС ищет компании, Яндекс Карты сверяют карточки и дополняют контакты. Google Карты доступны для ручной проверки компании в её карточке.';
+    : '2ГИС ищет компании, Яндекс Карты сверяют карточки и дополняют контакты.';
 }
 document.querySelectorAll('#sourceSeg button').forEach(b => b.onclick = () => { S.source = b.dataset.v; renderSource(); if (!running && !shown) renderHeader(); });
 
@@ -1421,7 +1339,7 @@ function card(r, inBase) {
     c.appendChild(foot);
     if (!isAvito(r)) {
       const check = document.createElement('button');
-      check.type = 'button'; check.className = 'demobtn'; check.textContent = 'Проверить компанию';
+      check.type = 'button'; check.className = 'demobtn'; check.textContent = 'Отзывы';
       check.onclick = () => openAudit(r, check);
       c.appendChild(check);
     }
@@ -1441,161 +1359,6 @@ function card(r, inBase) {
   }
   return c;
 }
-
-/* ---------- проверка компании ---------- */
-let auditLead = null, auditOpening = false, auditBusy = false;
-function auditDate(iso) {
-  return iso ? new Date(iso).toLocaleString('ru-RU') : '';
-}
-function auditLine(box, title, text) {
-  if (!text) return;
-  const p = document.createElement('p');
-  const label = document.createElement('b');
-  label.textContent = title + ' · ';
-  p.append(label, text);
-  box.append(p);
-}
-function renderAuditSite(site) {
-  const box = $('#auditFacts');
-  box.replaceChildren();
-  auditLine(box, 'Сайт', site.site || 'Ещё не проверен');
-  auditLine(box, 'Телефон', site.phone);
-  auditLine(box, 'Почта', site.email);
-  auditLine(box, 'Дата проверки', auditDate(site.checked_at));
-  const siteLink = $('#auditSiteLink');
-  siteLink.hidden = !/^https?:\/\//i.test(site.url || '');
-  siteLink.onclick = () => api().open_url(site.url);
-  const inns = site.inns || [];
-  const ogrns = site.ogrns || [];
-  auditLine(box, 'ИНН с сайта', inns.join(', '));
-  auditLine(box, 'ОГРН с сайта', ogrns.join(', '));
-  auditLine(box, 'Юридические названия с сайта', (site.legal_names || []).join(', '));
-  for (const [number, url] of Object.entries(site.registry_sources || {})) {
-    const link = document.createElement('button');
-    link.className = 'linkbtn';
-    link.textContent = 'Источник ' + number;
-    link.onclick = () => api().open_url(url);
-    const line = document.createElement('p');
-    line.append(link);
-    box.append(line);
-  }
-  $('#auditCopyInn').hidden = $('#auditFns').hidden = !inns.length;
-  $('#auditCopyInn').onclick = () => copyText(inns.join(', '));
-  $('#auditFns').onclick = () => api().open_url('https://pb.nalog.ru/');
-}
-function renderAuditReport(report) {
-  const box = $('#auditReport');
-  box.replaceChildren();
-  $('#auditResult').hidden = !report.checked_at;
-  if (!report.checked_at) return;
-  const reviews = report.reviews;
-  auditLine(box, 'Источник', report.source || 'Вставлено вручную');
-  auditLine(box, 'Выборка', String(reviews.length));
-  auditLine(box, 'Дата анализа', auditDate(report.checked_at));
-  if (!report.topics.length) auditLine(box, 'Итог', 'В этой выборке повторяющихся проблем не найдено.');
-  for (const topic of report.topics) {
-    const details = document.createElement('details');
-    details.className = 'audit-topic';
-    const title = document.createElement('summary');
-    title.textContent = topic.title + ' · ' + topic.reviews.length + ' из ' + reviews.length;
-    details.append(title);
-    for (const number of topic.reviews) auditLine(details, 'Отзыв №' + number, reviews[number - 1]);
-    box.append(details);
-  }
-  auditLine(box, 'Что предложить', report.offer);
-  auditLine(box, 'Первое сообщение', report.message);
-  $('#auditUseReport').hidden = !report.offer && !report.message;
-  $('#auditCopyMessage').hidden = !report.message;
-  $('#auditCopyMessage').onclick = () => copyText(report.message, true);
-}
-async function openAudit(r, trigger) {
-  if (auditOpening || auditBusy) return;
-  auditOpening = true;
-  try {
-    const result = await api().audit_open(r.id);
-    if (!result.ok) { toast(result.error); return; }
-    auditLead = r.id;
-    $('#auditTitle').textContent = 'Проверить компанию · ' + (r.name || '');
-    const mapLinks = $('#auditMapLinks');
-    mapLinks.replaceChildren();
-    for (const [title, url, path] of [['2ГИС', r.url, /\/firm\//], ['Яндекс Карты', r.yandex, /\/maps\/org\//]]) {
-      if (!/^https?:\/\//i.test(url || '') || !path.test(url)) continue;
-      const button = document.createElement('button');
-      button.className = 'btn'; button.textContent = 'Отзывы · ' + title;
-      button.onclick = () => {
-        if (!$('#auditSource').value && !$('#auditInput').value.trim()) $('#auditSource').value = url;
-        api().open_url(url);
-      };
-      mapLinks.append(button);
-    }
-    $('#auditInput').value = (result.report.reviews || []).join('\n\n');
-    $('#auditSource').value = result.report.source || '';
-    $('#auditAnswer').value = '';
-    const connected = aiOn();
-    $('#auditAnalyze').hidden = !connected;
-    $('#auditImportBox').hidden = connected;
-    $('#auditMode').textContent = connected
-      ? 'Отзывы будут переданы подключённому ИИ. Также можно скопировать промпт.'
-      : 'Без ключа: скопируйте промпт в чат с ИИ, затем вставьте сюда его ответ.';
-    $('#auditStatus').textContent = '';
-    $('#auditSiteStatus').textContent = '';
-    renderAuditSite(result.site);
-    renderAuditReport(result.report);
-    applyLeadWorkflow(r, result);
-    $('#auditModal').hidden = false;
-    $('#auditModal .ed').scrollTop = 0;
-    $('#auditClose').focus();
-    $('#auditClose').onclick = () => {
-      if (auditBusy) return;
-      $('#auditModal').hidden = true;
-      trigger.focus();
-    };
-  } catch (e) {
-    toast('Не удалось открыть проверку компании');
-  } finally {
-    auditOpening = false;
-  }
-}
-$('#auditModal').addEventListener('keydown', event => {
-  if (event.key === 'Escape') $('#auditClose').click();
-});
-async function runAudit(mode) {
-  if (!auditLead || auditBusy) return;
-  auditBusy = true;
-  const controls = ['#auditCheck', '#auditAnalyze', '#auditPrompt', '#auditImport', '#auditInput', '#auditSource', '#auditAnswer'];
-  controls.forEach(id => { $(id).disabled = true; });
-  const status = $(mode === 'site' ? '#auditSiteStatus' : '#auditStatus');
-  status.textContent = mode === 'site' ? 'Сверяем данные с сайтом…' : 'Обрабатываем отзывы…';
-  try {
-    const res = mode === 'site'
-      ? await api().audit_check_site(auditLead)
-      : await api().audit_reviews(auditLead, $('#auditInput').value, mode, $('#auditAnswer').value, $('#auditSource').value);
-    if (!res.ok) { status.textContent = res.error; return; }
-    if (mode === 'prompt') {
-      copyText(res.prompt, true);
-      $('#auditImportBox').hidden = false;
-      status.textContent = 'Промпт скопирован. Вставьте ответ ИИ ниже.';
-    } else if (mode === 'site') {
-      renderAuditSite(res.site);
-      if (!$('#auditRegistryQuery').value.trim() || $('#auditRegistryQuery').value === reviewChoiceLead?.name) {
-        prepareRegistryQuery(res.site, reviewChoiceLead, false);
-      }
-      status.textContent = 'Сверка данных сохранена.';
-    } else {
-      renderAuditReport(res.report);
-      status.textContent = 'Разбор сохранён в карточке.';
-    }
-  } catch (e) {
-    status.textContent = 'Не удалось выполнить проверку. Попробуйте ещё раз.';
-  } finally {
-    auditBusy = false;
-    controls.forEach(id => { $(id).disabled = false; });
-  }
-}
-$('#auditCheck').onclick = () => runAudit('site');
-$('#auditAnalyze').onclick = () => runAudit('ai');
-$('#auditPrompt').onclick = () => runAudit('prompt');
-$('#auditImport').onclick = () => runAudit('import');
 
 /* ---------- сообщения ---------- */
 let TEMPLATES = [], TVARS = [], ACTIVE_TPL = '', DEMO_URLS = {}, VERCEL = {connected: false, account: ''}, THEMES = {};
@@ -1684,7 +1447,11 @@ function setTab(t) {
 }
 document.querySelectorAll('#setTabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 $('#setBtn').onclick = () => openSettings('conn');
-$('#setClose').onclick = () => { $('#setModal').hidden = true; readOptions(); };
+$('#setClose').onclick = () => {
+  $('#setModal').hidden = true;
+  readOptions();
+  if (reviewState) renderReviewScreen(reviewState);
+};
 function renderDots() {
   const d = $('#setDots'); d.innerHTML = '';
   [['ИИ', aiOn()], ['Vercel', VERCEL.connected], ['Telegram', !!TG.account]].forEach(([n, on]) => {
@@ -2540,7 +2307,6 @@ async function boot() {
   TEMPLATES = d.templates || []; TVARS = d.template_vars || []; ACTIVE_TPL = d.active_template || ''; DEMO_URLS = d.demo_urls || {};
   VERCEL = d.vercel || VERCEL; THEMES = d.themes || {}; DOPTS = d.demo_opts || DOPTS;
   AI = d.ai || AI; AIP = d.ai_providers || {};
-  updateRegistryConnection(!!d.dadata?.connected);
   renderAI(); renderTplSelect(); renderVars(); renderVercel(); renderDots();
   TG = Object.assign({}, d.tg); renderTg(); if (d.tg && d.tg.configured) loadTg(); pollTg();
   api().base_list('', '').then(r => setCounts(r.counts));
@@ -2551,7 +2317,7 @@ async function boot() {
   renderCityTags(); renderQueryTags(); renderLimit(); renderSource(); renderChips(); renderOptions(); renderHeader(); renderRecent(d.recent);
   setCount(0);
 }
-mountLeadWorkflow();
+mountReviewWorkflow();
 if (window.pywebview && window.pywebview.api && window.pywebview.api.init) boot();
 else window.addEventListener('pywebviewready', boot);
 </script>
