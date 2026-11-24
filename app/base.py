@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS batch_items (
 _MIGRATIONS = [
     ('demo_url', "ALTER TABLE leads ADD COLUMN demo_url TEXT NOT NULL DEFAULT ''"),
     ('demo', "ALTER TABLE leads ADD COLUMN demo TEXT NOT NULL DEFAULT ''"),
+    ('site_audit', "ALTER TABLE leads ADD COLUMN site_audit TEXT NOT NULL DEFAULT ''"),
+    ('review_audit', "ALTER TABLE leads ADD COLUMN review_audit TEXT NOT NULL DEFAULT ''"),
 ]
 
 DEFAULT_TEMPLATES = [
@@ -333,6 +335,22 @@ class LeadBase:
             self._db.execute("UPDATE leads SET status='demo' WHERE id=? AND status='new'", (lid,))
             if url is not None:
                 self._db.execute('UPDATE leads SET demo_url=? WHERE id=?', (url, lid))
+
+    def get_audit(self, lid: str) -> Dict[str, Any]:
+        with self._lock:
+            row = self._db.execute('SELECT site_audit, review_audit FROM leads WHERE id=?', (lid,)).fetchone()
+        if row is None:
+            return {}
+        return {'site': json.loads(row['site_audit'] or '{}'),
+                'report': json.loads(row['review_audit'] or '{}')}
+
+    def save_audit(self, lid: str, part: str, content: Dict[str, Any]) -> bool:
+        sql = {
+            'site': 'UPDATE leads SET site_audit=? WHERE id=?',
+            'report': 'UPDATE leads SET review_audit=? WHERE id=?',
+        }[part]
+        with self._lock:
+            return self._db.execute(sql, (json.dumps(content, ensure_ascii=False), lid)).rowcount == 1
 
     # ----- шаблоны сообщений -----
     def templates(self) -> List[Dict[str, Any]]:

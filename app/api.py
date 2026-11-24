@@ -16,6 +16,7 @@ from parser_2gis.paths import data_path
 
 from . import brand
 from . import ai as ai_mod
+from . import audit
 from . import demo as demo_site
 from .base import STATUSES, TEMPLATE_VARS, LeadBase, lead_id, render_message
 from .browsers import find_browsers
@@ -385,6 +386,43 @@ class Api:
     def base_note(self, lid: str, note: str) -> Dict[str, Any]:
         self._base.set_note(lid, note)
         return {'ok': True}
+
+    def audit_open(self, lid: str) -> Dict[str, Any]:
+        saved = self._base.get_audit(lid)
+        return {'ok': True, **saved} if saved else {'ok': False, 'error': 'Лид не найден'}
+
+    def audit_check_site(self, lid: str) -> Dict[str, Any]:
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        result = audit.check_site(lead)
+        if not self._base.save_audit(lid, 'site', result):
+            return {'ok': False, 'error': 'Лид больше не в базе'}
+        return {'ok': True, 'site': result}
+
+    def audit_reviews(self, lid: str, text: str, mode: str, answer: str = '', source: str = '') -> Dict[str, Any]:
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден'}
+        try:
+            reviews = audit.split_reviews(text)
+            prompt = audit.review_prompt(lead, self._base.get_audit(lid).get('site', {}), reviews)
+            if mode == 'prompt':
+                return {'ok': True, 'prompt': prompt}
+            if mode == 'ai':
+                cfg = self._ai_cfg()
+                if not cfg.get('key'):
+                    return {'ok': False, 'error': 'ИИ не подключён. Воспользуйтесь промптом.'}
+                answer = ai_mod.complete(cfg, prompt, audit.REVIEW_SYSTEM, max_tokens=2200, timeout=90)
+            elif mode != 'import':
+                return {'ok': False, 'error': 'Неизвестный режим анализа'}
+            report = audit.parse_review_report(answer, reviews)
+            report['source'] = (source or '').strip()[:300]
+        except (ValueError, ai_mod.AIError) as exc:
+            return {'ok': False, 'error': str(exc)}
+        if not self._base.save_audit(lid, 'report', report):
+            return {'ok': False, 'error': 'Лид больше не в базе'}
+        return {'ok': True, 'report': report}
 
     def base_export(self, status: str = '', search: str = '', fields: Optional[List[str]] = None) -> Dict[str, Any]:
         rows = self._base.list(status, search)
