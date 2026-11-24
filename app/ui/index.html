@@ -320,6 +320,12 @@ tbody.ghost td{height:31px}
 #tplModal{z-index:46}  /* редактор шаблонов — поверх настроек */
 .dialog{background:var(--paper);border:1px solid var(--grid);border-radius:16px;width:min(1240px,100%);height:min(860px,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .dialog.small{width:min(900px,100%);height:min(640px,100%)}
+#auditModal .ed{flex:1;border:0}
+#auditModal .pcard{margin-bottom:12px}
+.audit-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.audit-lines p{margin:5px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.audit-topic{margin:8px 0}
+.audit-topic summary{cursor:pointer}
 .dlg-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--grid)}
 .dlg-h b{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dlg-h .x{border:0;background:none;color:var(--ink-2);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
@@ -806,6 +812,49 @@ details.howto>*:not(summary){margin-top:8px}
   </div>
 </div>
 
+<div class="modal" id="auditModal" role="dialog" aria-modal="true" aria-labelledby="auditTitle" hidden>
+  <div class="dialog small">
+    <div class="dlg-h"><b id="auditTitle">Проверить компанию</b><button class="x" id="auditClose" aria-label="Закрыть">×</button></div>
+    <div class="ed">
+      <div class="pcard">
+        <div class="pcard-h"><b>Сайт и контакты</b><small>Без ИИ</small></div>
+        <div class="audit-lines" id="auditFacts"></div>
+        <div class="audit-actions">
+          <button class="btn" id="auditCheck">Сверить данные с сайтом</button>
+          <button class="btn" id="auditSiteLink" hidden>Открыть источник</button>
+          <button class="btn" id="auditCopyInn" hidden>Копировать ИНН</button>
+          <button class="btn" id="auditFns" hidden>Сверить ИНН на сайте ФНС</button>
+        </div>
+        <div class="hint" id="auditSiteStatus" role="status"></div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-h"><b>Анализ отзывов</b></div>
+        <div class="audit-actions" id="auditMapLinks"></div>
+        <label for="auditSource">Источник отзывов</label>
+        <input type="text" id="auditSource" maxlength="300" placeholder="Например, 2ГИС или ссылка на карточку">
+        <label for="auditInput">Вставьте от 3 до 30 отзывов, разделяя их пустыми строками</label>
+        <textarea id="auditInput" rows="4" maxlength="24000" placeholder="Достаточно текстов без имён и контактов авторов"></textarea>
+        <p class="hint" id="auditMode"></p>
+        <div class="audit-actions">
+          <button class="btn primary" id="auditAnalyze">Разобрать через ИИ</button>
+          <button class="btn" id="auditPrompt">Скопировать промпт</button>
+        </div>
+        <div id="auditImportBox" hidden>
+          <label for="auditAnswer">Вставьте сюда JSON, который вернул чат с ИИ</label>
+          <textarea id="auditAnswer" rows="3" maxlength="16000" placeholder="Ответ из ChatGPT, Claude или другого чата"></textarea>
+          <button class="btn" id="auditImport">Сохранить ответ</button>
+        </div>
+        <div class="hint" id="auditStatus" role="status"></div>
+      </div>
+      <div class="pcard" id="auditResult" hidden>
+        <div class="pcard-h"><b>Сохранённый разбор</b></div>
+        <div class="audit-lines" id="auditReport"></div>
+        <button class="btn" id="auditCopyMessage" hidden>Скопировать сообщение</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="demoModal" hidden>
   <div class="dialog">
     <div class="dlg-h">
@@ -1284,6 +1333,12 @@ function card(r, inBase) {
     };
     foot.append(un, st);
     c.appendChild(foot);
+    if (!isAvito(r)) {
+      const check = document.createElement('button');
+      check.type = 'button'; check.className = 'demobtn'; check.textContent = 'Проверить компанию';
+      check.onclick = () => openAudit(r, check);
+      c.appendChild(check);
+    }
     const note = document.createElement('textarea'); note.className = 'note'; note.rows = 1; note.placeholder = 'Заметка: о чём договорились, когда написать…'; note.value = r.note || '';
     note.onchange = () => api().base_note(r.id, note.value);
     c.appendChild(note);
@@ -1300,6 +1355,144 @@ function card(r, inBase) {
   }
   return c;
 }
+
+/* ---------- проверка компании ---------- */
+let auditLead = null, auditOpening = false, auditBusy = false;
+function auditDate(iso) {
+  return iso ? new Date(iso).toLocaleString('ru-RU') : '';
+}
+function auditLine(box, title, text) {
+  if (!text) return;
+  const p = document.createElement('p');
+  const label = document.createElement('b');
+  label.textContent = title + ' · ';
+  p.append(label, text);
+  box.append(p);
+}
+function renderAuditSite(site) {
+  const box = $('#auditFacts');
+  box.replaceChildren();
+  auditLine(box, 'Сайт', site.site || 'Ещё не проверен');
+  auditLine(box, 'Телефон', site.phone);
+  auditLine(box, 'Почта', site.email);
+  auditLine(box, 'Дата проверки', auditDate(site.checked_at));
+  const siteLink = $('#auditSiteLink');
+  siteLink.hidden = !/^https?:\/\//i.test(site.url || '');
+  siteLink.onclick = () => api().open_url(site.url);
+  const inns = site.inns || [];
+  auditLine(box, 'ИНН с сайта', inns.join(', '));
+  $('#auditCopyInn').hidden = $('#auditFns').hidden = !inns.length;
+  $('#auditCopyInn').onclick = () => copyText(inns.join(', '));
+  $('#auditFns').onclick = () => api().open_url('https://pb.nalog.ru/');
+}
+function renderAuditReport(report) {
+  const box = $('#auditReport');
+  box.replaceChildren();
+  $('#auditResult').hidden = !report.checked_at;
+  if (!report.checked_at) return;
+  const reviews = report.reviews;
+  auditLine(box, 'Источник', report.source || 'Вставлено вручную');
+  auditLine(box, 'Выборка', String(reviews.length));
+  auditLine(box, 'Дата анализа', auditDate(report.checked_at));
+  if (!report.topics.length) auditLine(box, 'Итог', 'В этой выборке повторяющихся проблем не найдено.');
+  for (const topic of report.topics) {
+    const details = document.createElement('details');
+    details.className = 'audit-topic';
+    const title = document.createElement('summary');
+    title.textContent = topic.title + ' · ' + topic.reviews.length + ' из ' + reviews.length;
+    details.append(title);
+    for (const number of topic.reviews) auditLine(details, 'Отзыв №' + number, reviews[number - 1]);
+    box.append(details);
+  }
+  auditLine(box, 'Что предложить', report.offer);
+  auditLine(box, 'Первое сообщение', report.message);
+  $('#auditCopyMessage').hidden = !report.message;
+  $('#auditCopyMessage').onclick = () => copyText(report.message, true);
+}
+async function openAudit(r, trigger) {
+  if (auditOpening || auditBusy) return;
+  auditOpening = true;
+  try {
+    const result = await api().audit_open(r.id);
+    if (!result.ok) { toast(result.error); return; }
+    auditLead = r.id;
+    $('#auditTitle').textContent = 'Проверить компанию · ' + (r.name || '');
+    const mapLinks = $('#auditMapLinks');
+    mapLinks.replaceChildren();
+    for (const [title, url, path] of [['2ГИС', r.url, /\/firm\//], ['Яндекс Карты', r.yandex, /\/maps\/org\//]]) {
+      if (!/^https?:\/\//i.test(url || '') || !path.test(url)) continue;
+      const button = document.createElement('button');
+      button.className = 'btn'; button.textContent = 'Отзывы · ' + title;
+      button.onclick = () => {
+        if (!$('#auditSource').value && !$('#auditInput').value.trim()) $('#auditSource').value = url;
+        api().open_url(url);
+      };
+      mapLinks.append(button);
+    }
+    $('#auditInput').value = (result.report.reviews || []).join('\n\n');
+    $('#auditSource').value = result.report.source || '';
+    $('#auditAnswer').value = '';
+    const connected = aiOn();
+    $('#auditAnalyze').hidden = !connected;
+    $('#auditImportBox').hidden = connected;
+    $('#auditMode').textContent = connected
+      ? 'Отзывы будут переданы подключённому ИИ. Также можно скопировать промпт.'
+      : 'Без ключа: скопируйте промпт в чат с ИИ, затем вставьте сюда его ответ.';
+    $('#auditStatus').textContent = '';
+    $('#auditSiteStatus').textContent = '';
+    renderAuditSite(result.site);
+    renderAuditReport(result.report);
+    $('#auditModal').hidden = false;
+    $('#auditModal .ed').scrollTop = 0;
+    $('#auditClose').focus();
+    $('#auditClose').onclick = () => {
+      if (auditBusy) return;
+      $('#auditModal').hidden = true;
+      trigger.focus();
+    };
+  } catch (e) {
+    toast('Не удалось открыть проверку компании');
+  } finally {
+    auditOpening = false;
+  }
+}
+$('#auditModal').addEventListener('keydown', event => {
+  if (event.key === 'Escape') $('#auditClose').click();
+});
+async function runAudit(mode) {
+  if (!auditLead || auditBusy) return;
+  auditBusy = true;
+  const controls = ['#auditCheck', '#auditAnalyze', '#auditPrompt', '#auditImport', '#auditInput', '#auditSource', '#auditAnswer'];
+  controls.forEach(id => { $(id).disabled = true; });
+  const status = $(mode === 'site' ? '#auditSiteStatus' : '#auditStatus');
+  status.textContent = mode === 'site' ? 'Сверяем данные с сайтом…' : 'Обрабатываем отзывы…';
+  try {
+    const res = mode === 'site'
+      ? await api().audit_check_site(auditLead)
+      : await api().audit_reviews(auditLead, $('#auditInput').value, mode, $('#auditAnswer').value, $('#auditSource').value);
+    if (!res.ok) { status.textContent = res.error; return; }
+    if (mode === 'prompt') {
+      copyText(res.prompt, true);
+      $('#auditImportBox').hidden = false;
+      status.textContent = 'Промпт скопирован. Вставьте ответ ИИ ниже.';
+    } else if (mode === 'site') {
+      renderAuditSite(res.site);
+      status.textContent = 'Сверка данных сохранена.';
+    } else {
+      renderAuditReport(res.report);
+      status.textContent = 'Разбор сохранён в карточке.';
+    }
+  } catch (e) {
+    status.textContent = 'Не удалось выполнить проверку. Попробуйте ещё раз.';
+  } finally {
+    auditBusy = false;
+    controls.forEach(id => { $(id).disabled = false; });
+  }
+}
+$('#auditCheck').onclick = () => runAudit('site');
+$('#auditAnalyze').onclick = () => runAudit('ai');
+$('#auditPrompt').onclick = () => runAudit('prompt');
+$('#auditImport').onclick = () => runAudit('import');
 
 /* ---------- сообщения ---------- */
 let TEMPLATES = [], TVARS = [], ACTIVE_TPL = '', DEMO_URLS = {}, VERCEL = {connected: false, account: ''}, THEMES = {};
