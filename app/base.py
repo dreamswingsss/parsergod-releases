@@ -68,6 +68,8 @@ _MIGRATIONS = [
     ('demo', "ALTER TABLE leads ADD COLUMN demo TEXT NOT NULL DEFAULT ''"),
     ('site_audit', "ALTER TABLE leads ADD COLUMN site_audit TEXT NOT NULL DEFAULT ''"),
     ('review_audit', "ALTER TABLE leads ADD COLUMN review_audit TEXT NOT NULL DEFAULT ''"),
+    ('registry_audit', "ALTER TABLE leads ADD COLUMN registry_audit TEXT NOT NULL DEFAULT ''"),
+    ('proposal', "ALTER TABLE leads ADD COLUMN proposal TEXT NOT NULL DEFAULT ''"),
 ]
 
 DEFAULT_TEMPLATES = [
@@ -338,16 +340,22 @@ class LeadBase:
 
     def get_audit(self, lid: str) -> Dict[str, Any]:
         with self._lock:
-            row = self._db.execute('SELECT site_audit, review_audit FROM leads WHERE id=?', (lid,)).fetchone()
+            row = self._db.execute(
+                'SELECT site_audit, review_audit, registry_audit, proposal FROM leads WHERE id=?', (lid,)
+            ).fetchone()
         if row is None:
             return {}
         return {'site': json.loads(row['site_audit'] or '{}'),
-                'report': json.loads(row['review_audit'] or '{}')}
+                'report': json.loads(row['review_audit'] or '{}'),
+                'registry': json.loads(row['registry_audit'] or '{}'),
+                'proposal': json.loads(row['proposal'] or '{}')}
 
     def save_audit(self, lid: str, part: str, content: Dict[str, Any]) -> bool:
         sql = {
             'site': 'UPDATE leads SET site_audit=? WHERE id=?',
             'report': 'UPDATE leads SET review_audit=? WHERE id=?',
+            'registry': 'UPDATE leads SET registry_audit=? WHERE id=?',
+            'proposal': 'UPDATE leads SET proposal=? WHERE id=?',
         }[part]
         with self._lock:
             return self._db.execute(sql, (json.dumps(content, ensure_ascii=False), lid)).rowcount == 1

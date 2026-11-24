@@ -321,6 +321,20 @@ tbody.ghost td{height:31px}
 .dialog{background:var(--paper);border:1px solid var(--grid);border-radius:16px;width:min(1240px,100%);height:min(860px,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .dialog.small{width:min(900px,100%);height:min(640px,100%)}
 #auditModal .ed{flex:1;border:0}
+#auditModal .dialog{width:min(1080px,100%);height:min(800px,100%)}
+#auditModal .dlg-h>#auditTitle{flex:1!important;max-width:none}
+.audit-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.audit-grid>div{min-width:0}
+#auditProposal{border-top:2px solid var(--ink-2);margin-top:6px}
+#auditReviewInputs>summary{font-weight:600;cursor:pointer}
+#auditReviewInputs[open]>summary{margin-bottom:10px}
+#auditProposal select{width:100%;border:1px solid var(--grid);background:var(--paper);border-radius:8px;padding:8px 12px;font:inherit;color:var(--ink)}
+.audit-match{display:grid;gap:4px;padding:11px 0;border-top:1px solid var(--grid);overflow-wrap:anywhere}
+.audit-match>.btn{justify-self:start;margin-top:4px}
+.audit-match p{margin:0}
+.audit-preview{display:block;width:100%;height:440px;margin-top:12px;border:1px solid var(--grid);border-radius:10px;background:#17191b}
+.audit-preview[hidden]{display:none}
+@media(max-width:800px){.audit-grid{grid-template-columns:1fr}.audit-preview{height:510px}}
 #auditModal .pcard{margin-bottom:12px}
 .audit-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
 .audit-lines p{margin:5px 0;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -662,7 +676,7 @@ details.howto>*:not(summary){margin-top:8px}
         </div>
         <p class="hint" id="cityHint">Небольшие города (Полевской, Ревда, Верхняя Пышма…) тоже ищутся — ParserGod сам найдёт регион 2ГИС</p>
         <div class="seg" id="sourceSeg" style="margin-top:12px">
-          <button data-v="2gis">2ГИС</button><button data-v="both">2ГИС + Яндекс</button><button data-v="avito">Авито</button>
+          <button data-v="both">Карты</button><button data-v="avito">Объявления Авито</button>
         </div>
         <p class="hint" id="sourceHint"></p>
       </section>
@@ -788,6 +802,15 @@ details.howto>*:not(summary){margin-top:8px}
       </nav>
       <div class="setpane" id="tab-conn">
         <div class="conn"><div class="conn-h"><span class="ico ai"><svg><use href="#i-cpu"/></svg></span><div><b>ИИ — свой API-ключ</b><small>Генерирует демо-сайты и личные сообщения по кнопке</small></div><span class="pill" id="aiPill"></span></div><div class="conn-b" id="aiBox"></div></div>
+        <div class="conn">
+          <div class="conn-h"><div><b>DaData</b><small>Поиск ООО и ИП по реквизитам или названию</small></div><span class="pill" id="dadataState"></span></div>
+          <div class="conn-b">
+            <label for="dadataKey">Ваш API-ключ DaData</label>
+            <input id="dadataKey" class="secret" type="text" autocomplete="off" spellcheck="false">
+            <div class="btnrow"><button class="btn" id="dadataSave">Сохранить ключ</button><button class="btn" id="dadataOff">Отключить</button></div>
+            <p class="hint" id="dadataFeedback" role="status"></p>
+          </div>
+        </div>
         <div class="conn"><div class="conn-h"><span class="ico vc"><svg><use href="#i-tri"/></svg></span><div><b>Vercel — публикация демо</b><small>Демо открываются по ссылке вида имя.vercel.app</small></div><span class="pill" id="vcPill"></span></div><div class="conn-b" id="vercelBox"></div></div>
         <div class="conn"><div class="conn-h"><span class="ico tg"><svg><use href="#i-tg"/></svg></span><div><b>Telegram — автоотправка</b><small>Программа сама пишет лидам с вашего аккаунта</small></div><span class="pill" id="tgPill"></span></div><div class="conn-b" id="tgBox"></div></div>
       </div>
@@ -814,8 +837,10 @@ details.howto>*:not(summary){margin-top:8px}
 
 <div class="modal" id="auditModal" role="dialog" aria-modal="true" aria-labelledby="auditTitle" hidden>
   <div class="dialog small">
-    <div class="dlg-h"><b id="auditTitle">Проверить компанию</b><button class="x" id="auditClose" aria-label="Закрыть">×</button></div>
+    <div class="dlg-h"><b id="auditTitle">Проверить компанию</b><button class="btn" id="auditToProposal">К предложению</button><button class="x" id="auditClose" aria-label="Закрыть">×</button></div>
     <div class="ed">
+      <div class="audit-grid">
+      <div>
       <div class="pcard">
         <div class="pcard-h"><b>Сайт и контакты</b><small>Без ИИ</small></div>
         <div class="audit-lines" id="auditFacts"></div>
@@ -828,8 +853,34 @@ details.howto>*:not(summary){margin-top:8px}
         <div class="hint" id="auditSiteStatus" role="status"></div>
       </div>
       <div class="pcard">
-        <div class="pcard-h"><b>Анализ отзывов</b></div>
+        <div class="pcard-h"><b>Реквизиты ООО или ИП</b></div>
+        <div class="audit-lines" id="auditRegistry"></div>
+        <label for="auditRegistryQuery">ИНН, ОГРН или юридическое название</label>
+        <input type="text" id="auditRegistryQuery" maxlength="240">
+        <div class="audit-actions">
+          <button class="btn" id="auditRegistrySearch">Найти в DaData</button>
+          <button class="btn" id="auditRegistrySettings">Подключить DaData</button>
+          <button class="btn" id="auditRegistryFns">Найти в ФНС</button>
+        </div>
+        <div id="auditCandidates"></div>
+        <details>
+          <summary>Внести найденную запись ФНС</summary>
+          <label for="auditRegistryNumber">ИНН или ОГРН</label><input type="text" id="auditRegistryNumber" maxlength="20">
+          <label for="auditRegistryOther">Второй номер, если есть</label><input type="text" id="auditRegistryOther" maxlength="20">
+          <label for="auditRegistryName">Название из записи</label><input type="text" id="auditRegistryName" maxlength="300">
+          <label for="auditRegistryAddress">Адрес</label><input type="text" id="auditRegistryAddress" maxlength="300">
+          <label for="auditRegistryManager">Руководитель по данным реестра</label><input type="text" id="auditRegistryManager" maxlength="180">
+          <div class="audit-actions"><button class="btn" id="auditRegistryManual">Сохранить запись</button></div>
+        </details>
+        <p class="hint" id="auditRegistryFeedback" role="status"></p>
+      </div>
+      </div>
+      <div>
+      <details class="pcard" id="auditReviewInputs" open>
+        <summary>Отзывы для разбора</summary>
         <div class="audit-actions" id="auditMapLinks"></div>
+        <div class="audit-actions"><button class="btn" id="auditSuggestReviews" hidden>Подобрать отзывы из 2ГИС</button></div>
+        <div id="auditReviewChoices"></div>
         <label for="auditSource">Источник отзывов</label>
         <input type="text" id="auditSource" maxlength="300" placeholder="Например, 2ГИС или ссылка на карточку">
         <label for="auditInput">Вставьте от 3 до 30 отзывов, разделяя их пустыми строками</label>
@@ -842,14 +893,50 @@ details.howto>*:not(summary){margin-top:8px}
         <div id="auditImportBox" hidden>
           <label for="auditAnswer">Вставьте сюда JSON, который вернул чат с ИИ</label>
           <textarea id="auditAnswer" rows="3" maxlength="16000" placeholder="Ответ из ChatGPT, Claude или другого чата"></textarea>
-          <button class="btn" id="auditImport">Сохранить ответ</button>
+          <button class="btn" id="auditImport">Импортировать разбор</button>
         </div>
         <div class="hint" id="auditStatus" role="status"></div>
-      </div>
+      </details>
       <div class="pcard" id="auditResult" hidden>
         <div class="pcard-h"><b>Сохранённый разбор</b></div>
         <div class="audit-lines" id="auditReport"></div>
-        <button class="btn" id="auditCopyMessage" hidden>Скопировать сообщение</button>
+        <div class="audit-actions">
+          <button class="btn primary" id="auditUseReport" hidden>Использовать в предложении</button>
+          <button class="btn" id="auditCopyMessage" hidden>Скопировать сообщение</button>
+        </div>
+      </div>
+      </div>
+      </div>
+      <div class="pcard" id="auditProposal">
+        <div class="pcard-h"><b>Предложение для компании</b><small>Черновик и мини-демо</small></div>
+        <label for="proposalTopic">Какую проблему решаем</label>
+        <input type="text" id="proposalTopic" maxlength="160" placeholder="Например, долго согласовывают запись">
+        <label for="proposalOffer">Что предлагаем</label>
+        <textarea id="proposalOffer" rows="2" maxlength="1200" placeholder="Опишите одну конкретную доработку"></textarea>
+        <label for="proposalPreset">Что показать в мини-демо</label>
+        <select id="proposalPreset">
+          <option value="request">Форма заявки</option>
+          <option value="quote">Запрос расчёта стоимости</option>
+          <option value="booking">Онлайн-запись</option>
+        </select>
+        <details>
+          <summary>Изменить текст на первом экране</summary>
+          <label for="proposalHeadline">Заголовок</label><input type="text" id="proposalHeadline" maxlength="90" placeholder="Например, рассчитать стоимость оклейки">
+          <label for="proposalIntro">Подзаголовок</label><textarea id="proposalIntro" maxlength="220" rows="2"></textarea>
+        </details>
+        <label for="proposalMessage">Первое сообщение</label>
+        <textarea id="proposalMessage" rows="3" maxlength="1600"></textarea>
+        <div class="audit-actions">
+          <button class="btn primary" id="proposalPreview">Открыть мини-демо</button>
+          <button class="btn" id="proposalSave">Сохранить черновик</button>
+          <button class="btn" id="proposalExport">Сохранить HTML</button>
+          <button class="btn" id="proposalPublish" hidden>Опубликовать в Vercel</button>
+          <button class="btn" id="proposalLink" hidden>Добавить ссылку в сообщение</button>
+          <button class="btn" id="proposalCopy">Скопировать сообщение</button>
+          <button class="btn" id="proposalTelegram" hidden>Открыть черновик в Telegram</button>
+        </div>
+        <p class="hint" id="proposalFeedback" role="status"></p>
+        <iframe class="audit-preview" id="proposalFrame" title="Мини-демо" sandbox="allow-scripts" hidden></iframe>
       </div>
     </div>
   </div>
@@ -988,13 +1075,14 @@ details.howto>*:not(summary){margin-top:8px}
   </div>
 </div>
 
+<script src="lead-workflow.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const api = () => window.pywebview.api;
 const MAX_ROWS_DOM = 600;
 
 let CITIES = [], LOCS = [], FIELDS = [], BROWSERS = [];
-const S = {source: '2gis', cities: [], queries: [], fields: [], limit: 100, require_any: false, require_phone: true,
+const S = {source: 'both', cities: [], queries: [], fields: [], limit: 100, require_any: false, require_phone: true,
            one_per_chain: false, min_rating: 0, no_site: false, show_browser: false, delay_ms: 0, browser_path: '', output_dir: ''};
 let running = false, rowCursor = 0, logCursor = 0, shown = 0, timer = null, lastFile = null;
 
@@ -1178,12 +1266,10 @@ function renderSpheres() {
 
 /* ---------- источник ---------- */
 function renderSource() {
-  document.querySelectorAll('#sourceSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === (S.source || '2gis'))));
-  $('#sourceHint').textContent = S.source === 'both'
-    ? 'Сначала 2ГИС. Потом каждую найденную точку перепроверяет в Яндекс Картах по названию и адресу: дописывает сайт, соцсети и телефоны, которых нет в 2ГИС, обновляет «Тип сайта» и добавляет ссылку на карточку Яндекса. Яндекс откроет окно браузера — если попросит «я не робот», пройдите проверку.'
-    : S.source === 'avito'
+  document.querySelectorAll('#sourceSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.source)));
+  $('#sourceHint').textContent = S.source === 'avito'
     ? 'Объявления услуг с Авито: название, цена, адрес, описание и ссылка. Телефонов нет — Авито показывает их только после входа, писать через чат объявления. Откроется окно браузера; если Авито попросит проверку — пройдите её.'
-    : 'Только 2ГИС — быстрее всего.';
+    : '2ГИС ищет компании, Яндекс Карты сверяют карточки и дополняют контакты. Google Карты доступны для ручной проверки компании в её карточке.';
 }
 document.querySelectorAll('#sourceSeg button').forEach(b => b.onclick = () => { S.source = b.dataset.v; renderSource(); if (!running && !shown) renderHeader(); });
 
@@ -1380,7 +1466,19 @@ function renderAuditSite(site) {
   siteLink.hidden = !/^https?:\/\//i.test(site.url || '');
   siteLink.onclick = () => api().open_url(site.url);
   const inns = site.inns || [];
+  const ogrns = site.ogrns || [];
   auditLine(box, 'ИНН с сайта', inns.join(', '));
+  auditLine(box, 'ОГРН с сайта', ogrns.join(', '));
+  auditLine(box, 'Юридические названия с сайта', (site.legal_names || []).join(', '));
+  for (const [number, url] of Object.entries(site.registry_sources || {})) {
+    const link = document.createElement('button');
+    link.className = 'linkbtn';
+    link.textContent = 'Источник ' + number;
+    link.onclick = () => api().open_url(url);
+    const line = document.createElement('p');
+    line.append(link);
+    box.append(line);
+  }
   $('#auditCopyInn').hidden = $('#auditFns').hidden = !inns.length;
   $('#auditCopyInn').onclick = () => copyText(inns.join(', '));
   $('#auditFns').onclick = () => api().open_url('https://pb.nalog.ru/');
@@ -1406,6 +1504,7 @@ function renderAuditReport(report) {
   }
   auditLine(box, 'Что предложить', report.offer);
   auditLine(box, 'Первое сообщение', report.message);
+  $('#auditUseReport').hidden = !report.offer && !report.message;
   $('#auditCopyMessage').hidden = !report.message;
   $('#auditCopyMessage').onclick = () => copyText(report.message, true);
 }
@@ -1442,6 +1541,7 @@ async function openAudit(r, trigger) {
     $('#auditSiteStatus').textContent = '';
     renderAuditSite(result.site);
     renderAuditReport(result.report);
+    applyLeadWorkflow(r, result);
     $('#auditModal').hidden = false;
     $('#auditModal .ed').scrollTop = 0;
     $('#auditClose').focus();
@@ -1477,6 +1577,9 @@ async function runAudit(mode) {
       status.textContent = 'Промпт скопирован. Вставьте ответ ИИ ниже.';
     } else if (mode === 'site') {
       renderAuditSite(res.site);
+      if (!$('#auditRegistryQuery').value.trim() || $('#auditRegistryQuery').value === reviewChoiceLead?.name) {
+        prepareRegistryQuery(res.site, reviewChoiceLead, false);
+      }
       status.textContent = 'Сверка данных сохранена.';
     } else {
       renderAuditReport(res.report);
@@ -1527,7 +1630,12 @@ async function openChat(r, channel, cardEl, force, override) {
     return;
   }
   if (res.text && !res.prefilled) { copyText(res.text, true); toast('Чат открыт, текст в буфере — нажмите Ctrl+V' + (res.marked ? ' · статус «Написал»' : '')); }
-  else if (res.prefilled) toast('Текст уже в поле WhatsApp' + (res.marked ? ' · статус «Написал»' : ''));
+  else if (res.prefilled) {
+    if (channel === 'telegram') {
+      copyText(res.text, true);
+      toast('Черновик открыт в Telegram. Копия в буфере');
+    } else toast('Текст уже в поле WhatsApp' + (res.marked ? ' · статус «Написал»' : ''));
+  }
   else toast('Чат открыт. Выберите «Текст» сверху — сообщение будет подставляться само');
   if (MODE === 'base') loadBase();
 }
@@ -2432,6 +2540,7 @@ async function boot() {
   TEMPLATES = d.templates || []; TVARS = d.template_vars || []; ACTIVE_TPL = d.active_template || ''; DEMO_URLS = d.demo_urls || {};
   VERCEL = d.vercel || VERCEL; THEMES = d.themes || {}; DOPTS = d.demo_opts || DOPTS;
   AI = d.ai || AI; AIP = d.ai_providers || {};
+  updateRegistryConnection(!!d.dadata?.connected);
   renderAI(); renderTplSelect(); renderVars(); renderVercel(); renderDots();
   TG = Object.assign({}, d.tg); renderTg(); if (d.tg && d.tg.configured) loadTg(); pollTg();
   api().base_list('', '').then(r => setCounts(r.counts));
@@ -2442,6 +2551,7 @@ async function boot() {
   renderCityTags(); renderQueryTags(); renderLimit(); renderSource(); renderChips(); renderOptions(); renderHeader(); renderRecent(d.recent);
   setCount(0);
 }
+mountLeadWorkflow();
 if (window.pywebview && window.pywebview.api && window.pywebview.api.init) boot();
 else window.addEventListener('pywebviewready', boot);
 </script>

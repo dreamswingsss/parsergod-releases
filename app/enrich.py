@@ -137,12 +137,41 @@ def fetch_site(url: str) -> Dict[str, Any]:
     }
 
 
-def fetch_2gis(card_url: str) -> Dict[str, Any]:
+def _structured_review_texts(source: str) -> list[str]:
+    decoder = json.JSONDecoder()
+    result: dict[str, None] = {}
+    for index, match in enumerate(re.finditer(
+        r'\{(?=\s*"(?:id|rating|text|reviewBody|@type|author|datePublished)"\s*:)', source
+    )):
+        if index >= 400 or len(result) >= 6:
+            break
+        try:
+            item, _ = decoder.raw_decode(source[match.start():match.start() + 12000])
+        except (ValueError, RecursionError):
+            continue
+        text = item.get('reviewBody')
+        if not isinstance(text, str) and isinstance(item.get('rating'), (int, float)):
+            text = item.get('text')
+        if not isinstance(text, str):
+            continue
+        text = ' '.join(html.unescape(text).split()).strip()
+        if 15 <= len(text) <= 2000:
+            result.setdefault(text, None)
+    return list(result)
+
+
+def fetch_2gis(card_url: str, structured_reviews: bool = False) -> Dict[str, Any]:
     """Страница карточки 2ГИС: фото, описание и отзывы, если они есть в HTML."""
     if not card_url or '2gis' not in card_url:
         return {}
     out: Dict[str, Any] = {'photos': [], 'reviews': [], 'description': ''}
     page = _get(card_url.rstrip('/'))
+    if structured_reviews:
+        reviews_url = card_url.rstrip('/') + '/tab/reviews'
+        selected = _structured_review_texts(_get(reviews_url) or '')
+        selected += _structured_review_texts(page or '')
+        out['reviews'] = list(dict.fromkeys(selected))[:6]
+        return out
     if page:
         for u in _PHOTO_2GIS_RE.findall(page):
             u = u.replace('\\/', '/')

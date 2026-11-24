@@ -15,6 +15,31 @@ import threading
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+from urllib.parse import parse_qs, urlencode, urlsplit
+
+
+def draft_link(link: str, text: str) -> str:
+    """Only direct chats accept a draft. Group invites and post URLs open unchanged."""
+    try:
+        parsed = urlsplit(link)
+    except ValueError:
+        return ''
+    if parsed.scheme == 'tg' and parsed.netloc == 'resolve':
+        args = parse_qs(parsed.query)
+        phone = args.get('phone', [''])[0].lstrip('+')
+        path = '+' + phone if phone else args.get('domain', [''])[0]
+    elif parsed.scheme in ('http', 'https') and parsed.netloc in ('t.me', 'telegram.me', 'www.telegram.me'):
+        path = parsed.path.strip('/')
+        args = parse_qs(parsed.query, keep_blank_values=True)
+    else:
+        return ''
+    blocked = {'joinchat', 'share', 'addstickers', 'addemoji', 'proxy', 'socks', 'login',
+               'iv', 'boost', 'setlanguage', 'confirmphone', 'addlist', 'msg', 's'}
+    if (path.lower() in blocked or any(k in args for k in ('post', 'start', 'startapp', 'startgroup'))
+            or not re.fullmatch(r'(?:[A-Za-z][A-Za-z0-9_]{3,31}|\+[1-9]\d{9,14})', path)):
+        return ''
+    query = urlencode({'text': text, **({'direct': ''} if 'direct' in args else {})})
+    return f'https://t.me/{path}?{query}'
 
 DEFAULT_DAILY_LIMIT = 15
 DEFAULT_DELAY = (45, 120)  # секунд между сообщениями

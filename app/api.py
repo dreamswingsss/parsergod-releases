@@ -17,6 +17,8 @@ from parser_2gis.paths import data_path
 from . import brand
 from . import ai as ai_mod
 from . import audit
+from . import proposal
+from . import registry
 from . import demo as demo_site
 from .base import STATUSES, TEMPLATE_VARS, LeadBase, lead_id, render_message
 from .browsers import find_browsers
@@ -197,7 +199,7 @@ class Api:
                 'delay_ms': s.get('delay_ms', 0),
                 'browser_path': s.get('browser_path', ''),
                 'output_dir': s.get('output_dir') or str(default_output_dir()),
-                'source': s.get('source') if s.get('source') in ('2gis', 'both', 'avito') else '2gis',
+                'source': 'avito' if s.get('source') == 'avito' else 'both',
             },
             'recent': [],  # история сборов на старте не показывается
             'statuses': STATUSES,
@@ -214,6 +216,7 @@ class Api:
             'demo_opts': {'fonts': {k: v['title'] for k, v in demo_site.FONTS.items()}, 'layouts': demo_site.LAYOUTS,
                           'accents': demo_site.ACCENTS, 'sections': demo_site.SECTION_TITLES},
             'ai': ai_mod.public_cfg(s.get('ai')),
+            'dadata': {'connected': bool(s.get('dadata_key'))},
             'ai_providers': {k: {'title': v['title'], 'help': v['help']} for k, v in ai_mod.PROVIDERS.items()},
             'tg': {'configured': bool((s.get('tg') or {}).get('api_id')),
                    'daily_limit': (s.get('tg') or {}).get('daily_limit', 15)},
@@ -244,7 +247,7 @@ class Api:
             if not fields:
                 return {'ok': False, 'error': 'Отметьте хотя бы одно поле для таблицы'}
 
-            source = payload.get('source') if payload.get('source') in ('2gis', 'both', 'avito') else '2gis'
+            source = payload.get('source') if payload.get('source') in ('2gis', 'both', 'avito') else 'both'
             if source == 'both' and 'sources' not in fields:
                 fields = fields + ['sources']  # колонка «Источник»: 2ГИС / Яндекс / 2ГИС + Яндекс
             if source == 'avito':  # у объявлений: название, цена, адрес, описание, ссылка
@@ -424,6 +427,103 @@ class Api:
             return {'ok': False, 'error': 'Лид больше не в базе'}
         return {'ok': True, 'report': report}
 
+    def audit_review_suggestions(self, lid: str) -> Dict[str, Any]:
+        from .enrich import fetch_2gis
+
+        lead = self._base.get(lid) or {}
+        source = lead.get('url') or ''
+        parsed = urllib.parse.urlsplit(source)
+        host = parsed.hostname or ''
+        if (parsed.scheme != 'https' or parsed.username or parsed.password
+                or not (host == '2gis.ru' or host.endswith('.2gis.ru'))
+                or '/firm/' not in parsed.path):
+            return {'ok': False, 'error': 'У этого лида нет карточки 2ГИС.'}
+        suggestions = fetch_2gis(source, structured_reviews=True).get('reviews', [])
+        if not suggestions:
+            return {'ok': False, 'error': 'Тексты не доступны в карточке. Откройте карту и вставьте отзывы вручную.'}
+        return {'ok': True, 'reviews': suggestions, 'source': source}
+
+    def audit_dadata_key(self, key: str) -> Dict[str, Any]:
+        key = key.strip()
+        if key and not re.fullmatch(r'[A-Za-z0-9_-]{12,160}', key):
+            return {'ok': False, 'error': 'Проверьте формат API-ключа DaData.'}
+        if key:
+            self._settings['dadata_key'] = key
+        else:
+            self._settings.pop('dadata_key', None)
+        save_settings(self._settings)
+        return {'ok': True, 'connected': bool(key)}
+
+    def audit_registry_search(self, lid: str, query: str) -> Dict[str, Any]:
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден.'}
+        key = self._settings.get('dadata_key')
+        if not key:
+            return {'ok': False, 'error': 'Подключите свой ключ DaData или проверьте запись через ФНС.'}
+        try:
+            candidates = registry.lookup(key, query, lead.get('city') or '')
+        except registry.RegistryError as exc:
+            return {'ok': False, 'error': str(exc)}
+        return {'ok': True, 'candidates': candidates}
+
+    def audit_registry_save(self, lid: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+        if not self._base.get(lid):
+            return {'ok': False, 'error': 'Лид не найден.'}
+        try:
+            if fields.get('provider') == 'dadata':
+                key = self._settings.get('dadata_key')
+                if not key:
+                    raise registry.RegistryError('Ключ DaData отключён. Внесите реквизиты вручную.')
+                kind, value = registry.registration_number(str(fields.get('number') or ''))
+                kpp = fields.get('kpp') or ''
+                candidates = registry.lookup(key, value, exact=True, kpp=kpp)
+                record = next((c for c in candidates if c.get(kind) == value and c['kpp'] == kpp), None)
+                if not record:
+                    raise registry.RegistryError('Запись изменилась. Повторите поиск или внесите её через ФНС.')
+            else:
+                record = registry.manual_record(fields)
+        except registry.RegistryError as exc:
+            return {'ok': False, 'error': str(exc)}
+        if not self._base.save_audit(lid, 'registry', record):
+            return {'ok': False, 'error': 'Лид больше не в базе.'}
+        return {'ok': True, 'registry': record}
+
+    def audit_proposal(self, lid: str, fields: Dict[str, Any], action: str = 'save') -> Dict[str, Any]:
+        lead = self._base.get(lid)
+        if not lead:
+            return {'ok': False, 'error': 'Лид не найден.'}
+        saved = self._base.get_audit(lid)
+        if action == 'starter':
+            return {'ok': True, 'draft': proposal.starter(lead, saved.get('report', {}))}
+        if action not in ('save', 'preview', 'export', 'publish'):
+            return {'ok': False, 'error': 'Неизвестное действие.'}
+        draft = proposal.normalize(fields)
+        previous = saved.get('proposal', {})
+        if (previous.get('url')
+                and all(draft[field] == previous.get(field, '') for field in ('preset', 'headline', 'intro'))):
+            draft['url'] = previous['url']
+        if action != 'preview' and not self._base.save_audit(lid, 'proposal', draft):
+            return {'ok': False, 'error': 'Лид больше не в базе.'}
+        page = proposal.render(lead, draft)
+        result = {'ok': True, 'draft': draft}
+        if action == 'preview':
+            result['html'] = page
+        elif action in ('export', 'publish'):
+            try:
+                result['path'] = self._demo_file(lead, page, prefix='Мини-демо', suffix=lid[-6:])
+                if action == 'publish':
+                    token = self._settings.get('vercel_token')
+                    if not token:
+                        return {**result, 'ok': False, 'error': 'Для ссылки подключите свой Vercel. HTML уже сохранён.'}
+                    project = 'proposal-%s-%s' % (demo_site.slugify(lead.get('name') or '', 32), lid[-6:].lower())
+                    draft['url'] = demo_site.vercel_publish(token, project, page)
+                    if not self._base.save_audit(lid, 'proposal', draft):
+                        return {**result, 'ok': False, 'error': 'Лид больше не в базе.'}
+            except (OSError, demo_site.VercelError) as exc:
+                return {**result, 'ok': False, 'error': str(exc)}
+        return result
+
     def base_export(self, status: str = '', search: str = '', fields: Optional[List[str]] = None) -> Dict[str, Any]:
         rows = self._base.list(status, search)
         if not rows:
@@ -531,10 +631,13 @@ class Api:
         self._base.save_demo(lid, content)
         return {'ok': True, 'content': content, 'html': demo_site.render(self._base.get(lid) or {}, content)}
 
-    def _demo_file(self, lead: Dict[str, Any], page: str) -> str:
+    def _demo_file(self, lead: Dict[str, Any], page: str, prefix: str = 'Демо', suffix: str = '') -> str:
         out_dir = os.path.join(self._settings.get('output_dir') or str(default_output_dir()), 'Демо')
         os.makedirs(out_dir, exist_ok=True)
-        path = os.path.join(out_dir, safe_filename('Демо — %s' % lead.get('name')) + '.html')
+        filename = f'{prefix} — {lead.get("name")}'
+        if suffix:
+            filename += f' — {suffix}'
+        path = os.path.join(out_dir, safe_filename(filename) + '.html')
         with open(path, 'w', encoding='utf-8') as f:
             f.write(page)
         return path
@@ -637,8 +740,7 @@ class Api:
 
     def open_chat(self, rec: Dict[str, Any], channel: str, tid: str = '', force: bool = False,
                   text_override: str = '') -> Dict[str, Any]:
-        """Открывает чат с лидом. В WhatsApp текст подставляется сам, для остальных окно кладёт его
-        в буфер обмена. Лид уходит в базу, статус «Новый» меняется на «Написал»."""
+        """Открывает чат с лидом и передаёт черновик поддерживаемому мессенджеру."""
         lead = self._lead_for(rec)
         if not lead:
             return {'ok': False, 'error': 'Пустая карточка'}
@@ -654,6 +756,7 @@ class Api:
         if need_demo and not force:  # окно спросит: сделать демо или отправить без ссылки
             return {'ok': False, 'need_demo': True, 'lid': lead['id'], 'counts': self._base.counts()}
         first = (lead.get(channel) or '').split(', ')[0].strip()
+        prefilled = False
         if channel == 'whatsapp':
             m = re.search(r'(?:wa\.me/|phone=)\+?(\d{10,15})', first)
             num = m.group(1) if m else None
@@ -666,15 +769,24 @@ class Api:
             if not num and not first:
                 return {'ok': False, 'error': 'У этой организации нет WhatsApp'}
             url = ('https://wa.me/%s' % num if num else first) + (('?text=' + urllib.parse.quote(text)) if text and num else '')
+            prefilled = bool(text and num)
+        elif channel == 'telegram':
+            from .tg import draft_link
+
+            prefill_url = draft_link(first, text) if first else ''
+            prefilled = bool(text and prefill_url and len(prefill_url) <= 8000)
+            url = prefill_url if prefilled else first
+            if url.startswith('tg://') and prefill_url and not prefilled:
+                url = prefill_url.split('?', 1)[0]
         else:
             url = first
         if not url.startswith(('http://', 'https://')):
             return {'ok': False, 'error': 'У этой организации нет такого контакта'}
         self.open_url(url)
-        marked = bool(text) and lead.get('status') == 'new'
+        marked = channel != 'telegram' and bool(text) and lead.get('status') == 'new'
         if marked:
             self._base.set_status(lead['id'], 'contacted')
-        return {'ok': True, 'text': text, 'prefilled': channel == 'whatsapp' and bool(text) and '?text=' in url,
+        return {'ok': True, 'text': text, 'prefilled': prefilled,
                 'marked': marked, 'need_demo': need_demo, 'lid': lead['id'], 'counts': self._base.counts()}
 
     # ---------- ИИ ----------
