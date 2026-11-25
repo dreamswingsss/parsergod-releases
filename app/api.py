@@ -215,7 +215,9 @@ class Api:
             'themes': {k: {'title': v['title'], 'bg': v['bg'], 'accent': v['accent'], 'ink': v['ink']}
                        for k, v in demo_site.THEMES.items()},
             'demo_opts': {'fonts': {k: v['title'] for k, v in demo_site.FONTS.items()}, 'layouts': demo_site.LAYOUTS,
-                          'accents': demo_site.ACCENTS, 'sections': demo_site.SECTION_TITLES},
+                          'accents': demo_site.ACCENTS, 'sections': demo_site.SECTION_TITLES,
+                          'corners': {k: v[0] for k, v in demo_site.CORNERS.items()},
+                          'buttons': demo_site.BUTTON_STYLES},
             'ai': ai_mod.public_cfg(s.get('ai')),
             'ai_providers': {k: {'title': v['title'], 'help': v['help']} for k, v in ai_mod.PROVIDERS.items()},
             'tg': {'configured': bool((s.get('tg') or {}).get('api_id')),
@@ -390,17 +392,31 @@ class Api:
         self._base.set_note(lid, note)
         return {'ok': True}
 
-    def audit_open(self, lid: str) -> Dict[str, Any]:
-        lead = self._base.get(lid)
+    def _review_target(self, target: Any) -> tuple[str, Dict[str, Any]]:
+        if isinstance(target, str):
+            return target, self._base.get(target) or {}
+        if not isinstance(target, dict) or not isinstance(target.get('name'), str) or not target['name'].strip():
+            return '', {}
+        lid = str(target.get('id') or target.get('_lid') or lead_id(target))
+        lead = dict(self._base.get(lid) or {})
+        lead.update({k: target[k] for k in ('name', 'category') if isinstance(target.get(k), str) and target[k]})
+        for field in ('url', 'yandex'):
+            value = target.get(field)
+            if isinstance(value, str) and reviews.sources_for({field: value}):
+                lead[field] = value
+        return lid, lead
+
+    def audit_open(self, target: Any) -> Dict[str, Any]:
+        lid, lead = self._review_target(target)
         if not lead:
             return {'ok': False, 'error': 'Лид не найден.'}
         saved = self._base.get_audit(lid)
         return {'ok': True, **saved, 'sources': reviews.sources_for(lead)}
 
-    def audit_collect_reviews(self, lid: str) -> Dict[str, Any]:
+    def audit_collect_reviews(self, target: Any) -> Dict[str, Any]:
         from .browsers import pick_browser
 
-        lead = self._base.get(lid)
+        lid, lead = self._review_target(target)
         if not lead:
             return {'ok': False, 'error': 'Лид не найден.'}
         with self._review_guard:
@@ -418,15 +434,14 @@ class Api:
                               else 'Тексты отзывов недоступны.' if sample['sources']
                               else 'Для этого лида нет ссылки на карточку 2ГИС или Яндекс Карт.'),
                 }
-            if not self._base.save_review_collection(lid, sample):
-                return {'ok': False, 'error': 'Лид больше не в базе.'}
+            self._base.save_review_collection(lid, sample)
             return {'ok': True, 'collection': sample, 'sources': sample['sources']}
         finally:
             with self._review_guard:
                 self._reviews_fetching.discard(lid)
 
-    def audit_reviews(self, lid: str, mode: str, answer: str = '', sample_id: str = '') -> Dict[str, Any]:
-        lead = self._base.get(lid)
+    def audit_reviews(self, target: Any, mode: str, answer: str = '', sample_id: str = '') -> Dict[str, Any]:
+        lid, lead = self._review_target(target)
         if not lead:
             return {'ok': False, 'error': 'Лид не найден.'}
         sample = self._base.get_audit(lid).get('collection') or {}

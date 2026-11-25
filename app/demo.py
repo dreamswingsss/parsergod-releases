@@ -8,11 +8,14 @@
 """
 from __future__ import annotations
 
+import base64
 import html
 import json
 import re
 import time
 import urllib.parse
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # ---------- тексты по сферам ----------
@@ -101,19 +104,65 @@ THEMES = {
                 'accent': '#C2577E', 'accent_ink': '#FFFFFF', 'line': '#F2DEE5', 'font': 'rounded'},
     'premium': {'title': 'Премиум', 'bg': '#111111', 'card': '#1A1A1A', 'ink': '#F3EEE4', 'ink2': '#A99F8E',
                 'accent': '#C9A45C', 'accent_ink': '#111111', 'line': '#2E2A24', 'font': 'serif'},
+    'linen': {'title': 'Лён', 'bg': '#F4EFE4', 'card': '#FEFBF4', 'ink': '#342C20', 'ink2': '#6A5B4B',
+              'accent': '#685938', 'accent_ink': '#FFFFFF', 'line': '#DCD2BF', 'font': 'editorial'},
+    'cobalt': {'title': 'Кобальт', 'bg': '#EEF3FF', 'card': '#FFFFFF', 'ink': '#111F44', 'ink2': '#4E5D7B',
+               'accent': '#264DBB', 'accent_ink': '#FFFFFF', 'line': '#D2DCF7', 'font': 'golos'},
+    'pine': {'title': 'Хвоя', 'bg': '#112B25', 'card': '#1A3A31', 'ink': '#EFF8EE', 'ink2': '#B4CDBD',
+             'accent': '#B8E193', 'accent_ink': '#183216', 'line': '#35584A', 'font': 'golos'},
+    'wine': {'title': 'Вино', 'bg': '#301922', 'card': '#40232F', 'ink': '#F9EDF1', 'ink2': '#D6B7C5',
+             'accent': '#F1B8AB', 'accent_ink': '#391A21', 'line': '#63404F', 'font': 'editorial'},
+    'lavender': {'title': 'Лаванда', 'bg': '#F5F1FC', 'card': '#FFFFFF', 'ink': '#2C2045', 'ink2': '#645477',
+                 'accent': '#6948A3', 'accent_ink': '#FFFFFF', 'line': '#DDD2F0', 'font': 'rounded'},
+    'slate': {'title': 'Графит', 'bg': '#151E29', 'card': '#202D3D', 'ink': '#EDF2FA', 'ink2': '#B1C0D5',
+              'accent': '#B7D2F3', 'accent_ink': '#14263D', 'line': '#3A4B60', 'font': 'compact'},
+    'mono': {'title': 'Моно', 'bg': '#F5F5F1', 'card': '#FFFFFF', 'ink': '#202220', 'ink2': '#585D58',
+             'accent': '#292C29', 'accent_ink': '#FFFFFF', 'line': '#DBDEDA', 'font': 'unbounded'},
 }
 
 FONTS = {
-    'system':  {'title': 'Системный', 'css': '-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif', 'link': ''},
-    'grotesk': {'title': 'Гротеск', 'css': '"Manrope",-apple-system,"Segoe UI",Roboto,Arial,sans-serif',
-                'link': 'Manrope:wght@400;600;700;800'},
-    'serif':   {'title': 'С засечками', 'css': '"Playfair Display",Georgia,"Times New Roman",serif',
-                'link': 'Playfair+Display:wght@500;700'},
-    'rounded': {'title': 'Округлый', 'css': '"Nunito",ui-rounded,"Segoe UI",Roboto,Arial,sans-serif',
-                'link': 'Nunito:wght@400;600;800'},
+    'system':  {'title': 'Системный', 'css': '-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif'},
+    'grotesk': {'title': 'Гротеск', 'css': '"Arial",Helvetica,sans-serif'},
+    'serif':   {'title': 'С засечками', 'css': '"Times New Roman",Times,serif'},
+    'rounded': {'title': 'Округлый', 'css': 'ui-rounded,"Trebuchet MS","Segoe UI",sans-serif'},
+    'golos': {'title': 'Golos Text', 'css': '"Golos Text","Segoe UI",Arial,sans-serif', 'bundle': 'golos-text'},
+    'unbounded': {'title': 'Unbounded', 'css': '"Golos Text","Segoe UI",Arial,sans-serif', 'bundle': 'golos-text',
+                  'heading': 'Unbounded,"Segoe UI",Arial,sans-serif'},
+    'editorial': {'title': 'Georgia', 'css': 'Georgia,"Times New Roman",serif'},
+    'compact': {'title': 'Компактный', 'css': 'Bahnschrift,"Arial Narrow","Liberation Sans Narrow",sans-serif'},
+    'mono': {'title': 'Моноширинный', 'css': 'Consolas,"Liberation Mono",monospace'},
 }
 
-LAYOUTS = {'split': 'Текст + фото', 'cover': 'Фото на весь экран', 'center': 'По центру'}
+LAYOUTS = {'split': 'Текст + фото', 'cover': 'Фото на весь экран', 'center': 'По центру',
+           'reverse': 'Фото слева', 'panorama': 'Панорама'}
+CORNERS = {'soft': ('Мягкие', 14, 0), 'sharp': ('Прямые', 4, -12), 'round': ('Круглые', 999, 10)}
+BUTTON_STYLES = {'fill': 'Заливка', 'outline': 'Контур'}
+
+
+@lru_cache(maxsize=2)
+def _embedded_fonts(with_heading: bool) -> str:
+    directory = Path(__file__).with_name('ui') / 'fonts'
+    families = [('golos-text', 'Golos Text', (400, 700), 'OFL-golos.txt')]
+    if with_heading:
+        families.append(('unbounded', 'Unbounded', (600,), 'OFL-unbounded.txt'))
+    faces = []
+    notices = []
+    for prefix, family, weights, license_file in families:
+        license_path = directory / license_file
+        if not license_path.is_file():
+            continue
+        notices.append(license_path.read_text(encoding='utf-8-sig').replace('--', '—'))
+        for weight in weights:
+            for script, coverage in (('cyrillic', 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116'),
+                                     ('latin', 'U+0000-00FF,U+2000-206F,U+20AC,U+2122,U+2212')):
+                path = directory / f'{prefix}-{script}-{weight}-normal.woff2'
+                try:
+                    encoded = base64.b64encode(path.read_bytes()).decode('ascii')
+                except OSError:
+                    continue
+                faces.append(f'@font-face{{font-family:"{family}";font-weight:{weight};font-display:swap;'
+                             f'src:url(data:font/woff2;base64,{encoded}) format("woff2");unicode-range:{coverage}}}')
+    return '<!--\n' + '\n'.join(notices) + '\n-->\n<style>' + ''.join(faces) + '</style>' if faces else ''
 
 ACCENTS = ['#0F7B63', '#2563EB', '#7C3AED', '#C2577E', '#DC2626', '#EA580C', '#8A5A3B', '#C9A45C', '#111111']
 
@@ -223,6 +272,8 @@ def default_content(lead: Dict[str, Any]) -> Dict[str, Any]:
         'accent': '',
         'font': '',
         'layout': 'split',
+        'corners': 'soft',
+        'button_style': 'fill',
         'photos': [],
         'sections': {
             'offer': {'on': False, 'title': 'Скидка 10% на первый визит',
@@ -247,10 +298,12 @@ def normalize(content: Dict[str, Any], lead: Dict[str, Any]) -> Dict[str, Any]:
     """Доводит старое/неполное содержимое демо до текущего формата."""
     c = dict(content or {})
     base = default_content(lead)
-    for k in ('headline', 'subtitle', 'about', 'cta', 'theme', 'accent', 'font', 'layout', 'photos'):
+    for k in ('headline', 'subtitle', 'about', 'cta', 'theme', 'accent', 'font', 'layout', 'corners', 'button_style', 'photos'):
         c.setdefault(k, base[k])
-    if c.get('theme') not in THEMES:
-        c['theme'] = base['theme']
+    for key, options in (('theme', THEMES), ('font', FONTS), ('layout', LAYOUTS),
+                         ('corners', CORNERS), ('button_style', BUTTON_STYLES)):
+        if not isinstance(c[key], str) or c[key] not in options:
+            c[key] = base[key]
     secs = dict(c.get('sections') or {})
     if 'services' not in secs and isinstance(c.get('services'), list):  # формат 1.1: список строк
         base['sections']['services']['items'] = [{'name': str(s), 'price': '', 'note': ''} for s in c['services'] if s]
@@ -358,9 +411,8 @@ def render(lead: Dict[str, Any], content: Dict[str, Any]) -> str:
     if acc:
         t['accent'], t['accent_ink'] = acc, _ink_on(acc)
     font = FONTS.get(c.get('font') or t['font']) or FONTS['system']
-    font_link = ('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-                 '<link href="https://fonts.googleapis.com/css2?family=%s&display=swap" rel="stylesheet">'
-                 % font['link']) if font['link'] else ''
+    font_styles = _embedded_fonts('heading' in font) if font.get('bundle') else ''
+    _, button_radius, radius_offset = CORNERS[c['corners']]
 
     name = lead.get('name') or 'Демо'
     phone = _first(lead.get('phone'))
@@ -388,17 +440,16 @@ def render(lead: Dict[str, Any], content: Dict[str, Any]) -> str:
     hero_text = ('<div class="hero-t">%s<h1>%s</h1><p class="sub">%s</p><div class="actions">%s%s</div></div>'
                  % (badge, e(c.get('headline')), e(c.get('subtitle')), btn, call))
     if layout == 'cover':
-        bg = ('background-image:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.7)),url(%s)' % photos[0]) if photos \
-            else 'background-image:radial-gradient(1000px 500px at 80% -10%,var(--acc),transparent 60%)'
-        hero = '<section class="hero cover" style="%s"><div class="wrap">%s</div></section>' % (bg, hero_text)
+        image = '<img class="cover-img" src="%s" alt="">' % e(photos[0]) if photos else ''
+        hero = '<section class="hero cover">%s<div class="wrap">%s</div></section>' % (image, hero_text)
     elif layout == 'center':
         hero = '<section class="hero center"><div class="wrap">%s</div></section>' % hero_text
     else:
-        side = ('<div class="hero-img" style="background-image:url(%s)"></div>' % photos[0]) if photos else \
+        side = ('<img class="hero-img" src="%s" alt="%s">' % (e(photos[0]), e(name))) if photos else \
             ('<div class="hero-card"><div class="big">%s</div><p>%s</p></div>'
              % (('★ ' + rating) if rating else e(name[:1].upper()),
                 'средняя оценка гостей в 2ГИС' if rating else e(_first(lead.get('category')))))
-        hero = '<section class="hero split"><div class="wrap grid2">%s%s</div></section>' % (hero_text, side)
+        hero = '<section class="hero %s"><div class="wrap grid2">%s%s</div></section>' % (layout, hero_text, side)
 
     blocks = []
 
@@ -466,9 +517,9 @@ def render(lead: Dict[str, Any], content: Dict[str, Any]) -> str:
     return """<!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title}</title><meta name="description" content="{desc}">{font_link}
+<title>{title}</title><meta name="description" content="{desc}">{font_styles}
 <style>
-:root{{--bg:{bg};--card:{card};--ink:{ink};--ink2:{ink2};--acc:{acc};--acc-ink:{acc_ink};--line:{line};--font:{font}}}
+:root{{--bg:{bg};--card:{card};--ink:{ink};--ink2:{ink2};--acc:{acc};--acc-ink:{acc_ink};--line:{line};--font:{font};--heading:{heading};--button-radius:{button_radius}px;--curve:{radius_offset}px}}
 *{{box-sizing:border-box}}html{{scroll-behavior:smooth}}
 body{{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--font);-webkit-font-smoothing:antialiased}}
 a{{color:inherit}} img{{max-width:100%}}
@@ -477,13 +528,17 @@ header{{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px s
 header .wrap{{display:flex;align-items:center;justify-content:space-between;gap:12px;height:64px}}
 .logo{{font-weight:800;font-size:18px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 nav{{display:flex;gap:18px;font-size:14px;color:var(--ink2)}} nav a{{text-decoration:none}} nav a:hover{{color:var(--ink)}}
-.btn{{display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 24px;border-radius:14px;background:var(--acc);color:var(--acc-ink);font-weight:700;text-decoration:none;white-space:nowrap;border:1px solid var(--acc)}}
+.btn{{display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 24px;border-radius:var(--button-radius);background:var(--acc);color:var(--acc-ink);font-weight:700;text-decoration:none;white-space:nowrap;border:1px solid var(--acc)}}
 .btn.ghost{{background:transparent;color:inherit;border-color:var(--line)}}
 header .btn{{height:40px;padding:0 16px;font-size:14px}}
 .hero{{padding:64px 0 48px}}
 .grid2{{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}}
 .hero.center{{text-align:center}} .hero.center .sub{{margin-left:auto;margin-right:auto}} .hero.center .actions{{justify-content:center}}
-.hero.cover{{color:#fff;background-size:cover;background-position:center;min-height:78vh;display:flex;align-items:flex-end;padding-bottom:64px}}
+.hero.cover{{position:relative;color:#fff;background:#17212C;min-height:78vh;display:flex;align-items:flex-end;padding-bottom:64px}}
+.hero.cover::before,.cover-img{{position:absolute;inset:0;width:100%;height:100%}}
+.cover-img{{object-fit:cover}}
+.hero.cover::before{{z-index:1;content:"";background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.7))}}
+.hero.cover .wrap{{position:relative;z-index:2;width:100%}}
 .hero.cover .sub{{color:rgba(255,255,255,.85)}} .hero.cover .badge{{background:rgba(0,0,0,.35);color:#fff;border-color:rgba(255,255,255,.25)}}
 .hero.cover .btn.ghost{{border-color:rgba(255,255,255,.5)}}
 .badge{{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--ink2)}}
@@ -491,7 +546,7 @@ header .btn{{height:40px;padding:0 16px;font-size:14px}}
 h1{{font-size:clamp(34px,5.4vw,60px);line-height:1.05;letter-spacing:-.025em;margin:18px 0 16px;font-weight:800}}
 .sub{{color:var(--ink2);font-size:19px;margin:0 0 28px;max-width:600px}}
 .actions{{display:flex;gap:10px;flex-wrap:wrap}}
-.hero-img{{aspect-ratio:4/5;border-radius:26px;background:var(--card) center/cover;border:1px solid var(--line)}}
+.hero-img{{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:26px;background:var(--card);border:1px solid var(--line)}}
 .hero-card{{border-radius:26px;background:var(--acc);color:var(--acc-ink);padding:36px;aspect-ratio:4/5;display:flex;flex-direction:column;justify-content:flex-end}}
 .hero-card .big{{font-size:72px;font-weight:800;letter-spacing:-.03em;line-height:1}}
 .hero-card p{{opacity:.8;margin:10px 0 0;font-size:17px}}
@@ -533,10 +588,24 @@ h2{{font-size:clamp(26px,3.4vw,36px);letter-spacing:-.02em;margin:0 0 22px;font-
 footer{{color:var(--ink2);font-size:13px;text-align:center;padding:26px 0 96px}}
 .float{{position:fixed;left:16px;right:16px;bottom:16px;display:none;z-index:6}}
 .float .btn{{width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}}
+.logo,h1,h2{{font-family:var(--heading);overflow-wrap:anywhere}}
+.hero-img,.hero-card,.final{{border-radius:calc(26px + var(--curve))}}
+.about,.offer{{border-radius:calc(22px + var(--curve))}}
+.card,.step,.map{{border-radius:calc(18px + var(--curve))}}
+.svc,.gallery img,.faq details,.box{{border-radius:calc(16px + var(--curve))}}
+.step i{{border-radius:calc(12px + var(--curve))}}
+.reverse .grid2{{grid-template-columns:.9fr 1.1fr}}.reverse .grid2>:last-child{{grid-column:1;grid-row:1}}
+.panorama .grid2{{grid-template-columns:1fr;gap:24px}}
+.panorama .hero-img,.panorama .hero-card{{aspect-ratio:3/1}}
+.outline .btn:not(.ghost){{background:transparent;color:var(--ink);border-color:currentColor}}
+.outline .offer .btn,.outline .final .btn{{color:var(--acc-ink)}}
+.outline .cover .btn{{color:#fff}}.outline .float .btn{{background:var(--card)}}
 @media (max-width:860px){{.grid2,.contacts,.cinfo,.svc-list{{grid-template-columns:1fr}}.hero{{padding:32px 0 24px}}
+.reverse .grid2{{grid-template-columns:1fr}}.reverse .grid2>:last-child{{grid-column:auto;grid-row:auto}}
+.panorama .hero-img,.panorama .hero-card{{aspect-ratio:16/9}}
 .hero-img,.hero-card{{aspect-ratio:16/11}}.gallery{{grid-template-columns:1fr 1fr}}.float{{display:block}}nav,header .btn{{display:none}}}}
 </style></head>
-<body>
+<body class="{button_style}">
 <header><div class="wrap"><div class="logo">{name}</div><nav>{nav}</nav>{head_btn}</div></header>
 {hero}
 {blocks}
@@ -545,9 +614,10 @@ footer{{color:var(--ink2);font-size:13px;text-align:center;padding:26px 0 96px}}
 <div class="float">{btn}</div>
 </body></html>""".format(
         title=e(name + (' — ' + _first(lead.get('category')) if lead.get('category') else '')),
-        desc=e(c.get('subtitle') or ''), font_link=font_link,
+        desc=e(c.get('subtitle') or ''), font_styles=font_styles,
         bg=t['bg'], card=t['card'], ink=t['ink'], ink2=t['ink2'], acc=t['accent'], acc_ink=t['accent_ink'],
-        line=t['line'], font=font['css'], name=e(name),
+        line=t['line'], font=font['css'], heading=font.get('heading', font['css']), name=e(name),
+        button_radius=button_radius, radius_offset=radius_offset, button_style=c['button_style'],
         nav=''.join('<a href="#%s">%s</a>' % (k, e(SECTION_TITLES[k].split(' ')[0]))
                     for k in ('services', 'reviews', 'contacts') if on(k)),
         head_btn=('<a class="btn" href="tel:%s">%s</a>' % (e(tel), e(phone))) if tel else '',

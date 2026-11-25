@@ -6,7 +6,7 @@ from unittest import TestCase
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from app import audit, reviews
+from app import audit, demo, reviews
 from app.api import Api
 from app.base import LeadBase
 from app.tg import draft_link
@@ -125,6 +125,31 @@ class LeadReviewTests(TestCase):
         self.assertEqual(complete.call_args.args[0]['key'], 'buyer-test-key')
         self.assertEqual(self.app.audit_open(self.id)['report']['sample_id'], 'one')
 
+    def test_result_reviews_are_available_before_and_after_opening_demo(self):
+        row = {**LEAD, '_lid': '5749990000', 'name': 'Блеск в центре'}
+        self.assertEqual(len(self.app.audit_open(row)['sources']), 2)
+        with patch('app.reviews.collect', return_value=self.collection):
+            self.assertTrue(self.app.audit_collect_reviews(row)['ok'])
+        self.assertIsNone(self.app._base.get(row['_lid']))
+        self.assertTrue(self.app.audit_reviews(row, 'prompt', sample_id='one')['ok'])
+        opened = self.app.demo_open(row)
+        self.assertEqual(opened['lead']['id'], row['_lid'])
+        self.assertEqual(self.app.audit_open(opened['lead'])['collection'], self.collection)
+        self.assertNotIn('Долго ждали цену.', opened['html'])
+
+    def test_migrates_saved_review_data_from_previous_versions(self):
+        base = self.app._base
+        filename = Path(base._db.execute('PRAGMA database_list').fetchone()['file'])
+        base._db.execute('UPDATE leads SET review_collection=?, review_audit=? WHERE id=?',
+                         (json.dumps(self.collection), '{"sample_id":"one"}', self.id))
+        updated = LeadBase(filename)
+        try:
+            self.assertEqual(updated.get_audit(self.id), {
+                'collection': self.collection, 'report': {'sample_id': 'one'},
+            })
+        finally:
+            updated.close()
+
     def test_source_failure_preserves_stored_reviews_and_prevents_stale_import(self):
         self.app._base.save_review_collection(self.id, self.collection)
         with patch('app.reviews.collect', return_value={'sources': [], 'items': []}):
@@ -152,3 +177,15 @@ class LeadReviewTests(TestCase):
         self.assertFalse(result['marked'])
         self.assertEqual(self.app._base.get(self.id)['status'], 'new')
         self.assertIn('?text=', opened.call_args.args[0])
+
+
+class DemoStyleTests(TestCase):
+    def test_new_styles_render_and_legacy_defaults_are_preserved(self):
+        new = demo.render(LEAD, {'theme': 'cobalt', 'font': 'unbounded', 'layout': 'panorama',
+                                 'corners': 'sharp', 'button_style': 'outline'})
+        for attr in ('#EEF3FF', 'hero panorama', '--button-radius:4px', '<body class="outline">', '--heading:Unbounded'):
+            self.assertIn(attr, new)
+        legacy = demo.render(LEAD, {'theme': 'dark', 'font': 'grotesk', 'layout': 'cover'})
+        self.assertIn('hero cover', legacy)
+        self.assertIn('--button-radius:14px', legacy)
+        self.assertNotIn('fonts.googleapis.com', legacy)

@@ -98,8 +98,22 @@ function renderReviewReport(state) {
   if (!report.summary && !report.topics?.length) reviewText(target, 'p', 'Общих тем в выборке нет.', 'hint');
 }
 
-async function openAudit(rec, trigger) {
-  const state = {lid: rec.id, trigger, collection: {}, report: {}, sources: [], loading: true, analyzing: false, showAll: false};
+function reviewTarget({id, _lid, _id, name, address, category, url, yandex}) {
+  return {id, _lid, _id, name, address, category, url, yandex};
+}
+
+function reviewButton(rec) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ch review-open';
+  button.textContent = 'Отзывы';
+  button.title = 'Отзывы · ' + (rec.name || 'Компания');
+  button.onclick = () => openAudit(rec, button);
+  return button;
+}
+
+async function openAudit(rec, trigger, onClose) {
+  const state = {target: reviewTarget(rec), trigger, onClose, collection: {}, report: {}, sources: [], loading: true, analyzing: false, showAll: false};
   reviewState = state;
   $('#auditTitle').textContent = 'Отзывы · ' + (rec.name || 'Компания');
   $('#reviewLoadStatus').textContent = '';
@@ -111,12 +125,13 @@ async function openAudit(rec, trigger) {
   $('#auditClose').focus();
   renderReviewScreen(state);
   try {
-    const res = await api().audit_open(rec.id);
+    const res = await api().audit_open(state.target);
     if (reviewState !== state) return;
     if (!res.ok) { $('#reviewLoadStatus').textContent = res.error; return; }
     state.collection = res.collection || {};
     state.report = res.report || {};
-    state.sources = state.collection.sources || res.sources || [];
+    state.sources = (res.sources || []).map(source =>
+      (state.collection.sources || []).find(saved => saved.url === source.url) || source);
     state.loading = false;
     if (!state.collection.items?.length && state.sources.length) {
       await loadReviewTexts(state);
@@ -139,7 +154,7 @@ async function loadReviewTexts(state) {
   $('#reviewLoadStatus').textContent = 'Подтягиваем отзывы с карт…';
   renderReviewScreen(state);
   try {
-    const res = await api().audit_collect_reviews(state.lid);
+    const res = await api().audit_collect_reviews(state.target);
     if (reviewState !== state) return;
     if (!res.ok) { $('#reviewLoadStatus').textContent = res.error; return; }
     const incoming = res.collection || {};
@@ -173,7 +188,7 @@ async function analyzeReviews(mode) {
   $('#reviewAnalysisStatus').textContent = mode === 'ai' ? 'ИИ читает отзывы…' : '';
   renderReviewScreen(state);
   try {
-    const res = await api().audit_reviews(state.lid, mode, answer, state.collection.id);
+    const res = await api().audit_reviews(state.target, mode, answer, state.collection.id);
     if (reviewState !== state) return;
     if (!res.ok) { $('#reviewAnalysisStatus').textContent = res.error; return; }
     if (mode === 'prompt') {
@@ -193,15 +208,108 @@ async function analyzeReviews(mode) {
   }
 }
 
+function demoReviewChoices(collection, report) {
+  const items = collection.items || [];
+  const topics = report.sample_id === collection.id ? report.topics || [] : [];
+  const choices = [];
+  for (const topic of topics) {
+    const evidence = [...new Set(topic.reviews || [])].map(id => items[id - 1]).filter(Boolean);
+    if (!evidence.length || !topic.title) continue;
+    choices.push({
+      label: topic.title + ' · ' + reviewCountLabel(evidence.length),
+      evidence: evidence.map(item => [(item.sources || []).join(', '), item.text].filter(Boolean).join(' · ')).join('\n\n'),
+      note: (evidence.length === 1 ? 'В одном из отзывов встречается тема «' : 'В нескольких отзывах встречается тема «')
+        + topic.title + '».',
+    });
+  }
+  for (const item of items) {
+    if (!item.text) continue;
+    const limit = 120;
+    const line = item.text.replace(/\s+/g, ' ').trim();
+    const excerpt = line.length > limit ? line.slice(0, limit).trimEnd() + '…' : line;
+    if (!excerpt) continue;
+    const sources = (item.sources || []).join(', ');
+    choices.push({
+      label: [sources, excerpt].filter(Boolean).join(' · '),
+      evidence: [sources, item.text].filter(Boolean).join(' · '),
+      note: 'В одном из отзывов пишут «' + excerpt.replace(/(?<!\.)\.$/, '') + '».',
+    });
+  }
+  return choices;
+}
+
+async function renderDemoReviewContext() {
+  const demo = DM;
+  const target = $('#dmReview');
+  const state = $('#dmReviewState');
+  const open = $('#dmReviewOpen');
+  const fields = $('#dmReviewFields');
+  const picker = $('#dmReviewPick');
+  const rec = {...demo.lead, url: demo.rec.url || demo.lead.url, yandex: demo.rec.yandex || demo.lead.yandex};
+  target.hidden = isAvito(demo.lead);
+  if (target.hidden) return;
+  fields.hidden = true;
+  open.disabled = false;
+  open.onclick = () => openAudit(rec, open, () => {
+    if (DM === demo && !$('#demoModal').hidden) renderDemoReviewContext();
+  });
+  state.textContent = 'Проверяем сохранённые отзывы…';
+  const selected = demo.reviewChoices[picker.value]?.label;
+  const res = await api().audit_open(reviewTarget(rec)).catch(() => null);
+  if (DM !== demo) return;
+  if (!res?.ok) {
+    state.textContent = res?.error || 'Не удалось проверить отзывы.';
+    return;
+  }
+  const collection = res.collection || {};
+  const choices = demoReviewChoices(collection, res.report || {});
+  demo.reviewChoices = choices;
+  open.disabled = !res.sources?.length && !choices.length;
+  state.textContent = choices.length
+    ? reviewCountLabel(collection.items.length) + ' в выборке. Выберите, что упомянуть.'
+    : res.sources?.length ? 'Откройте отзывы, чтобы загрузить тексты с карт.' : 'Ссылки на карточки 2ГИС и Яндекс Карт отсутствуют.';
+  picker.replaceChildren(new Option('Выбрать тему или отзыв', ''));
+  choices.forEach((item, i) => picker.add(new Option(item.label, String(i))));
+  const index = choices.findIndex(item => item.label === selected);
+  picker.value = index < 0 ? '' : String(index);
+  fields.hidden = !choices.length;
+  syncDemoReviewChoice();
+}
+
+function syncDemoReviewChoice() {
+  const choice = DM.reviewChoices[$('#dmReviewPick').value];
+  $('#dmReviewSource').textContent = choice?.evidence || '';
+  $('#dmReviewAdd').disabled = !choice || !$('#dmReviewIdea').value.trim();
+  $('#dmReviewRemove').hidden = !DM.reviewPart || !$('#dmMsg').value.includes(DM.reviewPart);
+}
+
+function withDemoReview(text, note) {
+  return note && !text.includes(note) ? [text.trimEnd(), note].filter(Boolean).join('\n\n') : text;
+}
+
+function changeDemoReview(note) {
+  const message = $('#dmMsg');
+  const previous = DM.reviewPart;
+  const text = previous && message.value.includes(previous)
+    ? message.value.replace(previous, note).trimEnd() : withDemoReview(message.value, note);
+  DM.reviewPart = note;
+  message.value = text;
+  syncDemoReviewChoice();
+}
+
 function mountReviewWorkflow() {
   $('#auditClose').onclick = () => {
-    const trigger = reviewState?.trigger;
+    const state = reviewState;
     reviewState = null;
     $('#auditModal').hidden = true;
-    trigger?.focus();
+    state?.trigger?.focus();
+    state?.onClose?.();
   };
   $('#auditModal').addEventListener('keydown', event => {
-    if (event.key === 'Escape') $('#auditClose').click();
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      $('#auditClose').click();
+    }
   });
   $('#reviewRefresh').onclick = () => { if (reviewState) loadReviewTexts(reviewState); };
   $('#reviewShowMore').onclick = () => {
@@ -213,4 +321,17 @@ function mountReviewWorkflow() {
   $('#reviewAnalyze').onclick = () => analyzeReviews('ai');
   $('#reviewPrompt').onclick = () => analyzeReviews('prompt');
   $('#reviewApply').onclick = () => analyzeReviews('import');
+  $('#dmReviewPick').onchange = $('#dmReviewIdea').oninput = syncDemoReviewChoice;
+  $('#dmReviewAdd').onclick = () => {
+    const choice = DM.reviewChoices[$('#dmReviewPick').value];
+    const idea = $('#dmReviewIdea').value.trim();
+    if (!choice || !idea) return;
+    const sentence = idea[0].toLocaleLowerCase('ru') + idea.slice(1);
+    changeDemoReview(choice.note + ' На сайте можно ' + sentence + (/[.!?…]$/.test(sentence) ? '' : '.'));
+  };
+  $('#dmReviewRemove').onclick = () => changeDemoReview('');
+  $('#dmMsg').addEventListener('input', () => {
+    if (DM.reviewPart && !$('#dmMsg').value.includes(DM.reviewPart)) DM.reviewPart = '';
+    syncDemoReviewChoice();
+  });
 }

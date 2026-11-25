@@ -437,6 +437,12 @@ tbody.ghost td{height:31px}
 .conn-b input:not([type=checkbox]),.conn-b select,.conn-b textarea{width:100%;margin-top:8px;height:38px;border:1px solid var(--grid);background:var(--paper);border-radius:12px;padding:0 12px;outline:0;color:var(--ink);font:inherit}
 .conn-b textarea{height:auto;padding:8px 12px;resize:vertical}
 .conn-b input:focus,.conn-b select:focus,.conn-b textarea:focus{border-color:#55555E}
+.conn-b .tplpick{align-items:stretch}
+.conn-b .tplpick > :is(select,button){box-sizing:border-box;height:40px;min-height:40px;margin:0;padding:0 12px}
+.conn-b .tplpick > select{width:auto}
+#auditModal{z-index:44}
+.ch.review-open{width:auto;padding:0 8px;font:500 11px/1 Golos,sans-serif;white-space:nowrap;background:var(--g2);color:var(--ink);border:1px solid var(--grid)}
+.ch.review-open:hover{border-color:var(--ink-3)}
 .conn-b .btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
 .conn-b .ok{color:#3DDC84}.conn-b .bad{color:#FF7A7F}.conn-b .warnx{color:#F5C84B}
 .detected{margin-top:12px;padding:12px 12px;border:1px solid rgba(61,220,132,.35);background:rgba(61,220,132,.06);border-radius:12px}
@@ -475,7 +481,17 @@ tbody.ghost td{height:31px}
 .methods button[aria-pressed=true]{border-color:var(--ink);background:var(--gutter)}
 .methods button:disabled{opacity:.45;cursor:default}
 .custom-on{border:1px solid rgba(245,200,75,.45);background:rgba(245,200,75,.08);color:#F5C84B;border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:12px}
-.themes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px}
+.demo-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.demo-choices button{min-height:36px}
+#dmReview{display:grid;gap:8px;margin:12px 0 18px;padding:12px;border:1px solid var(--grid);border-radius:var(--radius-m)}
+#dmReview[hidden],#dmReviewFields[hidden]{display:none}
+#dmReviewFields{display:grid;gap:8px}
+#dmReview .hint,#dmReview label{margin:0}
+#dmReview select,#dmReview input{width:100%}
+#dmReview select{min-height:36px;padding:0 10px;border:1px solid var(--grid);border-radius:var(--radius-s);background:var(--paper);color:var(--ink);font:inherit}
+#dmReviewSource{max-height:130px;overflow:auto;white-space:pre-line;overflow-wrap:anywhere}
+#dmReview .btn{justify-self:start}
 .themes button{border:1.5px solid var(--grid);border-radius:12px;padding:0;cursor:pointer;overflow:hidden;background:transparent;color:var(--ink-2);font-size:12px;font-weight:500}
 .themes button .sw{display:block;height:34px;position:relative}
 .themes button .sw i{position:absolute;right:6px;bottom:6px;width:14px;height:14px;border-radius:50%}
@@ -897,8 +913,10 @@ details.howto>*:not(summary){margin-top:8px}
           <div id="mBuilder">
             <div class="pcard"><div class="pcard-h"><b>Стиль</b></div><div class="themes" id="dmThemes"></div>
               <div class="sub-l">Цвет кнопок и акцентов</div><div class="accents" id="dmAccents"></div>
-              <div class="sub-l">Шрифт</div><div class="seg" id="dmFonts"></div>
-              <div class="sub-l">Первый экран</div><div class="seg" id="dmLayouts"></div></div>
+              <div class="sub-l">Шрифт</div><div class="seg demo-choices" id="dmFonts"></div>
+              <div class="sub-l">Первый экран</div><div class="seg demo-choices" id="dmLayouts"></div>
+              <div class="sub-l">Скругление</div><div class="seg demo-choices" id="dmCorners"></div>
+              <div class="sub-l">Кнопки</div><div class="seg demo-choices" id="dmButtons"></div></div>
             <div class="pcard"><div class="pcard-h"><b>Главные тексты</b><button class="linkbtn" id="dmReset">Сбросить</button></div>
               <label>Заголовок</label><input type="text" id="dmHeadline" maxlength="120">
               <label>Подзаголовок</label><input type="text" id="dmSubtitle" maxlength="200">
@@ -942,6 +960,18 @@ details.howto>*:not(summary){margin-top:8px}
             <div class="btnrow"><button class="btn primary" id="dmPublish">Опубликовать на Vercel</button><button class="btn" id="dmFileBtn">Сохранить HTML-файл</button></div>
             <div class="res" id="dmRes"></div></div>
           <div class="pcard"><div class="pcard-h"><b>Сообщение владельцу</b><small>Готовый текст со ссылкой на демо — проверьте и отправьте</small></div>
+            <div id="dmReview" hidden>
+              <div class="pcard-h"><b>Отзывы для сообщения</b><button type="button" class="linkbtn" id="dmReviewOpen">Открыть отзывы</button></div>
+              <p class="hint" id="dmReviewState" role="status"></p>
+              <div id="dmReviewFields" hidden>
+                <label for="dmReviewPick">Что упомянуть</label>
+                <select id="dmReviewPick"></select>
+                <p class="hint" id="dmReviewSource"></p>
+                <label for="dmReviewIdea">Что можно улучшить на сайте</label>
+                <input type="text" id="dmReviewIdea" maxlength="200" placeholder="Например, показать свободное время для записи">
+                <div class="btnrow"><button type="button" class="btn" id="dmReviewAdd" disabled>Добавить в сообщение</button><button type="button" class="linkbtn" id="dmReviewRemove" hidden>Убрать из сообщения</button></div>
+              </div>
+            </div>
             <div class="msgpick"><span>Текст:</span><select id="dmTpl"></select><button class="linkbtn" id="dmMsgRe">Обновить</button></div>
             <textarea id="dmMsg" rows="6" placeholder="Выберите шаблон или ИИ — здесь появится сообщение"></textarea>
             <div class="hint" id="dmMsgNote"></div>
@@ -1218,6 +1248,7 @@ $('#onlyPhones').onclick = () => { S.fields = S.fields.filter(k => (FIELDS.find(
 
 /* ---------- лист ---------- */
 let headerKeys = [];
+let showReviewColumn = false;
 const colLetter = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
 function currentKeys(withQuery) {
   if (S.source === 'avito') {
@@ -1230,15 +1261,17 @@ function currentKeys(withQuery) {
 }
 function renderHeader(withQuery) {
   headerKeys = currentKeys(withQuery);
+  showReviewColumn = S.source !== 'avito';
+  const columns = showReviewColumn ? [...headerKeys, '_review_action'] : headerKeys;
   const EXTRA = {_query: 'Запрос', sources: 'Источник', price: 'Цена', snippet: 'Описание'};
-  const title = k => EXTRA[k] || (FIELDS.find(f => f.key === k) || {title: k}).title;
+  const title = k => k === '_review_action' ? 'Тексты отзывов' : EXTRA[k] || (FIELDS.find(f => f.key === k) || {title: k}).title;
   const thead = $('#sheet thead');
-  thead.innerHTML = '<tr class="letters"><th class="n"></th>' + headerKeys.map((_, i) => '<th>' + colLetter(i) + '</th>').join('') + '</tr>'
-    + '<tr class="titles"><th class="n">1</th>' + headerKeys.map(k => '<th></th>').join('') + '</tr>';
-  thead.querySelectorAll('tr.titles th:not(.n)').forEach((th, i) => th.textContent = title(headerKeys[i]));
+  thead.innerHTML = '<tr class="letters"><th class="n"></th>' + columns.map((_, i) => '<th>' + colLetter(i) + '</th>').join('') + '</tr>'
+    + '<tr class="titles"><th class="n">1</th>' + columns.map(() => '<th></th>').join('') + '</tr>';
+  thead.querySelectorAll('tr.titles th:not(.n)').forEach((th, i) => th.textContent = title(columns[i]));
   if (!shown) {
     const tb = $('#sheet tbody'); tb.className = 'ghost';
-    tb.innerHTML = Array.from({length: 18}, (_, r) => '<tr><td class="n">' + (r + 2) + '</td>' + headerKeys.map(() => '<td></td>').join('') + '</tr>').join('');
+    tb.innerHTML = Array.from({length: 18}, (_, r) => '<tr><td class="n">' + (r + 2) + '</td>' + columns.map(() => '<td></td>').join('') + '</tr>').join('');
   }
 }
 function cell(k, v) {
@@ -1257,6 +1290,14 @@ function cell(k, v) {
   } else td.textContent = text;
   td.title = text;
   return td;
+}
+function appendResultCells(tr, rec) {
+  headerKeys.forEach(k => tr.appendChild(cell(k, rec[k])));
+  if (showReviewColumn) {
+    const td = document.createElement('td');
+    if (!isAvito(rec)) td.appendChild(reviewButton(rec));
+    tr.appendChild(td);
+  }
 }
 /* ---------- карточки ---------- */
 // Мессенджеры показываются всегда (нет контакта — кнопка бледная), сайт и 2ГИС — только если есть.
@@ -1309,6 +1350,7 @@ function card(r, inBase) {
     if (ok || waPhone) b.onclick = () => chat ? openChat(r, k, c) : api().open_url(url); else b.disabled = true;
     (k === 'url' || k === 'yandex' ? maps : links).appendChild(b);
   });
+  if (!inBase && !isAvito(r)) maps.appendChild(reviewButton(r));
   if (links.children.length) c.appendChild(links); else maps.className = 'links';  // Авито: одна строка со ссылкой
   if (maps.children.length) c.appendChild(maps);
   const lidOf = r.id || r._lid;
@@ -1337,12 +1379,6 @@ function card(r, inBase) {
     };
     foot.append(un, st);
     c.appendChild(foot);
-    if (!isAvito(r)) {
-      const check = document.createElement('button');
-      check.type = 'button'; check.className = 'demobtn'; check.textContent = 'Отзывы';
-      check.onclick = () => openAudit(r, check);
-      c.appendChild(check);
-    }
     const note = document.createElement('textarea'); note.className = 'note'; note.rows = 1; note.placeholder = 'Заметка: о чём договорились, когда написать…'; note.value = r.note || '';
     note.onchange = () => api().base_note(r.id, note.value);
     c.appendChild(note);
@@ -1465,7 +1501,7 @@ function renderDots() {
 /* ---------- демо-сайт: мастер в 3 шага ---------- */
 let DM = null;          // {lead, content, rec}
 let DMC = {ai: false, vc: false};  // ключ ИИ и токен Vercel подтверждены в этом окне демо
-let DOPTS = {fonts: {}, layouts: {}, accents: [], sections: {}};
+let DOPTS = {fonts: {}, layouts: {}, corners: {}, buttons: {}, accents: [], sections: {}};
 let dmMethod = 'builder', dmOpenSec = null;
 const SEC_FIELDS = {
   services: {cols: [['name', 'Услуга'], ['price', 'Цена: от 1 500 ₽']], blank: {name: '', price: '', note: ''}},
@@ -1479,9 +1515,12 @@ async function openDemo(r) {
   if (!res.ok) { toast(res.error); return; }
   if (res.counts) setCounts(res.counts);
   if (!BASE_IDS.has(res.lead.id)) { BASE_IDS.add(res.lead.id); markFound(res.lead.id); }
-  DM = {lead: res.lead, content: res.content, rec: r};
+  DM = {lead: res.lead, content: res.content, rec: r, reviewChoices: [], reviewPart: '', messageRequest: 0, previewRequest: 0};
+  $('#dmReviewIdea').value = ''; $('#dmReviewPick').replaceChildren(); $('#dmReviewFields').hidden = true;
   DMC = {ai: false, vc: false}; vcEdit = false; aiEdit = false; aiGen.seq++; aiBusy(false); $('#dmMsg').value = ''; $('#dmMsg').dataset.lid = '';
-  $('#dmMsgAiBox').hidden = true; $('#dmMsgWish').value = ''; $('#dmMsgAi').innerHTML = icon('i-wand') + 'Сгенерировать ИИ';
+  $('#dmMsgAiBox').hidden = true; $('#dmMsgWish').value = '';
+  const aiButton = $('#dmMsgAi');
+  aiButton.disabled = false; delete aiButton.dataset.busy; aiButton.innerHTML = icon('i-wand') + 'Сгенерировать ИИ';
   renderAI(); renderVercel();
   $('#dmTitle').textContent = res.lead.name;
   $('#dmTitle').title = res.lead.name;
@@ -1544,13 +1583,15 @@ function fillDemo() {
   auto.onclick = () => { c.accent = ''; fillDemo(); preview(); }; ac.appendChild(auto);
   DOPTS.accents.forEach(col => { const b = document.createElement('button'); b.type = 'button'; b.style.background = col; b.title = col; b.setAttribute('aria-pressed', String((c.accent || '').toLowerCase() === col.toLowerCase()));
     b.onclick = () => { c.accent = col; fillDemo(); preview(); }; ac.appendChild(b); });
-  const pick = document.createElement('input'); pick.type = 'color'; pick.title = 'Свой цвет'; pick.value = c.accent || '#0F7B63';
+  const pick = document.createElement('input'); pick.type = 'color'; pick.title = 'Свой цвет'; pick.value = c.accent || THEMES[c.theme]?.accent || '#0F7B63';
   pick.oninput = () => { c.accent = pick.value; clearTimeout(preview.t); preview.t = setTimeout(preview, 250); }; pick.onchange = () => fillDemo(); ac.appendChild(pick);
   const seg = (id, opts, key, def) => { const box = $(id); box.innerHTML = ''; Object.entries(opts).forEach(([k, v]) => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = v; b.setAttribute('aria-pressed', String((c[key] || def) === k));
     b.onclick = () => { c[key] = k; fillDemo(); preview(); }; box.appendChild(b); }); };
   seg('#dmFonts', DOPTS.fonts, 'font', (THEMES[c.theme] || {}).font || 'grotesk');
   seg('#dmLayouts', DOPTS.layouts, 'layout', 'split');
+  seg('#dmCorners', DOPTS.corners, 'corners', 'soft');
+  seg('#dmButtons', DOPTS.buttons, 'button_style', 'fill');
   $('#dmHeadline').value = c.headline || ''; $('#dmSubtitle').value = c.subtitle || ''; $('#dmCta').value = c.cta || '';
   renderSecs();
 }
@@ -1606,7 +1647,12 @@ function readDemo() {
   Object.assign(DM.content, {headline: $('#dmHeadline').value, subtitle: $('#dmSubtitle').value, cta: $('#dmCta').value, wishes: $('#dmWish').value});
   return DM.content;
 }
-async function preview() { if (!DM) return; $('#dmFrame').srcdoc = await api().demo_preview(DM.lead.id, readDemo()); }
+async function preview() {
+  if (!DM) return;
+  const demo = DM, request = ++demo.previewRequest;
+  const html = await api().demo_preview(demo.lead.id, readDemo());
+  if (DM === demo && request === demo.previewRequest) $('#dmFrame').srcdoc = html;
+}
 ['#dmHeadline', '#dmSubtitle', '#dmCta'].forEach(id => $(id).addEventListener('input', () => { DM.content.custom_html = ''; $('#dmCustom').hidden = true; previewSoon(); }));
 document.querySelectorAll('#dmMethods button').forEach(b => b.onclick = () => {
   dmMethod = b.dataset.m; fillDemo();
@@ -1704,17 +1750,22 @@ function renderPublish() {
   sel.innerHTML = '<option value="">— выберите —</option>' + (aiOn() ? '<option value="__ai__">ИИ под этого лида</option>' : '')
     + TEMPLATES.map(t => '<option value="' + esc(t.id) + '">' + esc(t.title) + '</option>').join('');
   sel.value = ACTIVE_TPL;
+  renderDemoReviewContext();
   if (!$('#dmMsg').value || $('#dmMsg').dataset.lid !== DM.lead.id) loadDemoMsg();
 }
 async function loadDemoMsg() {
+  const demo = DM, request = ++demo.messageRequest;
   const tid = $('#dmTpl').value, ta = $('#dmMsg'), note = $('#dmMsgNote');
-  ta.dataset.lid = DM.lead.id; note.textContent = '';
-  if (!tid) { ta.value = ''; return; }
-  if (tid === '__ai__') { ta.value = ''; ta.placeholder = 'ИИ пишет сообщение…'; }
-  const r = await api().message_for(DM.lead.id, tid);
+  ta.dataset.lid = demo.lead.id; note.textContent = '';
+  if (!tid) { ta.value = demo.reviewPart; syncDemoReviewChoice(); return; }
+  if (tid === '__ai__') ta.placeholder = 'ИИ пишет сообщение…';
+  const before = ta.value;
+  const r = await api().message_for(demo.lead.id, tid).catch(() => ({ok: false, error: 'Не удалось подготовить сообщение.'}));
+  if (DM !== demo || request !== demo.messageRequest) return;
   ta.placeholder = 'Выберите шаблон или ИИ — здесь появится сообщение';
   if (!r.ok) { note.textContent = r.error; return; }
-  ta.value = r.text;
+  if (ta.value === before || ta.value === withDemoReview(before, demo.reviewPart)) ta.value = withDemoReview(r.text, demo.reviewPart);
+  syncDemoReviewChoice();
   if (r.no_demo) note.textContent = 'Ссылки на демо пока нет — опубликуйте выше, и текст обновится сам.';
 }
 $('#dmTpl').onchange = () => { ACTIVE_TPL = $('#dmTpl').value; api().set_active_template(ACTIVE_TPL); renderTplSelect(); loadDemoMsg(); };
@@ -1724,12 +1775,18 @@ $('#dmMsgAi').onclick = async () => {
   renderAI();
   if (!aiOn()) { toast('Вставьте API-ключ ниже — и сообщение сгенерируется'); return; }
   if (!DMC.ai) { toast('Ключ взят из Настроек — подтвердите его ниже'); return; }
+  const demo = DM, request = ++demo.messageRequest;
   const b = $('#dmMsgAi'), tid = $('#dmTpl').value === '__ai__' ? '' : $('#dmTpl').value;
+  const before = $('#dmMsg').value;
   b.disabled = true; b.dataset.busy = '1'; b.textContent = 'ИИ пишет…';
-  const r = await api().message_ai(DM.lead.id, tid, $('#dmMsgWish').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
+  const r = await api().message_ai(demo.lead.id, tid, $('#dmMsgWish').value).catch(e => ({ok: false, error: 'Ошибка: ' + ((e && e.message) || e)}));
+  if (DM !== demo) return;
   b.disabled = false; delete b.dataset.busy; b.innerHTML = icon('i-wand') + (r.ok ? 'Сгенерировать ещё' : 'Сгенерировать ИИ');
+  if (request !== demo.messageRequest) return;
   if (!r.ok) { toast(r.error); $('#dmMsgNote').textContent = r.error; return; }
-  $('#dmMsg').value = r.text; $('#dmMsgNote').textContent = DM.lead.demo_url || DEMO_URLS[DM.lead.id] ? '' : 'Ссылки на демо пока нет — опубликуйте выше и сгенерируйте ещё раз.';
+  if ($('#dmMsg').value === before || $('#dmMsg').value === withDemoReview(before, demo.reviewPart)) $('#dmMsg').value = withDemoReview(r.text, demo.reviewPart);
+  syncDemoReviewChoice();
+  $('#dmMsgNote').textContent = demo.lead.demo_url || DEMO_URLS[demo.lead.id] ? '' : 'Ссылки на демо пока нет — опубликуйте выше и сгенерируйте ещё раз.';
 };
 $('#dmMsgCopy').onclick = () => { if (!$('#dmMsg').value.trim()) { toast('Сначала выберите текст'); return; } copyText($('#dmMsg').value, true); toast('Текст скопирован — вставьте его владельцу в любой мессенджер'); };
 function setDmRes(url, path) {
@@ -2151,7 +2208,7 @@ function appendRows(rows) {
     if (shown > MAX_ROWS_DOM) continue;
     const tr = document.createElement('tr'); tr.className = 'fresh';
     const n = document.createElement('td'); n.className = 'n'; n.textContent = shown + 1; tr.appendChild(n);
-    headerKeys.forEach(k => tr.appendChild(cell(k, r[k])));
+    appendResultCells(tr, r);
     frag.appendChild(tr);
     cfrag.appendChild(card(r));
   }
@@ -2164,7 +2221,7 @@ function updateRows(list) {  // строка 2ГИС дополнилась да
   for (const {i, row} of list) {
     if (i >= MAX_ROWS_DOM) continue;
     const tr = trs[i];
-    if (tr) { const n = tr.firstChild; tr.innerHTML = ''; tr.appendChild(n); headerKeys.forEach(k => tr.appendChild(cell(k, row[k]))); }
+    if (tr) { const n = tr.firstChild; tr.innerHTML = ''; tr.appendChild(n); appendResultCells(tr, row); }
     if (cs[i]) cs[i].replaceWith(card(row));
   }
 }
@@ -2247,7 +2304,7 @@ function finish(st) {
     m.className = 'msg';
     m.textContent = has || st.state === 'stopped' ? '' : 'По этим условиям ничего не нашлось. Попробуйте ослабить фильтры или изменить запрос.';
   }
-  if (shown > MAX_ROWS_DOM) { const tr = document.createElement('tr'); tr.innerHTML = '<td class="n"></td><td colspan="' + headerKeys.length + '" class="muted"></td>'; tr.lastChild.textContent = 'И ещё ' + (shown - MAX_ROWS_DOM) + ' строк — они в Excel-файле'; $('#sheet tbody').appendChild(tr);
+  if (shown > MAX_ROWS_DOM) { const tr = document.createElement('tr'); tr.innerHTML = '<td class="n"></td><td colspan="' + (headerKeys.length + Number(showReviewColumn)) + '" class="muted"></td>'; tr.lastChild.textContent = 'И ещё ' + (shown - MAX_ROWS_DOM) + ' строк — они в Excel-файле'; $('#sheet tbody').appendChild(tr);
     const more = document.createElement('div'); more.className = 'card'; more.style.justifyContent = 'center'; more.style.color = 'var(--ink-3)'; more.textContent = tr.lastChild.textContent; $('#cards').appendChild(more); }
   api().recent().then(renderRecent);
 }

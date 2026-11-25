@@ -43,6 +43,11 @@ CREATE TABLE IF NOT EXISTS templates (
 );
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS sends (lead_id TEXT, channel TEXT, ok INTEGER, info TEXT, at REAL);
+CREATE TABLE IF NOT EXISTS review_cache (
+  lead_id    TEXT PRIMARY KEY,
+  report     TEXT NOT NULL DEFAULT '',
+  collection TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS batches (
   id         TEXT PRIMARY KEY,
   title      TEXT NOT NULL,
@@ -131,6 +136,9 @@ class LeadBase:
             for col, sql in _MIGRATIONS:
                 if col not in cols:
                     self._db.execute(sql)
+            self._db.execute("""INSERT OR IGNORE INTO review_cache(lead_id, report, collection)
+                                SELECT id, review_audit, review_collection FROM leads
+                                WHERE review_audit <> '' OR review_collection <> ''""")
             if not self._db.execute("SELECT v FROM meta WHERE k='templates_seeded'").fetchone():
                 for i, (tid, title, body) in enumerate(DEFAULT_TEMPLATES):
                     self._db.execute('INSERT OR IGNORE INTO templates(id,title,body,pos) VALUES (?,?,?,?)',
@@ -339,22 +347,23 @@ class LeadBase:
     def get_audit(self, lid: str) -> Dict[str, Any]:
         with self._lock:
             row = self._db.execute(
-                'SELECT review_audit, review_collection FROM leads WHERE id=?', (lid,)
+                'SELECT report, collection FROM review_cache WHERE lead_id=?', (lid,)
             ).fetchone()
         if row is None:
             return {}
-        return {'report': json.loads(row['review_audit'] or '{}'),
-                'collection': json.loads(row['review_collection'] or '{}')}
+        return {'report': json.loads(row['report'] or '{}'),
+                'collection': json.loads(row['collection'] or '{}')}
 
     def save_review_collection(self, lid: str, sample: Dict[str, Any]) -> bool:
         with self._lock:
-            return self._db.execute('UPDATE leads SET review_collection=? WHERE id=?',
-                                    (json.dumps(sample, ensure_ascii=False), lid)).rowcount == 1
+            return self._db.execute("""INSERT INTO review_cache(lead_id, collection) VALUES (?, ?)
+                                       ON CONFLICT(lead_id) DO UPDATE SET collection=excluded.collection""",
+                                    (lid, json.dumps(sample, ensure_ascii=False))).rowcount == 1
 
     def save_review_report(self, lid: str, sample: Dict[str, Any], report: Dict[str, Any]) -> bool:
         with self._lock:
             return self._db.execute(
-                'UPDATE leads SET review_audit=? WHERE id=? AND review_collection=?',
+                'UPDATE review_cache SET report=? WHERE lead_id=? AND collection=?',
                 (json.dumps(report, ensure_ascii=False), lid, json.dumps(sample, ensure_ascii=False)),
             ).rowcount == 1
 
